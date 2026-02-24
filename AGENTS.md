@@ -70,6 +70,33 @@ sigma-rs/
 - **Changelog**: Mantén un archivo `docs/CHANGELOG.md` con los cambios relevantes de cada versión.
 - **Control de versiones**: Usa git con tags semánticos (`v1.0.0`, `v1.1.0`, etc.) para marcar releases y facilitar el seguimiento de versiones.
 
+## Glosario y Convenciones de Dominio
+
+| Abreviatura | Significado |
+|-------------|-------------|
+| Loc, Locs | Locomotora(s) |
+| CR, CCRR | Coche(s) Remolcado(s) |
+| CM, CMN | Coche Motor |
+| GOP | Guardia Operativa |
+| OT | Orden de Trabajo |
+
+### Jerarquía de Unidades de Mantenimiento
+
+```
+UnidadMantenimiento (abstracta)
+├── Locomotora (Marca, Modelo, Activo)
+├── CocheRemolcado (Marca, Clase, Activo)
+└── CocheMotor (Marca, Modelo, CantidadCoches, Activo)
+```
+
+### Fabricantes
+
+| Marca | Fabrica |
+|-------|---------|
+| CNR (Dalian) | Locomotoras, Coches Remolcados, Coches Motor |
+| GM (General Motors) | Solo Locomotoras (en Argentina) |
+| Materfer | Solo Coches Remolcados |
+
 ## Estilo de Código
 
 - **Imports**: stdlib → terceros → locales
