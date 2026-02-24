@@ -1,160 +1,157 @@
-# AGENTS.md - ARS_MP (Argentinian Rolling Stock Maintenance Planner)
 
-> Instructions for AI coding agents. Respond in **Spanish**. Code, docstrings, and technical docs in **English**.
+# AGENTS.md - SIGMA-RS (Sistema de Gestión de Tickets para Material Rodante)
 
-## Quick Reference
+> Instrucciones para agentes de codificación AI. Responde en **español**. Código, docstrings y documentación técnica en **inglés**.
 
-```bash
-# Setup
-.venv\Scripts\activate          # Windows virtualenv
+## Referencia Rápida
+
+```PowerShell
+# 1. Clonar repositorio
+git clone https://github.com/[usuario]/SIGMA-RS.git
+cd SIGMA-RS
+
+# 2. Crear entorno virtual
+python -m venv venv
+
+# 3. Activar entorno
+venv\Scripts\activate
+
+# 4. Instalar dependencias
 pip install -r requirements.txt
-docker compose up -d && python manage.py migrate
 
-# Dev
-python manage.py runserver
-cd theme/static_src && npm run dev  # Tailwind watch
+# 5. Migraciones
+python manage.py makemigrations
+python manage.py migrate
 
-# Test (single)
-pytest tests/path/to/test_file.py::TestClass::test_method
+# 6. Crear superusuario
+python manage.py createsuperuser
 
-# Test (all)
-pytest                          # unit tests only (default)
-pytest -m integration           # Access DB tests
-pytest --cov=core --cov=etl     # with coverage
+# 7. Levantar servidor
+python -m waitress --host=0.0.0.0 --port=8000 config.wsgi:application
 ```
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
-ARS_MP/
-├── core/                  # Pure Python domain (NO Django imports)
-│   ├── domain/entities/   # @dataclass: Coach, EMU, Formation, EmuConfiguration
-│   ├── domain/value_objects/  # Enums: UnitType, CoachType
-│   └── services/          # Stateless @staticmethod services
-├── etl/extractors/        # Access/Postgres data extraction
-├── infrastructure/
-│   ├── database/models.py     # Django ORM (domain + staging)
-│   └── database/repositories.py  # Repository pattern
-├── web/fleet/             # Views, templates, URLs
-├── config/                # settings.py, urls.py
-└── tests/                 # Mirrors source structure
+sigma-rs/
+├── config/           # Configuración Django (settings, wsgi, urls)
+├── core/             # App principal (modelos, vistas, templates)
+├── db/               # Base de datos SQLite
+├── static/           # Archivos estáticos
+├── docs/             # Documentación
+├── manage.py         # Entrypoint Django
+├── requirements.txt  # Dependencias
+└── tests/            # Tests (estructura espejo)
 ```
 
-**Dependencies**: `core/` → nothing | `infrastructure/` → `core/` + Django | `etl/` → all | `web/` → all
+## Stack Tecnológico
 
-## Code Style
+| Componente | Tecnología | Versión |
+|------------|------------|---------|
+| Backend | Django | 5.1 |
+| Servidor WSGI | Waitress | 3.0.0 |
+| Base de datos | SQLite | (default) |
+| Static files | WhiteNoise | 6.7.0 |
+| Python | 3.11+ | |
+| Control de versiones | Git + GitHub | |
 
-### Imports
+## Principios de Desarrollo
+
+- **SOLID**: Aplica los principios SOLID en el diseño de clases y servicios.
+- **TDD**: Desarrolla usando Test Driven Development (Red-Green-Refactor):
+  1. Escribe primero el test (falla - rojo)
+  2. Implementa el código mínimo para pasar el test (verde)
+  3. Refactoriza manteniendo los tests en verde
+- **Pequeños commits**: Usa mensajes convencionales (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`)
+- **No subir archivos sensibles**: Nunca commitear `.env`, `db.sqlite3`, credenciales, ni archivos de base de datos.
+- **CI/CD**: Validar siempre con `python manage.py check` y tests antes de mergear.
+
+- **Documentación actualizada**: Actualiza la documentación cada vez que realices un cambio importante en el código o la arquitectura.
+- **Changelog**: Mantén un archivo `docs/CHANGELOG.md` con los cambios relevantes de cada versión.
+- **Control de versiones**: Usa git con tags semánticos (`v1.0.0`, `v1.1.0`, etc.) para marcar releases y facilitar el seguimiento de versiones.
+
+## Estilo de Código
+
+- **Imports**: stdlib → terceros → locales
+- **Type hints** obligatorios en funciones públicas
+- **Docstrings**: Formato Google, en inglés. Tests con docstrings en español (contexto de negocio)
+- **Nombres**: Clases en PascalCase, funciones en snake_case, constantes en UPPER_SNAKE
+- **Modelos Django**: Sufijo `Model`, `verbose_name` en español, UUIDField como PK, timestamps automáticos
+- **Tests**: Estructura espejo, clases `Test*`, fixtures en `conftest.py`, mocks con `unittest.mock.patch`
+
+## Ejemplo de Modelo Django
+
 ```python
-# 1. stdlib
-from datetime import date
-from dataclasses import dataclass
-
-# 2. third-party
+import uuid
 from django.db import models
 
-# 3. local (relative within package, absolute across packages)
-from .module import X
-from core.domain.entities.coach import Coach
+class TicketModel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    titulo = models.CharField("Título", max_length=200)
+    descripcion = models.TextField("Descripción")
+    estado = models.CharField("Estado", max_length=20)
+    created_at = models.DateTimeField("Creado", auto_now_add=True)
+
+    class Meta:
+        db_table = "ticket"
+        verbose_name = "Ticket"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return self.titulo
 ```
 
-Use `TYPE_CHECKING` guard for circular imports in domain entities.
+## Ejemplo de Test
 
-### Type Hints (Required)
-- Modern syntax in `core/`: `int | None`, `list[str]`, `dict[str, Any]`
-- `Optional[X]` acceptable in `etl/` and `infrastructure/`
-- Use `Literal["CSR", "Toshiba"]` for constrained strings
-- `from __future__ import annotations` in services for forward refs
-
-### Docstrings (Google format)
 ```python
-def project_intervention(fleet_type: Literal["CSR", "Toshiba"], km: int) -> Result | None:
-    """Calculate next maintenance intervention.
+import pytest
+from core.models import TicketModel
 
-    Args:
-        fleet_type: "CSR" or "Toshiba".
-        km: Current total accumulated km.
+class TestTicketModel:
+    """Pruebas de negocio para el modelo Ticket."""
 
-    Returns:
-        ProjectionResult for soonest-expiring cycle, or None.
-
-    Raises:
-        ValueError: If fleet_type unrecognized.
-    """
-```
-Test docstrings in **Spanish** (business context).
-
-### Naming
-| Element | Convention | Example |
-|---------|------------|---------|
-| Classes | PascalCase | `Coach`, `StgModulo` |
-| Functions | snake_case | `get_modules()` |
-| Private | `_` prefix | `_validate()` |
-| Constants | UPPER_SNAKE | `AVG_DAILY_KM` |
-| Django models | `Model` suffix / `Stg` prefix | `EmuModel`, `StgKilometraje` |
-
-### Django Models
-- UUID primary keys: `models.UUIDField(primary_key=True, default=uuid.uuid4)`
-- `verbose_name` in Spanish on every field
-- `Meta` with `db_table`, `verbose_name`, `ordering`
-- `__str__` on every model
-- Timestamps: `created_at = DateTimeField(auto_now_add=True)`
-
-### Domain Entities
-```python
-@dataclass(kw_only=True)
-class Coach(MaintenanceUnit):
-    coach_type: CoachType
-    seating_capacity: int
-
-    def __post_init__(self) -> None:
-        self._validate()
-
-    def _validate(self) -> None:
-        if self.seating_capacity <= 0:
-            raise ValueError("seating_capacity must be positive")
-```
-- Pure `@dataclass(kw_only=True)`, no Django imports
-- Self-validating via `__post_init__` → `_validate()`
-- `@dataclass(frozen=True)` for immutable value objects
-
-### Error Handling
-- Domain: `ValueError` with descriptive messages
-- Infrastructure: custom exceptions with `from e` chaining
-- ETL: tiered fallback (Postgres → Access → stub) with logging
-- Use `logger.warning()` for fallbacks, `logger.error()` for failures
-- Close connections in `finally` blocks
-
-### Logging
-```python
-import logging
-logger = logging.getLogger(__name__)
-logger.warning("Failed to connect: %s", error)  # %-formatting
+    def test_str(self):
+        ticket = TicketModel(titulo="Test", descripcion="Desc", estado="nuevo")
+        assert str(ticket) == "Test"
 ```
 
-### Tests
-- Mirror source structure: `tests/core/domain/entities/test_coach.py`
-- Group in `Test*` classes with Spanish docstrings
-- Fixtures in `conftest.py`
-- Markers: `@pytest.mark.django_db`, `@pytest.mark.integration`
-- Mock externals with `unittest.mock.patch`
+## Manejo de Errores y Logging
 
-## Git
+- Usa excepciones descriptivas (`ValueError`, custom exceptions)
+- Logging con `logging.getLogger(__name__)`
+- Cierra conexiones en bloques `finally`
 
-- **Commits**: Conventional (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`)
-- **Never commit**: `.env`, `*.mdb`, `*.accdb`, `db.sqlite3`, credentials
-- **Tags**: semver `v1.0.0`
+## Flujo de Trabajo con Git
 
-## Environment
+```powershell
+# Hacer cambios
+git add .
+git commit -m "feat: descripción clara"
+git push origin main
 
-| Component | Version/Config |
-|-----------|----------------|
-| Python | 3.11+ |
-| Django | 5.0+ |
-| PostgreSQL | 15+ (Docker port 5434) |
-| DB toggle | `DJANGO_DB_ENGINE=postgres` or SQLite fallback |
-| Access DB | `LEGACY_ACCESS_DB_PATH` env var, ODBC required |
+# En el servidor
+# En el servidor corre el script servidor_auto.ps1, que chequea cambios, realiza pull y reinicia waitress
+git pull origin main
+# Reiniciar waitress si es necesario
+```
 
-## CI Pipeline (.github/workflows/ci.yml)
+## Entorno y Configuración
 
-Runs on push/PR: `python manage.py check` → `makemigrations --check` → `pytest -q`
+- **ALLOWED_HOSTS**: `['*']` o IPs específicas
+- **Base de datos**: SQLite por defecto, migrar a PostgreSQL si hay problemas de concurrencia
+- **Proxy corporativo**: Configurar pip y git según documentación
+
+## CI Pipeline
+
+Ejecutar en cada push/PR:
+
+```powershell
+python manage.py check
+python manage.py makemigrations --check
+pytest -q
+```
+
+---
+
+Para detalles adicionales, ver `docs/SIGMA-RS_RESUMEN_PROYECTO.md`.
+El changelog se encuentra en `docs/CHANGELOG.md`.
