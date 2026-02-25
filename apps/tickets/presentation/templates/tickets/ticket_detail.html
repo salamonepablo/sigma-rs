@@ -1,0 +1,195 @@
+{% extends "tickets/base.html" %}
+{% block page_title %}Ticket {{ ticket.ticket_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Ticket {{ ticket.ticket_number }}</h4>
+    <div>
+        <a href="{% url 'tickets:ticket_list' %}" class="btn btn-outline-secondary">
+            ← Volver
+        </a>
+        <a href="{% url 'tickets:ticket_update' ticket.pk %}" class="btn btn-primary">
+            Editar
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Información Principal -->
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Información del Ticket</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Número:</strong></div>
+                    <div class="col-sm-9">{{ ticket.ticket_number }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Fecha:</strong></div>
+                    <div class="col-sm-9">{{ ticket.date|date:"d/m/Y" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Unidad:</strong></div>
+                    <div class="col-sm-9">
+                        <span class="badge bg-secondary fs-6">
+                            {{ ticket.maintenance_unit }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Estado:</strong></div>
+                    <div class="col-sm-9">
+                        {% if ticket.status == 'pendiente' %}
+                        <span class="badge bg-danger fs-6">Pendiente</span>
+                        {% else %}
+                        <span class="badge bg-success fs-6">Finalizado</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Tipo de Ingreso:</strong></div>
+                    <div class="col-sm-9">
+                        {% if ticket.entry_type == 'inmediato' %}
+                        <span class="badge bg-danger">Inmediato</span>
+                        {% elif ticket.entry_type == 'programado' %}
+                        <span class="badge bg-warning text-dark">Programado</span>
+                        {% else %}
+                        <span class="badge bg-secondary">NO</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Falla Denunciada:</strong></div>
+                    <div class="col-sm-9">
+                        <div class="p-2 bg-light rounded">
+                            {{ ticket.reported_failure|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+                {% if ticket.observations %}
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Observaciones:</strong></div>
+                    <div class="col-sm-9">
+                        <div class="p-2 bg-light rounded">
+                            {{ ticket.observations|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Clasificación de Falla -->
+        {% if ticket.failure_type or ticket.affected_system %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Clasificación de Falla</h6>
+            </div>
+            <div class="card-body">
+                {% if ticket.failure_type %}
+                <div class="row mb-2">
+                    <div class="col-sm-4"><strong>Tipo de Falla:</strong></div>
+                    <div class="col-sm-8">{{ ticket.failure_type.name }}</div>
+                </div>
+                {% endif %}
+                {% if ticket.affected_system %}
+                <div class="row mb-2">
+                    <div class="col-sm-4"><strong>Sistema Afectado:</strong></div>
+                    <div class="col-sm-8">{{ ticket.affected_system.name }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-md-4">
+        <!-- Asignación -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Asignación</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>GOP:</strong><br>
+                    {{ ticket.gop.name }}
+                </p>
+                {% if ticket.supervisor %}
+                <p class="mb-2">
+                    <strong>Supervisor:</strong><br>
+                    {{ ticket.supervisor.name }}
+                </p>
+                {% endif %}
+                {% if ticket.train_number %}
+                <p class="mb-0">
+                    <strong>Nro de Tren:</strong><br>
+                    {{ ticket.train_number.number }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tiempos -->
+        {% if ticket.notification_time or ticket.intervention_time or ticket.delivery_time %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Tiempos</h6>
+            </div>
+            <div class="card-body">
+                {% if ticket.notification_time %}
+                <p class="mb-2">
+                    <strong>Hora Aviso:</strong><br>
+                    {{ ticket.notification_time|time:"H:i" }}
+                </p>
+                {% endif %}
+                {% if ticket.intervention_time %}
+                <p class="mb-2">
+                    <strong>Hora Intervención:</strong><br>
+                    {{ ticket.intervention_time|time:"H:i" }}
+                </p>
+                {% endif %}
+                {% if ticket.delivery_time %}
+                <p class="mb-0">
+                    <strong>Hora Entrega:</strong><br>
+                    {{ ticket.delivery_time|time:"H:i" }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- OT -->
+        {% if ticket.work_order_number %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Orden de Trabajo</h6>
+            </div>
+            <div class="card-body">
+                <span class="badge bg-info fs-6">{{ ticket.work_order_number }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Metadata -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="mb-0">Información del Sistema</h6>
+            </div>
+            <div class="card-body small text-muted">
+                <p class="mb-1">
+                    <strong>Creado:</strong><br>
+                    {{ ticket.created_at|date:"d/m/Y H:i" }}
+                </p>
+                <p class="mb-0">
+                    <strong>Actualizado:</strong><br>
+                    {{ ticket.updated_at|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
