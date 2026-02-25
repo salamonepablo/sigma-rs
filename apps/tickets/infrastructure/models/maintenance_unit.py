@@ -61,7 +61,7 @@ class MaintenanceUnitModel(models.Model):
         ordering = ["number"]
 
     def __str__(self) -> str:
-        return f"{self.get_unit_type_display()} {self.number}"
+        return self.number
 
 
 class LocomotiveModel(models.Model):

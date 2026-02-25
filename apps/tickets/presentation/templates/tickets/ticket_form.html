@@ -3,198 +3,135 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-lg-11 col-xl-10">
         <div class="card shadow-sm">
-            <div class="card-header {% if unit_type == 'locomotora' %}bg-primary{% elif unit_type == 'coche_remolcado' %}bg-success{% else %}bg-dark{% endif %} text-white">
-                <h5 class="mb-0">
+            <div class="card-header py-2 {% if unit_type == 'locomotora' %}bg-primary{% elif unit_type == 'coche_remolcado' %}bg-success{% else %}bg-dark{% endif %} text-white">
+                <h6 class="mb-0">
                     {{ action }} Ticket 
                     {% if unit_type == 'locomotora' %}de Locomotora{% elif unit_type == 'coche_remolcado' %}de Coche Remolcado{% endif %}
                     {% if ticket %}#{{ ticket.ticket_number }}{% endif %}
-                </h5>
+                </h6>
             </div>
-            <div class="card-body">
+            <div class="card-body py-2 px-3">
                 <form method="post" novalidate>
                     {% csrf_token %}
                     
                     <!-- Información Principal -->
-                    <fieldset class="mb-4">
-                        <legend class="h6 border-bottom pb-2">Información Principal</legend>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.ticket_number.id_for_label }}" class="form-label">
-                                    Número de Ticket *
-                                </label>
+                    <fieldset class="mb-2">
+                        <legend class="small fw-bold border-bottom pb-1 mb-2">Información Principal</legend>
+                        <div class="row g-2">
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.ticket_number.id_for_label }}" class="form-label small mb-1">Nº Ticket *</label>
                                 {{ form.ticket_number }}
-                                {% if form.ticket_number.errors %}
-                                <div class="text-danger small">{{ form.ticket_number.errors.0 }}</div>
-                                {% endif %}
+                                {% if form.ticket_number.errors %}<div class="text-danger small">{{ form.ticket_number.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.date.id_for_label }}" class="form-label">
-                                    Fecha *
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.date.id_for_label }}" class="form-label small mb-1">Fecha *</label>
                                 {{ form.date }}
-                                {% if form.date.errors %}
-                                <div class="text-danger small">{{ form.date.errors.0 }}</div>
-                                {% endif %}
+                                {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.maintenance_unit.id_for_label }}" class="form-label">
-                                    Unidad de Mantenimiento *
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.maintenance_unit.id_for_label }}" class="form-label small mb-1">Unidad *</label>
                                 {{ form.maintenance_unit }}
-                                {% if form.maintenance_unit.errors %}
-                                <div class="text-danger small">{{ form.maintenance_unit.errors.0 }}</div>
-                                {% endif %}
+                                {% if form.maintenance_unit.errors %}<div class="text-danger small">{{ form.maintenance_unit.errors.0 }}</div>{% endif %}
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.gop.id_for_label }}" class="form-label">
-                                    GOP *
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.gop.id_for_label }}" class="form-label small mb-1">GOP *</label>
                                 {{ form.gop }}
-                                {% if form.gop.errors %}
-                                <div class="text-danger small">{{ form.gop.errors.0 }}</div>
-                                {% endif %}
+                                {% if form.gop.errors %}<div class="text-danger small">{{ form.gop.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.entry_type.id_for_label }}" class="form-label">
-                                    Tipo de Ingreso *
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.entry_type.id_for_label }}" class="form-label small mb-1">Ingreso *</label>
                                 {{ form.entry_type }}
-                                {% if form.entry_type.errors %}
-                                <div class="text-danger small">{{ form.entry_type.errors.0 }}</div>
-                                {% endif %}
+                                {% if form.entry_type.errors %}<div class="text-danger small">{{ form.entry_type.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.status.id_for_label }}" class="form-label">
-                                    Estado *
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.status.id_for_label }}" class="form-label small mb-1">Estado *</label>
                                 {{ form.status }}
-                                {% if form.status.errors %}
-                                <div class="text-danger small">{{ form.status.errors.0 }}</div>
-                                {% endif %}
+                                {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors.0 }}</div>{% endif %}
                             </div>
                         </div>
                     </fieldset>
 
-                    <!-- Falla -->
-                    <fieldset class="mb-4">
-                        <legend class="h6 border-bottom pb-2">Falla Reportada</legend>
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="{{ form.reported_failure.id_for_label }}" class="form-label">
-                                    Descripción de la Falla *
-                                </label>
+                    <!-- Falla y Clasificación -->
+                    <fieldset class="mb-2">
+                        <legend class="small fw-bold border-bottom pb-1 mb-2">Falla</legend>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label for="{{ form.reported_failure.id_for_label }}" class="form-label small mb-1">Descripción *</label>
                                 {{ form.reported_failure }}
-                                {% if form.reported_failure.errors %}
-                                <div class="text-danger small">{{ form.reported_failure.errors.0 }}</div>
-                                {% endif %}
+                                {% if form.reported_failure.errors %}<div class="text-danger small">{{ form.reported_failure.errors.0 }}</div>{% endif %}
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.failure_type.id_for_label }}" class="form-label">
-                                    Tipo de Falla
-                                </label>
+                            <div class="col-md-3">
+                                <label for="{{ form.failure_type.id_for_label }}" class="form-label small mb-1">Tipo</label>
                                 {{ form.failure_type }}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.affected_system.id_for_label }}" class="form-label">
-                                    Sistema Afectado
-                                </label>
+                            <div class="col-md-3">
+                                <label for="{{ form.affected_system.id_for_label }}" class="form-label small mb-1">Sistema</label>
                                 {{ form.affected_system }}
                             </div>
                         </div>
                     </fieldset>
 
-                    <!-- Detalles Adicionales -->
-                    <fieldset class="mb-4">
-                        <legend class="h6 border-bottom pb-2">Detalles Adicionales</legend>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="id_train_number_input" class="form-label">
-                                    Número de Tren
-                                </label>
+                    <!-- Detalles y Tiempos -->
+                    <fieldset class="mb-2">
+                        <legend class="small fw-bold border-bottom pb-1 mb-2">Detalles y Tiempos</legend>
+                        <div class="row g-2">
+                            <div class="col-md-2 col-sm-4">
+                                <label for="id_train_number_input" class="form-label small mb-1">Nº Tren</label>
                                 {{ form.train_number_input }}
-                                <!-- Datalist for train number suggestions -->
                                 <datalist id="train-list">
-                                    {% for train in trains %}
-                                    <option value="{{ train.number }}">
-                                    {% endfor %}
+                                    {% for train in trains %}<option value="{{ train.number }}">{% endfor %}
                                 </datalist>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="id_supervisor_name" class="form-label">
-                                    Supervisor
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="id_supervisor_name" class="form-label small mb-1">Supervisor</label>
                                 {{ form.supervisor_name }}
-                                <!-- Datalist for supervisor suggestions -->
                                 <datalist id="supervisor-list">
-                                    {% for supervisor in supervisors %}
-                                    <option value="{{ supervisor.name }}">
-                                    {% endfor %}
+                                    {% for supervisor in supervisors %}<option value="{{ supervisor.name }}">{% endfor %}
                                 </datalist>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.work_order_number.id_for_label }}" class="form-label">
-                                    Número de OT
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.work_order_number.id_for_label }}" class="form-label small mb-1">Nº OT</label>
                                 {{ form.work_order_number }}
                             </div>
-                        </div>
-                    </fieldset>
-
-                    <!-- Tiempos -->
-                    <fieldset class="mb-4">
-                        <legend class="h6 border-bottom pb-2">Registro de Tiempos</legend>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.notification_time.id_for_label }}" class="form-label">
-                                    Hora de Aviso
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.notification_time.id_for_label }}" class="form-label small mb-1">Hora Aviso</label>
                                 {{ form.notification_time }}
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.intervention_time.id_for_label }}" class="form-label">
-                                    Hora de Intervención
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.intervention_time.id_for_label }}" class="form-label small mb-1">Hora Interv.</label>
                                 {{ form.intervention_time }}
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.delivery_time.id_for_label }}" class="form-label">
-                                    Hora de Entrega
-                                </label>
+                            <div class="col-md-2 col-sm-4">
+                                <label for="{{ form.delivery_time.id_for_label }}" class="form-label small mb-1">Hora Entrega</label>
                                 {{ form.delivery_time }}
                             </div>
                         </div>
                     </fieldset>
 
                     <!-- Observaciones -->
-                    <fieldset class="mb-4">
-                        <legend class="h6 border-bottom pb-2">Observaciones</legend>
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="{{ form.observations.id_for_label }}" class="form-label">
-                                    Trabajo Realizado / Observaciones
-                                </label>
+                    <fieldset class="mb-2">
+                        <legend class="small fw-bold border-bottom pb-1 mb-2">Observaciones</legend>
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label for="{{ form.observations.id_for_label }}" class="form-label small mb-1">Trabajo Realizado</label>
                                 {{ form.observations }}
                             </div>
                         </div>
                     </fieldset>
 
                     <!-- Botones -->
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn {% if unit_type == 'locomotora' %}btn-primary{% elif unit_type == 'coche_remolcado' %}btn-success{% else %}btn-primary{% endif %}">
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-sm {% if unit_type == 'locomotora' %}btn-primary{% elif unit_type == 'coche_remolcado' %}btn-success{% else %}btn-primary{% endif %}">
                             Guardar
                         </button>
                         {% if unit_type %}
-                        <a href="{% url 'tickets:ticket_list_by_type' unit_type=unit_type %}" class="btn btn-secondary">
+                        <a href="{% url 'tickets:ticket_list_by_type' unit_type=unit_type %}" class="btn btn-sm btn-secondary">
                             Cancelar
                         </a>
                         {% else %}
-                        <a href="{% url 'tickets:ticket_list' %}" class="btn btn-secondary">
+                        <a href="{% url 'tickets:ticket_list' %}" class="btn btn-sm btn-secondary">
                             Cancelar
                         </a>
                         {% endif %}
@@ -204,4 +141,53 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript para auto-seleccionar sistema afectado según tipo de falla -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const failureTypeSelect = document.getElementById('id_failure_type');
+    const affectedSystemSelect = document.getElementById('id_affected_system');
+    
+    // Mapping de failure_type code a affected_system code (mismo código)
+    const failureToSystemMap = {
+        {% for ft in failure_types %}
+        '{{ ft.id }}': '{{ ft.code }}',
+        {% endfor %}
+    };
+    
+    // Store all system options for reference
+    const systemOptions = {};
+    for (let option of affectedSystemSelect.options) {
+        if (option.value) {
+            // Store by the option text which contains the system name
+            systemOptions[option.text.trim()] = option.value;
+        }
+    }
+    
+    failureTypeSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            // Get the failure type text and find matching system
+            const failureText = selectedOption.text.trim();
+            
+            // Map failure type names to system names
+            const failureToSystem = {
+                'Mecánicas': 'Sistema Mecánico',
+                'Eléctricas': 'Sistema Eléctrico',
+                'Neumáticas': 'Sistema Neumático',
+                'Electrónicas': 'Sistema Electrónico',
+                'Otras': 'Otro',
+                'Falla de ATS': 'ATS',
+                'Falla de Hasler': 'Hasler',
+                'Falla de Hombre Vivo': 'Hombre Vivo'
+            };
+            
+            const systemName = failureToSystem[failureText];
+            if (systemName && systemOptions[systemName]) {
+                affectedSystemSelect.value = systemOptions[systemName];
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

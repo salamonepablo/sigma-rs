@@ -24,8 +24,8 @@ class TicketForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(
             attrs={
-                "class": "form-control",
-                "placeholder": "Nombre del supervisor",
+                "class": "form-control form-control-sm",
+                "placeholder": "Supervisor",
                 "list": "supervisor-list",
             }
         ),
@@ -36,7 +36,7 @@ class TicketForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(
             attrs={
-                "class": "form-control",
+                "class": "form-control form-control-sm",
                 "placeholder": "Ej: 1234",
                 "list": "train-list",
             }
@@ -64,41 +64,41 @@ class TicketForm(forms.ModelForm):
         ]
         widgets = {
             "ticket_number": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej: 2024-001"}
+                attrs={"class": "form-control form-control-sm", "placeholder": "2024-001"}
             ),
             "date": forms.DateInput(
-                attrs={"class": "form-control", "type": "date"}
+                attrs={"class": "form-control form-control-sm", "type": "date"}
             ),
-            "maintenance_unit": forms.Select(attrs={"class": "form-select"}),
-            "gop": forms.Select(attrs={"class": "form-select"}),
-            "entry_type": forms.Select(attrs={"class": "form-select"}),
-            "status": forms.Select(attrs={"class": "form-select"}),
+            "maintenance_unit": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "gop": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "entry_type": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "status": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "reported_failure": forms.Textarea(
                 attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Descripción de la falla reportada por el conductor",
+                    "class": "form-control form-control-sm",
+                    "rows": 2,
+                    "placeholder": "Descripción de la falla",
                 }
             ),
-            "failure_type": forms.Select(attrs={"class": "form-select"}),
-            "affected_system": forms.Select(attrs={"class": "form-select"}),
+            "failure_type": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "affected_system": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "work_order_number": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej: OT-2024-100"}
+                attrs={"class": "form-control form-control-sm", "placeholder": "OT-2024-100"}
             ),
             "notification_time": forms.TimeInput(
-                attrs={"class": "form-control", "type": "time"}
+                attrs={"class": "form-control form-control-sm", "type": "time"}
             ),
             "intervention_time": forms.TimeInput(
-                attrs={"class": "form-control", "type": "time"}
+                attrs={"class": "form-control form-control-sm", "type": "time"}
             ),
             "delivery_time": forms.TimeInput(
-                attrs={"class": "form-control", "type": "time"}
+                attrs={"class": "form-control form-control-sm", "type": "time"}
             ),
             "observations": forms.Textarea(
                 attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Trabajo realizado / observaciones de la GOP",
+                    "class": "form-control form-control-sm",
+                    "rows": 2,
+                    "placeholder": "Trabajo realizado / observaciones",
                 }
             ),
         }

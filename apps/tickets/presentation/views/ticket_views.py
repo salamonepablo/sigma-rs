@@ -17,6 +17,7 @@ from django.views.generic import (
 )
 
 from apps.tickets.models import (
+    FailureTypeModel,
     MaintenanceUnitModel,
     SupervisorModel,
     TicketModel,
@@ -169,6 +170,8 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         # Add supervisors and trains for datalist autocomplete
         context["supervisors"] = SupervisorModel.objects.filter(is_active=True)
         context["trains"] = TrainNumberModel.objects.filter(is_active=True)
+        # Add failure types for JS auto-select
+        context["failure_types"] = FailureTypeModel.objects.filter(is_active=True)
         return context
 
     def get_success_url(self):
@@ -201,6 +204,8 @@ class TicketUpdateView(LoginRequiredMixin, UpdateView):
         # Add supervisors and trains for datalist autocomplete
         context["supervisors"] = SupervisorModel.objects.filter(is_active=True)
         context["trains"] = TrainNumberModel.objects.filter(is_active=True)
+        # Add failure types for JS auto-select
+        context["failure_types"] = FailureTypeModel.objects.filter(is_active=True)
         return context
 
     def get_success_url(self):

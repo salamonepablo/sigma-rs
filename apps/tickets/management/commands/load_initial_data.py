@@ -11,7 +11,9 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 
 from apps.tickets.infrastructure.models import (
+    AffectedSystemModel,
     BrandModel,
+    FailureTypeModel,
     GOPModel,
     LocomotiveModel,
     LocomotiveModelModel,
@@ -36,6 +38,7 @@ class Command(BaseCommand):
         self._load_locomotive_models()
         self._load_railcar_classes()
         self._load_gops()
+        self._load_failure_types()
 
         # Load maintenance units
         self._load_maintenance_units()
@@ -139,6 +142,44 @@ class Command(BaseCommand):
             )
             status = "created" if created else "exists"
             self.stdout.write(f"  GOP {gop.code}: {status}")
+
+    def _load_failure_types(self):
+        """Load failure types and their default affected systems."""
+        # Failure types with their default affected system
+        failure_types = [
+            {"code": "MEC", "name": "Mecánicas", "system": "Sistema Mecánico"},
+            {"code": "ELE", "name": "Eléctricas", "system": "Sistema Eléctrico"},
+            {"code": "NEU", "name": "Neumáticas", "system": "Sistema Neumático"},
+            {"code": "ELEC", "name": "Electrónicas", "system": "Sistema Electrónico"},
+            {"code": "OTR", "name": "Otras", "system": "Otro"},
+            {"code": "ATS", "name": "Falla de ATS", "system": "ATS"},
+            {"code": "HASLER", "name": "Falla de Hasler", "system": "Hasler"},
+            {"code": "HV", "name": "Falla de Hombre Vivo", "system": "Hombre Vivo"},
+        ]
+
+        for ft_data in failure_types:
+            # Create failure type
+            failure_type, ft_created = FailureTypeModel.objects.get_or_create(
+                code=ft_data["code"],
+                defaults={
+                    "id": uuid.uuid4(),
+                    "name": ft_data["name"],
+                },
+            )
+            ft_status = "created" if ft_created else "exists"
+            self.stdout.write(f"  Failure type {failure_type.name}: {ft_status}")
+
+            # Create default affected system for this failure type
+            system, sys_created = AffectedSystemModel.objects.get_or_create(
+                code=ft_data["code"],
+                failure_type=failure_type,
+                defaults={
+                    "id": uuid.uuid4(),
+                    "name": ft_data["system"],
+                },
+            )
+            sys_status = "created" if sys_created else "exists"
+            self.stdout.write(f"    -> System {system.name}: {sys_status}")
 
     def _load_maintenance_units(self):
         """Load maintenance units from CSV file."""
