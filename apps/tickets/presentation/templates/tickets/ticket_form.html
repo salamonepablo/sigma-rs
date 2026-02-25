@@ -5,8 +5,12 @@
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">{{ action }} Ticket {% if ticket %}#{{ ticket.ticket_number }}{% endif %}</h5>
+            <div class="card-header {% if unit_type == 'locomotora' %}bg-primary{% elif unit_type == 'coche_remolcado' %}bg-success{% else %}bg-dark{% endif %} text-white">
+                <h5 class="mb-0">
+                    {{ action }} Ticket 
+                    {% if unit_type == 'locomotora' %}de Locomotora{% elif unit_type == 'coche_remolcado' %}de Coche Remolcado{% endif %}
+                    {% if ticket %}#{{ ticket.ticket_number }}{% endif %}
+                </h5>
             </div>
             <div class="card-body">
                 <form method="post" novalidate>
@@ -110,16 +114,28 @@
                         <legend class="h6 border-bottom pb-2">Detalles Adicionales</legend>
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label for="{{ form.train_number.id_for_label }}" class="form-label">
+                                <label for="id_train_number_input" class="form-label">
                                     Número de Tren
                                 </label>
-                                {{ form.train_number }}
+                                {{ form.train_number_input }}
+                                <!-- Datalist for train number suggestions -->
+                                <datalist id="train-list">
+                                    {% for train in trains %}
+                                    <option value="{{ train.number }}">
+                                    {% endfor %}
+                                </datalist>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="{{ form.supervisor.id_for_label }}" class="form-label">
+                                <label for="id_supervisor_name" class="form-label">
                                     Supervisor
                                 </label>
-                                {{ form.supervisor }}
+                                {{ form.supervisor_name }}
+                                <!-- Datalist for supervisor suggestions -->
+                                <datalist id="supervisor-list">
+                                    {% for supervisor in supervisors %}
+                                    <option value="{{ supervisor.name }}">
+                                    {% endfor %}
+                                </datalist>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="{{ form.work_order_number.id_for_label }}" class="form-label">
@@ -170,12 +186,18 @@
 
                     <!-- Botones -->
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn {% if unit_type == 'locomotora' %}btn-primary{% elif unit_type == 'coche_remolcado' %}btn-success{% else %}btn-primary{% endif %}">
                             Guardar
                         </button>
+                        {% if unit_type %}
+                        <a href="{% url 'tickets:ticket_list_by_type' unit_type=unit_type %}" class="btn btn-secondary">
+                            Cancelar
+                        </a>
+                        {% else %}
                         <a href="{% url 'tickets:ticket_list' %}" class="btn btn-secondary">
                             Cancelar
                         </a>
+                        {% endif %}
                     </div>
                 </form>
             </div>

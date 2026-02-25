@@ -16,7 +16,12 @@ from django.views.generic import (
     UpdateView,
 )
 
-from apps.tickets.models import MaintenanceUnitModel, TicketModel
+from apps.tickets.models import (
+    MaintenanceUnitModel,
+    SupervisorModel,
+    TicketModel,
+    TrainNumberModel,
+)
 from apps.tickets.presentation.forms import TicketFilterForm, TicketForm
 
 
@@ -161,6 +166,9 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context["action"] = "Crear"
         context["unit_type"] = self.kwargs.get("unit_type")
+        # Add supervisors and trains for datalist autocomplete
+        context["supervisors"] = SupervisorModel.objects.filter(is_active=True)
+        context["trains"] = TrainNumberModel.objects.filter(is_active=True)
         return context
 
     def get_success_url(self):
@@ -190,6 +198,9 @@ class TicketUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["action"] = "Editar"
+        # Add supervisors and trains for datalist autocomplete
+        context["supervisors"] = SupervisorModel.objects.filter(is_active=True)
+        context["trains"] = TrainNumberModel.objects.filter(is_active=True)
         return context
 
     def get_success_url(self):
