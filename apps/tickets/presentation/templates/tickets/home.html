@@ -2,59 +2,79 @@
 {% block page_title %}SIGMA-RS - Inicio{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-12 text-center">
-        <h2 class="mb-3">Sistema de Gestión de Tickets</h2>
-        <p class="text-muted">Seleccione el tipo de unidad para gestionar tickets de averías</p>
+        <h4 class="mb-2">Sistema de Gestión de Tickets de Averías</h4>
+        <p class="text-muted small mb-0">Seleccione el tipo de unidad</p>
     </div>
 </div>
 
 <!-- Cards de selección de tipo de unidad -->
-<div class="row justify-content-center g-4 mb-5">
+<div class="row justify-content-center g-3 mb-4">
     <!-- Locomotoras -->
-    <div class="col-md-5 col-lg-4">
-        <div class="card h-100 shadow-sm border-0">
-            <div class="card-body text-center p-4">
-                <div class="mb-3">
-                    <span style="font-size: 4rem;">🚂</span>
+    <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3">
+        <div class="card h-100 shadow-sm border-0 unit-card">
+            <div class="card-body text-center p-3">
+                <div class="unit-icon mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0072BC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 15V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v7"/>
+                        <rect x="2" y="15" width="20" height="4" rx="1"/>
+                        <circle cx="6" cy="21" r="2"/>
+                        <circle cx="18" cy="21" r="2"/>
+                        <path d="M8 8h8"/>
+                        <path d="M8 12h8"/>
+                        <path d="M12 4v4"/>
+                    </svg>
                 </div>
-                <h4 class="card-title">Locomotoras</h4>
-                <p class="card-text text-muted">
-                    GM (GT22CW, G22CW, etc.)<br>
-                    CNR Dalian (8G, 8H)
+                <h5 class="card-title mb-1">Locomotoras</h5>
+                <p class="card-text text-muted small mb-2">
+                    GM · CNR Dalian
                 </p>
-                <a href="{% url 'tickets:ticket_list_by_type' unit_type='locomotora' %}" 
-                   class="btn btn-primary btn-lg mt-2">
-                    Ver Tickets
-                </a>
-                <a href="{% url 'tickets:ticket_create_by_type' unit_type='locomotora' %}" 
-                   class="btn btn-outline-primary btn-lg mt-2">
-                    + Nuevo
-                </a>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'tickets:ticket_list_by_type' unit_type='locomotora' %}" 
+                       class="btn btn-primary btn-sm">
+                        Ver Tickets
+                    </a>
+                    <a href="{% url 'tickets:ticket_create_by_type' unit_type='locomotora' %}" 
+                       class="btn btn-outline-primary btn-sm">
+                        + Nuevo
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Coches Remolcados -->
-    <div class="col-md-5 col-lg-4">
-        <div class="card h-100 shadow-sm border-0">
-            <div class="card-body text-center p-4">
-                <div class="mb-3">
-                    <span style="font-size: 4rem;">🚃</span>
+    <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3">
+        <div class="card h-100 shadow-sm border-0 unit-card">
+            <div class="card-body text-center p-3">
+                <div class="unit-icon mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#198754" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="6" width="20" height="10" rx="2"/>
+                        <path d="M4 10h16"/>
+                        <path d="M8 6v4"/>
+                        <path d="M12 6v4"/>
+                        <path d="M16 6v4"/>
+                        <circle cx="6" cy="19" r="2"/>
+                        <circle cx="18" cy="19" r="2"/>
+                        <path d="M6 16v1"/>
+                        <path d="M18 16v1"/>
+                    </svg>
                 </div>
-                <h4 class="card-title">Coches Remolcados</h4>
-                <p class="card-text text-muted">
-                    Materfer (U, FU, F)<br>
-                    CNR (CPA, CRA, PUA, etc.)
+                <h5 class="card-title mb-1">Coches Remolcados</h5>
+                <p class="card-text text-muted small mb-2">
+                    Materfer · CNR
                 </p>
-                <a href="{% url 'tickets:ticket_list_by_type' unit_type='coche_remolcado' %}" 
-                   class="btn btn-success btn-lg mt-2">
-                    Ver Tickets
-                </a>
-                <a href="{% url 'tickets:ticket_create_by_type' unit_type='coche_remolcado' %}" 
-                   class="btn btn-outline-success btn-lg mt-2">
-                    + Nuevo
-                </a>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'tickets:ticket_list_by_type' unit_type='coche_remolcado' %}" 
+                       class="btn btn-success btn-sm">
+                        Ver Tickets
+                    </a>
+                    <a href="{% url 'tickets:ticket_create_by_type' unit_type='coche_remolcado' %}" 
+                       class="btn btn-outline-success btn-sm">
+                        + Nuevo
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -62,37 +82,53 @@
 
 <!-- Resumen de tickets -->
 <div class="row justify-content-center">
-    <div class="col-md-10 col-lg-8">
+    <div class="col-md-8 col-lg-6">
         <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">Resumen de Tickets</h5>
+            <div class="card-header bg-dark text-white py-2">
+                <h6 class="mb-0">Resumen de Tickets</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body py-3">
                 <div class="row text-center">
                     <div class="col-4">
                         <div class="border-end">
-                            <h3 class="text-danger mb-0">{{ pending_count }}</h3>
+                            <h4 class="text-danger mb-0">{{ pending_count }}</h4>
                             <small class="text-muted">Pendientes</small>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="border-end">
-                            <h3 class="text-success mb-0">{{ completed_count }}</h3>
+                            <h4 class="text-success mb-0">{{ completed_count }}</h4>
                             <small class="text-muted">Finalizados</small>
                         </div>
                     </div>
                     <div class="col-4">
-                        <h3 class="text-primary mb-0">{{ total_count }}</h3>
+                        <h4 class="text-primary mb-0">{{ total_count }}</h4>
                         <small class="text-muted">Total</small>
                     </div>
                 </div>
             </div>
-            <div class="card-footer text-center">
-                <a href="{% url 'tickets:ticket_list' %}" class="btn btn-outline-secondary">
+            <div class="card-footer text-center py-2">
+                <a href="{% url 'tickets:ticket_list' %}" class="btn btn-outline-secondary btn-sm">
                     Ver todos los tickets
                 </a>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .unit-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .unit-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .unit-icon {
+        opacity: 0.9;
+    }
+    .unit-card:hover .unit-icon {
+        opacity: 1;
+    }
+</style>
 {% endblock %}
