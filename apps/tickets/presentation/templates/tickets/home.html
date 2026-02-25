@@ -1,4 +1,5 @@
 {% extends "tickets/base.html" %}
+{% load static %}
 {% block page_title %}SIGMA-RS - Inicio{% endblock %}
 
 {% block content %}
@@ -15,21 +16,17 @@
     <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3">
         <div class="card h-100 shadow-sm border-0 unit-card">
             <div class="card-body text-center p-3">
-                <div class="unit-icon mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0072BC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 15V8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v7"/>
-                        <rect x="2" y="15" width="20" height="4" rx="1"/>
-                        <circle cx="6" cy="21" r="2"/>
-                        <circle cx="18" cy="21" r="2"/>
-                        <path d="M8 8h8"/>
-                        <path d="M8 12h8"/>
-                        <path d="M12 4v4"/>
-                    </svg>
+                <h5 class="card-title mb-2 text-primary">Locomotoras</h5>
+                <div class="d-flex justify-content-center gap-2 mb-2">
+                    <div class="brand-icon" title="General Motors">
+                        <img src="{% static 'images/IcoGM.png' %}" alt="GM" class="img-fluid">
+                        <small class="d-block text-muted">GM</small>
+                    </div>
+                    <div class="brand-icon" title="CNR Dalian (CKD)">
+                        <img src="{% static 'images/IcoCKD.png' %}" alt="CKD" class="img-fluid">
+                        <small class="d-block text-muted">CKD</small>
+                    </div>
                 </div>
-                <h5 class="card-title mb-1">Locomotoras</h5>
-                <p class="card-text text-muted small mb-2">
-                    GM · CNR Dalian
-                </p>
                 <div class="d-flex gap-2 justify-content-center">
                     <a href="{% url 'tickets:ticket_list_by_type' unit_type='locomotora' %}" 
                        class="btn btn-primary btn-sm">
@@ -48,23 +45,17 @@
     <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3">
         <div class="card h-100 shadow-sm border-0 unit-card">
             <div class="card-body text-center p-3">
-                <div class="unit-icon mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#198754" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="6" width="20" height="10" rx="2"/>
-                        <path d="M4 10h16"/>
-                        <path d="M8 6v4"/>
-                        <path d="M12 6v4"/>
-                        <path d="M16 6v4"/>
-                        <circle cx="6" cy="19" r="2"/>
-                        <circle cx="18" cy="19" r="2"/>
-                        <path d="M6 16v1"/>
-                        <path d="M18 16v1"/>
-                    </svg>
+                <h5 class="card-title mb-2 text-success">Coches Remolcados</h5>
+                <div class="d-flex justify-content-center gap-2 mb-2">
+                    <div class="brand-icon" title="Materfer">
+                        <img src="{% static 'images/IcoMTF.png' %}" alt="Materfer" class="img-fluid">
+                        <small class="d-block text-muted">MTF</small>
+                    </div>
+                    <div class="brand-icon" title="CSR (CNR)">
+                        <img src="{% static 'images/IcoCSR.png' %}" alt="CSR" class="img-fluid">
+                        <small class="d-block text-muted">CSR</small>
+                    </div>
                 </div>
-                <h5 class="card-title mb-1">Coches Remolcados</h5>
-                <p class="card-text text-muted small mb-2">
-                    Materfer · CNR
-                </p>
                 <div class="d-flex gap-2 justify-content-center">
                     <a href="{% url 'tickets:ticket_list_by_type' unit_type='coche_remolcado' %}" 
                        class="btn btn-success btn-sm">
@@ -72,6 +63,35 @@
                     </a>
                     <a href="{% url 'tickets:ticket_create_by_type' unit_type='coche_remolcado' %}" 
                        class="btn btn-outline-success btn-sm">
+                        + Nuevo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coches Motor -->
+    <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3">
+        <div class="card h-100 shadow-sm border-0 unit-card">
+            <div class="card-body text-center p-3">
+                <h5 class="card-title mb-2 text-info">Coches Motor</h5>
+                <div class="d-flex justify-content-center gap-2 mb-2">
+                    <div class="brand-icon" title="CSR">
+                        <img src="{% static 'images/IcoCSR.png' %}" alt="CSR" class="img-fluid">
+                        <small class="d-block text-muted">CSR</small>
+                    </div>
+                    <div class="brand-icon" title="Toshiba">
+                        <img src="{% static 'images/IcoToshiba.png' %}" alt="Toshiba" class="img-fluid">
+                        <small class="d-block text-muted">Toshiba</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'tickets:ticket_list_by_type' unit_type='coche_motor' %}" 
+                       class="btn btn-info btn-sm text-white">
+                        Ver Tickets
+                    </a>
+                    <a href="{% url 'tickets:ticket_create_by_type' unit_type='coche_motor' %}" 
+                       class="btn btn-outline-info btn-sm">
                         + Nuevo
                     </a>
                 </div>
@@ -124,11 +144,21 @@
         transform: translateY(-3px);
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
     }
-    .unit-icon {
-        opacity: 0.9;
+    .brand-icon {
+        text-align: center;
     }
-    .unit-card:hover .unit-icon {
-        opacity: 1;
+    .brand-icon img {
+        width: 55px;
+        height: 55px;
+        object-fit: contain;
+        border-radius: 4px;
+        transition: transform 0.2s;
+    }
+    .brand-icon:hover img {
+        transform: scale(1.1);
+    }
+    .brand-icon small {
+        font-size: 0.7rem;
     }
 </style>
 {% endblock %}

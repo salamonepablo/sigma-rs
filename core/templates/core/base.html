@@ -14,22 +14,33 @@
             --ta-blue-light: #e6f3fb;
         }
         .navbar { 
-            background-color: var(--ta-blue) !important; 
+            background-color: #ffffff !important;
+            border-bottom: 3px solid var(--ta-blue);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .navbar-brand-container {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
-        .navbar-logo {
-            height: 40px;
+        .navbar-logo-ta {
+            height: 45px;
+            width: auto;
+        }
+        .navbar-logo-ars {
+            height: 38px;
             width: auto;
         }
         .navbar-title {
-            color: white;
+            color: var(--ta-blue);
             font-weight: 500;
             font-size: 1.1rem;
             margin: 0;
+            border-left: 2px solid #ddd;
+            padding-left: 12px;
+        }
+        .navbar .user-info {
+            color: #666;
         }
         .btn-primary {
             background-color: var(--ta-blue);
@@ -67,16 +78,16 @@
 </head>
 <body class="bg-light">
     {% if user.is_authenticated %}
-    <nav class="navbar navbar-dark mb-4">
+    <nav class="navbar mb-4">
         <div class="container">
             <div class="navbar-brand-container">
-                <img src="{% static 'images/Logo_TAO.jpg' %}" alt="Trenes Argentinos" class="navbar-logo">
-                <span class="navbar-title">SIGMA-RS | Material Rodante</span>
+                <img src="{% static 'images/Logo_TAO.jpg' %}" alt="Trenes Argentinos" class="navbar-logo-ta">
+                <span class="navbar-title">Material Rodante</span>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <img src="{% static 'images/ARS_MP_Logo.png' %}" alt="ARS MP" class="navbar-logo" style="height: 35px;">
-                <span class="text-light small">{{ user.get_full_name|default:user.username }}</span>
-                <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">Salir</a>
+                <img src="{% static 'images/ARS_MP_Logo.png' %}" alt="ARS MP" class="navbar-logo-ars">
+                <span class="user-info small">{{ user.get_full_name|default:user.username }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-outline-primary btn-sm">Salir</a>
             </div>
         </div>
     </nav>
