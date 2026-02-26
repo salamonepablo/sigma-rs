@@ -4,6 +4,8 @@ The main entity of the SIGMA-RS system - tracks maintenance tickets
 for rolling stock failures.
 """
 
+from datetime import date
+
 from django.db import models
 
 from apps.tickets.infrastructure.models.maintenance_unit import MaintenanceUnitModel
@@ -180,3 +182,34 @@ class TicketModel(models.Model):
     def is_completed(self) -> bool:
         """Check if the ticket is completed."""
         return self.status == self.Status.COMPLETED
+
+    def save(self, *args, **kwargs):
+        """Override save to auto-generate ticket_number if not set."""
+        if not self.ticket_number:
+            self.ticket_number = self._generate_ticket_number()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def _generate_ticket_number(cls) -> str:
+        """Generate next ticket number in format YYYY-NNNN."""
+        current_year = date.today().year
+        prefix = f"{current_year}-"
+
+        # Find the last ticket number for the current year
+        last_ticket = (
+            cls.objects.filter(ticket_number__startswith=prefix)
+            .order_by("-ticket_number")
+            .first()
+        )
+
+        if last_ticket:
+            # Extract the sequence number and increment
+            try:
+                last_seq = int(last_ticket.ticket_number.split("-")[1])
+                next_seq = last_seq + 1
+            except (IndexError, ValueError):
+                next_seq = 1
+        else:
+            next_seq = 1
+
+        return f"{current_year}-{next_seq:04d}"

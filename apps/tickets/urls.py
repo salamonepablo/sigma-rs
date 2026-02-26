@@ -4,6 +4,8 @@ from django.urls import path
 
 from apps.tickets.presentation.views import (
     HomeView,
+    LoginView,
+    LogoutView,
     TicketCreateView,
     TicketDeleteView,
     TicketDetailView,
@@ -14,6 +16,9 @@ from apps.tickets.presentation.views import (
 app_name = "tickets"
 
 urlpatterns = [
+    # Authentication
+    path("login/", LoginView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(), name="logout"),
     # Home
     path("", HomeView.as_view(), name="home"),
     # Ticket CRUD

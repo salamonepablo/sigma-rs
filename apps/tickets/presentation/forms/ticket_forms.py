@@ -47,7 +47,6 @@ class TicketForm(forms.ModelForm):
     class Meta:
         model = TicketModel
         fields = [
-            "ticket_number",
             "date",
             "maintenance_unit",
             "gop",
@@ -63,9 +62,6 @@ class TicketForm(forms.ModelForm):
             "observations",
         ]
         widgets = {
-            "ticket_number": forms.TextInput(
-                attrs={"class": "form-control form-control-sm", "placeholder": "2024-001"}
-            ),
             "date": forms.DateInput(
                 attrs={"class": "form-control form-control-sm", "type": "date"}
             ),

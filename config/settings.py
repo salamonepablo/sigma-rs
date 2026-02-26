@@ -23,7 +23,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "core",
     "apps.tickets",
 ]
 
@@ -82,6 +81,6 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/login/"
+LOGIN_URL = "/sigma/login/"
+LOGIN_REDIRECT_URL = "/sigma/"
+LOGOUT_REDIRECT_URL = "/sigma/login/"

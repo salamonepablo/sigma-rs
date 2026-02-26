@@ -21,9 +21,12 @@
                         <legend class="small fw-bold border-bottom pb-1 mb-2">Información Principal</legend>
                         <div class="row g-2">
                             <div class="col-md-2 col-sm-4">
-                                <label for="{{ form.ticket_number.id_for_label }}" class="form-label small mb-1">Nº Ticket *</label>
-                                {{ form.ticket_number }}
-                                {% if form.ticket_number.errors %}<div class="text-danger small">{{ form.ticket_number.errors.0 }}</div>{% endif %}
+                                <label class="form-label small mb-1">Nº Ticket</label>
+                                {% if ticket %}
+                                <input type="text" class="form-control form-control-sm bg-light" value="{{ ticket.ticket_number }}" disabled>
+                                {% else %}
+                                <input type="text" class="form-control form-control-sm bg-light text-muted fst-italic" value="(Automático)" disabled>
+                                {% endif %}
                             </div>
                             <div class="col-md-2 col-sm-4">
                                 <label for="{{ form.date.id_for_label }}" class="form-label small mb-1">Fecha *</label>

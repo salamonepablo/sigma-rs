@@ -1,12 +1,22 @@
-{% extends "core/base.html" %}
-{% block title %}Iniciar Sesión{% endblock %}
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Iniciar Sesión - SIGMA-RS{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mt-5">
     <div class="col-md-4">
         <div class="card shadow">
             <div class="card-body p-4">
-                <h4 class="text-center mb-4">🚂 Material Rodante</h4>
+                <!-- Logos -->
+                <div class="text-center mb-4">
+                    <img src="{% static 'images/logo_tao.jpg' %}" alt="Trenes Argentinos" 
+                         style="max-height: 45px; margin-bottom: 12px;">
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <img src="{% static 'images/ARS_MP_Logo.png' %}" alt="ARS Material Rodante" 
+                             style="max-height: 55px;">
+                        <span class="fw-bold text-primary" style="font-size: 1.4rem;">Material Rodante</span>
+                    </div>
+                </div>
                 
                 {% for message in messages %}
                 <div class="alert alert-danger">{{ message }}</div>
@@ -30,8 +40,8 @@
                 </form>
             </div>
         </div>
-        <p class="text-center text-muted mt-3 small">
-            Prototipo de prueba - Acceso por red local
+        <p class="text-center text-muted mt-3" style="font-size: 0.7rem;">
+            System for Integrated Governance and Management of Assets - Rolling Stock
         </p>
     </div>
 </div>
