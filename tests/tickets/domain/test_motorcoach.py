@@ -1,10 +1,11 @@
 """Tests para la entidad Motorcoach (Coche Motor)."""
 
-import pytest
 from uuid import uuid4
 
-from apps.tickets.domain.entities.motorcoach import Motorcoach
+import pytest
+
 from apps.tickets.domain.entities.maintenance_unit import MaintenanceUnit
+from apps.tickets.domain.entities.motorcoach import Motorcoach
 
 
 class TestMotorcoach:

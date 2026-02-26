@@ -1,7 +1,7 @@
 """Tests para la entidad FailureType (Tipo de Falla).
 
 Pruebas de dominio para tipos de fallas en material rodante.
-Tipos conocidos: Mecánicas, Eléctricas, Neumáticas, Electrónicas, 
+Tipos conocidos: Mecánicas, Eléctricas, Neumáticas, Electrónicas,
 Otras, ATS, Hombre Vivo, Hasler.
 """
 

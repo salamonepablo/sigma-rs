@@ -3,7 +3,6 @@
 Pruebas de dominio para los enums TicketStatus y EntryType.
 """
 
-import pytest
 
 from apps.tickets.domain.value_objects.ticket_enums import EntryType, TicketStatus
 

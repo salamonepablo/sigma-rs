@@ -1,10 +1,11 @@
 """Tests para la entidad Railcar (Coche Remolcado)."""
 
-import pytest
 from uuid import uuid4
 
-from apps.tickets.domain.entities.railcar import Railcar
+import pytest
+
 from apps.tickets.domain.entities.maintenance_unit import MaintenanceUnit
+from apps.tickets.domain.entities.railcar import Railcar
 
 
 class TestRailcar:

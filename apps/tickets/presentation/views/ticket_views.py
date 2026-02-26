@@ -5,7 +5,6 @@ import uuid
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
-from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -18,8 +17,6 @@ from django.views.generic import (
 
 from apps.tickets.models import (
     FailureTypeModel,
-    MaintenanceUnitModel,
-    PersonalModel,
     TicketModel,
     TrainNumberModel,
 )

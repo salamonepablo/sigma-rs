@@ -1,8 +1,8 @@
 """Tests para la entidad MaintenanceUnit (Unidad de Mantenimiento)."""
 
+from uuid import uuid4
+
 import pytest
-from dataclasses import dataclass
-from uuid import UUID, uuid4
 
 from apps.tickets.domain.entities.maintenance_unit import MaintenanceUnit
 

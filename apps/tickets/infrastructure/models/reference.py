@@ -7,8 +7,6 @@ GOP, Supervisor, TrainNumber.
 
 from django.db import models
 
-from apps.tickets.infrastructure.models.base import BaseModel
-
 
 class BrandModel(models.Model):
     """Manufacturer brand for rolling stock.

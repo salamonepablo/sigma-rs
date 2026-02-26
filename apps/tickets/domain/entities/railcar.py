@@ -4,7 +4,6 @@ Represents a railcar (towed coach) used in the Roca Line.
 """
 
 from dataclasses import dataclass
-from uuid import UUID
 
 from apps.tickets.domain.entities.maintenance_unit import MaintenanceUnit
 

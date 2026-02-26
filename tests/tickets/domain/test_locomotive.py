@@ -1,7 +1,8 @@
 """Tests para la entidad Locomotive (Locomotora)."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from apps.tickets.domain.entities.locomotive import Locomotive
 from apps.tickets.domain.entities.maintenance_unit import MaintenanceUnit

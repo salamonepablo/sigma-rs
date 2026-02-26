@@ -3,6 +3,14 @@
 # Base model
 from apps.tickets.infrastructure.models.base import BaseModel
 
+# Maintenance unit models
+from apps.tickets.infrastructure.models.maintenance_unit import (
+    LocomotiveModel,
+    MaintenanceUnitModel,
+    MotorcoachModel,
+    RailcarModel,
+)
+
 # Reference data models
 from apps.tickets.infrastructure.models.reference import (
     AffectedSystemModel,
@@ -14,14 +22,6 @@ from apps.tickets.infrastructure.models.reference import (
     RailcarClassModel,
     SupervisorModel,
     TrainNumberModel,
-)
-
-# Maintenance unit models
-from apps.tickets.infrastructure.models.maintenance_unit import (
-    LocomotiveModel,
-    MaintenanceUnitModel,
-    MotorcoachModel,
-    RailcarModel,
 )
 
 # Ticket model

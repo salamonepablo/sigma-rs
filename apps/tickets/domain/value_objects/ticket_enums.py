@@ -3,10 +3,10 @@
 Contains enums for ticket status and entry type.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class TicketStatus(str, Enum):
+class TicketStatus(StrEnum):
     """Status of a maintenance ticket.
 
     Tickets can be in one of two states:
@@ -27,7 +27,7 @@ class TicketStatus(str, Enum):
         return labels[self]
 
 
-class EntryType(str, Enum):
+class EntryType(StrEnum):
     """Type of maintenance entry for a ticket.
 
     Defines how the maintenance unit will be handled:

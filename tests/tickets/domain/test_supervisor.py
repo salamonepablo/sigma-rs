@@ -1,13 +1,11 @@
 """Tests para la entidad Supervisor.
 
 Pruebas de dominio para supervisores de mantenimiento.
-Los supervisores son responsables de coordinar y supervisar 
+Los supervisores son responsables de coordinar y supervisar
 el trabajo de las GOPs.
 """
 
 from uuid import uuid4
-
-import pytest
 
 from apps.tickets.domain.entities.supervisor import Supervisor
 

@@ -4,7 +4,6 @@ Represents a diesel motorcoach (self-propelled train) used in the Roca Line.
 """
 
 from dataclasses import dataclass
-from uuid import UUID
 
 from apps.tickets.domain.entities.maintenance_unit import MaintenanceUnit
 
