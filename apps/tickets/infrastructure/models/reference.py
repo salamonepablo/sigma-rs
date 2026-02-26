@@ -5,6 +5,8 @@ Brand, LocomotiveModel, RailcarClass, FailureType, AffectedSystem,
 GOP, Supervisor, TrainNumber.
 """
 
+import uuid
+
 from django.db import models
 
 
@@ -16,6 +18,7 @@ class BrandModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -69,6 +72,7 @@ class LocomotiveModelModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -126,6 +130,7 @@ class RailcarClassModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -183,6 +188,7 @@ class FailureTypeModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -235,6 +241,7 @@ class AffectedSystemModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -291,6 +298,7 @@ class GOPModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -338,6 +346,7 @@ class SupervisorModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -397,6 +406,7 @@ class PersonalModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
@@ -461,6 +471,7 @@ class TrainNumberModel(models.Model):
 
     id = models.UUIDField(
         primary_key=True,
+        default=uuid.uuid4,
         editable=False,
         verbose_name="ID",
     )
