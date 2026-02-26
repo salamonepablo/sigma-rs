@@ -54,7 +54,8 @@ class TicketForm(forms.ModelForm):
         ]
         widgets = {
             "date": forms.DateInput(
-                attrs={"class": "form-control form-control-sm", "type": "date"}
+                attrs={"class": "form-control form-control-sm", "type": "date"},
+                format="%Y-%m-%d",
             ),
             "maintenance_unit": forms.Select(
                 attrs={"class": "form-select form-select-sm"}
@@ -110,6 +111,8 @@ class TicketForm(forms.ModelForm):
         # Get unit_type filter if provided
         unit_type = kwargs.pop("unit_type", None)
         super().__init__(*args, **kwargs)
+
+        self.fields["date"].input_formats = ["%Y-%m-%d"]
 
         # Store unit_type for later use
         self._unit_type = unit_type
