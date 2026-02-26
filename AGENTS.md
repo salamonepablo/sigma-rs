@@ -64,6 +64,7 @@ sigma-rs/
   3. Refactoriza manteniendo los tests en verde
 - **Pequeños commits**: Usa mensajes convencionales (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`)
 - **No subir archivos sensibles**: Nunca commitear `.env`, `db.sqlite3`, credenciales, ni archivos de base de datos.
+- **Repositorio público**: No subir datos oficiales, personales ni confidenciales. Usar `.env` para configuración sensible y mantenerlo fuera del control de versiones.
 - **CI/CD**: Validar siempre con `python manage.py check` y tests antes de mergear.
 
 - **Documentación actualizada**: Actualiza la documentación cada vez que realices un cambio importante en el código o la arquitectura.

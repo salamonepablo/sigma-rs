@@ -88,6 +88,8 @@ Each push/PR runs:
 
 Do not commit sensitive files (`.env`, database files, credentials).
 
+Because the repository is public, never upload official, personal, or confidential data. Use a local `.env` file for sensitive configuration and keep it out of version control.
+
 ## Changelog
 
 See `docs/CHANGELOG.md`.
