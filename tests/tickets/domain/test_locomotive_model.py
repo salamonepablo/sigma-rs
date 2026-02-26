@@ -20,10 +20,7 @@ class TestLocomotiveModel:
         model_id = uuid4()
         brand_id = uuid4()
         model = LocomotiveModel(
-            id=model_id,
-            name="GT22CW",
-            code="GT22CW",
-            brand_id=brand_id
+            id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id
         )
 
         assert model.id == model_id
@@ -38,7 +35,7 @@ class TestLocomotiveModel:
             name="GT22CW",
             code="GT22CW",
             brand_id=uuid4(),
-            description="Locomotora diésel-eléctrica de 2200 HP"
+            description="Locomotora diésel-eléctrica de 2200 HP",
         )
 
         assert model.description == "Locomotora diésel-eléctrica de 2200 HP"
@@ -46,33 +43,21 @@ class TestLocomotiveModel:
     def test_description_defaults_to_none(self):
         """Verifica que description es opcional y por defecto es None."""
         model = LocomotiveModel(
-            id=uuid4(),
-            name="GT22CW",
-            code="GT22CW",
-            brand_id=uuid4()
+            id=uuid4(), name="GT22CW", code="GT22CW", brand_id=uuid4()
         )
 
         assert model.description is None
 
     def test_is_active_defaults_to_true(self):
         """Verifica que los modelos están activos por defecto."""
-        model = LocomotiveModel(
-            id=uuid4(),
-            name="8G",
-            code="8G",
-            brand_id=uuid4()
-        )
+        model = LocomotiveModel(id=uuid4(), name="8G", code="8G", brand_id=uuid4())
 
         assert model.is_active is True
 
     def test_create_inactive_model(self):
         """Verifica que se puede crear un modelo inactivo."""
         model = LocomotiveModel(
-            id=uuid4(),
-            name="G12",
-            code="G12",
-            brand_id=uuid4(),
-            is_active=False
+            id=uuid4(), name="G12", code="G12", brand_id=uuid4(), is_active=False
         )
 
         assert model.is_active is False
@@ -80,10 +65,7 @@ class TestLocomotiveModel:
     def test_str_representation(self):
         """Verifica la representación en string de un modelo."""
         model = LocomotiveModel(
-            id=uuid4(),
-            name="GT22CW",
-            code="GT22CW",
-            brand_id=uuid4()
+            id=uuid4(), name="GT22CW", code="GT22CW", brand_id=uuid4()
         )
 
         assert str(model) == "GT22CW"
@@ -92,16 +74,24 @@ class TestLocomotiveModel:
         """Dos modelos con el mismo ID son iguales."""
         model_id = uuid4()
         brand_id = uuid4()
-        model1 = LocomotiveModel(id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id)
-        model2 = LocomotiveModel(id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id)
+        model1 = LocomotiveModel(
+            id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id
+        )
+        model2 = LocomotiveModel(
+            id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id
+        )
 
         assert model1 == model2
 
     def test_inequality_for_different_ids(self):
         """Dos modelos con diferente ID no son iguales."""
         brand_id = uuid4()
-        model1 = LocomotiveModel(id=uuid4(), name="GT22CW", code="GT22CW", brand_id=brand_id)
-        model2 = LocomotiveModel(id=uuid4(), name="GT22CW", code="GT22CW", brand_id=brand_id)
+        model1 = LocomotiveModel(
+            id=uuid4(), name="GT22CW", code="GT22CW", brand_id=brand_id
+        )
+        model2 = LocomotiveModel(
+            id=uuid4(), name="GT22CW", code="GT22CW", brand_id=brand_id
+        )
 
         assert model1 != model2
 
@@ -109,8 +99,12 @@ class TestLocomotiveModel:
         """El hash se basa en el ID."""
         model_id = uuid4()
         brand_id = uuid4()
-        model1 = LocomotiveModel(id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id)
-        model2 = LocomotiveModel(id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id)
+        model1 = LocomotiveModel(
+            id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id
+        )
+        model2 = LocomotiveModel(
+            id=model_id, name="GT22CW", code="GT22CW", brand_id=brand_id
+        )
 
         assert hash(model1) == hash(model2)
 
@@ -135,7 +129,7 @@ class TestLocomotiveModelKnownValues:
             id=uuid4(),
             name=name,
             code=code,
-            brand_id=uuid4()  # GM brand ID
+            brand_id=uuid4(),  # GM brand ID
         )
 
         assert model.name == name
@@ -154,7 +148,7 @@ class TestLocomotiveModelKnownValues:
             id=uuid4(),
             name=name,
             code=code,
-            brand_id=uuid4()  # CNR brand ID
+            brand_id=uuid4(),  # CNR brand ID
         )
 
         assert model.name == name

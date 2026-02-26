@@ -51,8 +51,16 @@ class Command(BaseCommand):
         """Load manufacturer brands."""
         brands = [
             {"code": "GM", "name": "GM", "full_name": "General Motors"},
-            {"code": "CNR", "name": "Dalian CNR", "full_name": "CNR Dalian Locomotive & Rolling Stock Co."},
-            {"code": "MTF", "name": "Materfer", "full_name": "Material Ferroviario S.A."},
+            {
+                "code": "CNR",
+                "name": "Dalian CNR",
+                "full_name": "CNR Dalian Locomotive & Rolling Stock Co.",
+            },
+            {
+                "code": "MTF",
+                "name": "Materfer",
+                "full_name": "Material Ferroviario S.A.",
+            },
             {"code": "NOHAB", "name": "Nohab", "full_name": "Nydqvist & Holm AB"},
         ]
 
@@ -213,12 +221,16 @@ class Command(BaseCommand):
                 sector = sector_mapping.get(sector_csv)
                 if not sector:
                     self.stdout.write(
-                        self.style.WARNING(f"  Unknown sector: {sector_csv} for {full_name}")
+                        self.style.WARNING(
+                            f"  Unknown sector: {sector_csv} for {full_name}"
+                        )
                     )
                     continue
 
                 # Check if already exists (same legajo + sector)
-                if PersonalModel.objects.filter(legajo_sap=legajo_sap, sector=sector).exists():
+                if PersonalModel.objects.filter(
+                    legajo_sap=legajo_sap, sector=sector
+                ).exists():
                     counts["skipped"] += 1
                     continue
 
@@ -295,7 +307,9 @@ class Command(BaseCommand):
                 brand_code = brand_mapping.get(brand_name)
                 if not brand_code or brand_code not in brands:
                     self.stdout.write(
-                        self.style.WARNING(f"  Unknown brand: {brand_name} for unit {unit_number}")
+                        self.style.WARNING(
+                            f"  Unknown brand: {brand_name} for unit {unit_number}"
+                        )
                     )
                     continue
 
@@ -348,7 +362,9 @@ class Command(BaseCommand):
 
         if not loco_model:
             self.stdout.write(
-                self.style.WARNING(f"  Unknown locomotive model: {model_name} for unit {number}")
+                self.style.WARNING(
+                    f"  Unknown locomotive model: {model_name} for unit {number}"
+                )
             )
             return
 

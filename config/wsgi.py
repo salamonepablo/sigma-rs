@@ -1,4 +1,5 @@
 """WSGI config - punto de entrada para Waitress."""
+
 from __future__ import annotations
 
 import os

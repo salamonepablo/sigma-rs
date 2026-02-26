@@ -18,11 +18,7 @@ class TestFailureType:
     def test_create_failure_type_with_required_fields(self):
         """Verifica que se puede crear un tipo de falla con campos requeridos."""
         type_id = uuid4()
-        failure_type = FailureType(
-            id=type_id,
-            name="Mecánicas",
-            code="MEC"
-        )
+        failure_type = FailureType(id=type_id, name="Mecánicas", code="MEC")
 
         assert failure_type.id == type_id
         assert failure_type.name == "Mecánicas"
@@ -34,49 +30,34 @@ class TestFailureType:
             id=uuid4(),
             name="Eléctricas",
             code="ELE",
-            description="Fallas relacionadas con sistemas eléctricos"
+            description="Fallas relacionadas con sistemas eléctricos",
         )
 
         assert failure_type.description == "Fallas relacionadas con sistemas eléctricos"
 
     def test_description_defaults_to_none(self):
         """Verifica que description es opcional y por defecto es None."""
-        failure_type = FailureType(
-            id=uuid4(),
-            name="Neumáticas",
-            code="NEU"
-        )
+        failure_type = FailureType(id=uuid4(), name="Neumáticas", code="NEU")
 
         assert failure_type.description is None
 
     def test_is_active_defaults_to_true(self):
         """Verifica que los tipos de falla están activos por defecto."""
-        failure_type = FailureType(
-            id=uuid4(),
-            name="ATS",
-            code="ATS"
-        )
+        failure_type = FailureType(id=uuid4(), name="ATS", code="ATS")
 
         assert failure_type.is_active is True
 
     def test_create_inactive_failure_type(self):
         """Verifica que se puede crear un tipo de falla inactivo."""
         failure_type = FailureType(
-            id=uuid4(),
-            name="Obsoleto",
-            code="OBS",
-            is_active=False
+            id=uuid4(), name="Obsoleto", code="OBS", is_active=False
         )
 
         assert failure_type.is_active is False
 
     def test_str_representation(self):
         """Verifica la representación en string de un tipo de falla."""
-        failure_type = FailureType(
-            id=uuid4(),
-            name="Mecánicas",
-            code="MEC"
-        )
+        failure_type = FailureType(id=uuid4(), name="Mecánicas", code="MEC")
 
         assert str(failure_type) == "Mecánicas"
 
@@ -122,11 +103,7 @@ class TestFailureTypeKnownValues:
     )
     def test_create_known_failure_types(self, name: str, code: str):
         """Verifica que se pueden crear los tipos de falla conocidos."""
-        failure_type = FailureType(
-            id=uuid4(),
-            name=name,
-            code=code
-        )
+        failure_type = FailureType(id=uuid4(), name=name, code=code)
 
         assert failure_type.name == name
         assert failure_type.code == code

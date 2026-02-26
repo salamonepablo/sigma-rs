@@ -55,7 +55,9 @@ class TicketForm(forms.ModelForm):
             "date": forms.DateInput(
                 attrs={"class": "form-control form-control-sm", "type": "date"}
             ),
-            "maintenance_unit": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "maintenance_unit": forms.Select(
+                attrs={"class": "form-select form-select-sm"}
+            ),
             "gop": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "entry_type": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "status": forms.Select(attrs={"class": "form-select form-select-sm"}),
@@ -66,12 +68,22 @@ class TicketForm(forms.ModelForm):
                     "placeholder": "Descripción de la falla",
                 }
             ),
-            "affected_service": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "affected_service": forms.Select(
+                attrs={"class": "form-select form-select-sm"}
+            ),
             "failure_type": forms.Select(attrs={"class": "form-select form-select-sm"}),
-            "affected_system": forms.Select(attrs={"class": "form-select form-select-sm"}),
-            "interviniente": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "affected_system": forms.Select(
+                attrs={"class": "form-select form-select-sm"}
+            ),
+            "interviniente": forms.Select(
+                attrs={"class": "form-select form-select-sm"}
+            ),
             "work_order_number": forms.TextInput(
-                attrs={"class": "form-control form-control-sm", "placeholder": "123456", "type": "number"}
+                attrs={
+                    "class": "form-control form-control-sm",
+                    "placeholder": "123456",
+                    "type": "number",
+                }
             ),
             "notification_time": forms.TimeInput(
                 attrs={"class": "form-control form-control-sm", "type": "time"}
@@ -102,25 +114,23 @@ class TicketForm(forms.ModelForm):
 
         # Filter maintenance units by type if specified
         if unit_type:
-            self.fields["maintenance_unit"].queryset = (
-                MaintenanceUnitModel.objects.filter(
-                    unit_type=unit_type, is_active=True
-                )
+            self.fields[
+                "maintenance_unit"
+            ].queryset = MaintenanceUnitModel.objects.filter(
+                unit_type=unit_type, is_active=True
             )
             # Filter intervinientes by sector matching unit_type
-            self.fields["interviniente"].queryset = (
-                PersonalModel.objects.filter(
-                    sector=unit_type, is_active=True
-                ).order_by("full_name")
-            )
+            self.fields["interviniente"].queryset = PersonalModel.objects.filter(
+                sector=unit_type, is_active=True
+            ).order_by("full_name")
         else:
-            self.fields["maintenance_unit"].queryset = (
-                MaintenanceUnitModel.objects.filter(is_active=True)
-            )
+            self.fields[
+                "maintenance_unit"
+            ].queryset = MaintenanceUnitModel.objects.filter(is_active=True)
             # Show all active intervinientes if no unit_type filter
-            self.fields["interviniente"].queryset = (
-                PersonalModel.objects.filter(is_active=True).order_by("full_name")
-            )
+            self.fields["interviniente"].queryset = PersonalModel.objects.filter(
+                is_active=True
+            ).order_by("full_name")
 
         # Filter active items only for all FK fields
         self.fields["gop"].queryset = GOPModel.objects.filter(is_active=True)
@@ -145,9 +155,9 @@ class TicketForm(forms.ModelForm):
         # Pre-populate text fields if editing existing ticket
         if self.instance and self.instance.pk:
             if self.instance.train_number:
-                self.fields["train_number_input"].initial = (
-                    self.instance.train_number.number
-                )
+                self.fields[
+                    "train_number_input"
+                ].initial = self.instance.train_number.number
 
     def save(self, commit=True):
         """Save the form, creating train_number if needed."""

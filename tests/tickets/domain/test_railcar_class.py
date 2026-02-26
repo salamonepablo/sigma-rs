@@ -19,12 +19,7 @@ class TestRailcarClass:
         """Verifica que se puede crear una clase con campos requeridos."""
         class_id = uuid4()
         brand_id = uuid4()
-        railcar_class = RailcarClass(
-            id=class_id,
-            name="U",
-            code="U",
-            brand_id=brand_id
-        )
+        railcar_class = RailcarClass(id=class_id, name="U", code="U", brand_id=brand_id)
 
         assert railcar_class.id == class_id
         assert railcar_class.name == "U"
@@ -38,41 +33,29 @@ class TestRailcarClass:
             name="CPA",
             code="CPA",
             brand_id=uuid4(),
-            description="Coche con aire acondicionado, primera clase"
+            description="Coche con aire acondicionado, primera clase",
         )
 
-        assert railcar_class.description == "Coche con aire acondicionado, primera clase"
+        assert (
+            railcar_class.description == "Coche con aire acondicionado, primera clase"
+        )
 
     def test_description_defaults_to_none(self):
         """Verifica que description es opcional y por defecto es None."""
-        railcar_class = RailcarClass(
-            id=uuid4(),
-            name="U",
-            code="U",
-            brand_id=uuid4()
-        )
+        railcar_class = RailcarClass(id=uuid4(), name="U", code="U", brand_id=uuid4())
 
         assert railcar_class.description is None
 
     def test_is_active_defaults_to_true(self):
         """Verifica que las clases están activas por defecto."""
-        railcar_class = RailcarClass(
-            id=uuid4(),
-            name="FU",
-            code="FU",
-            brand_id=uuid4()
-        )
+        railcar_class = RailcarClass(id=uuid4(), name="FU", code="FU", brand_id=uuid4())
 
         assert railcar_class.is_active is True
 
     def test_create_inactive_class(self):
         """Verifica que se puede crear una clase inactiva."""
         railcar_class = RailcarClass(
-            id=uuid4(),
-            name="F",
-            code="F",
-            brand_id=uuid4(),
-            is_active=False
+            id=uuid4(), name="F", code="F", brand_id=uuid4(), is_active=False
         )
 
         assert railcar_class.is_active is False
@@ -80,10 +63,7 @@ class TestRailcarClass:
     def test_str_representation(self):
         """Verifica la representación en string de una clase."""
         railcar_class = RailcarClass(
-            id=uuid4(),
-            name="CPA",
-            code="CPA",
-            brand_id=uuid4()
+            id=uuid4(), name="CPA", code="CPA", brand_id=uuid4()
         )
 
         assert str(railcar_class) == "CPA"
@@ -133,7 +113,7 @@ class TestRailcarClassKnownValues:
             name=name,
             code=code,
             brand_id=uuid4(),  # Materfer brand ID
-            description=description
+            description=description,
         )
 
         assert railcar_class.name == name
@@ -157,7 +137,7 @@ class TestRailcarClassKnownValues:
             name=name,
             code=code,
             brand_id=uuid4(),  # CNR brand ID
-            description=description
+            description=description,
         )
 
         assert railcar_class.name == name

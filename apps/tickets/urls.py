@@ -36,7 +36,5 @@ urlpatterns = [
     ),
     path("ticket/<uuid:pk>/", TicketDetailView.as_view(), name="ticket_detail"),
     path("ticket/<uuid:pk>/edit/", TicketUpdateView.as_view(), name="ticket_update"),
-    path(
-        "ticket/<uuid:pk>/delete/", TicketDeleteView.as_view(), name="ticket_delete"
-    ),
+    path("ticket/<uuid:pk>/delete/", TicketDeleteView.as_view(), name="ticket_delete"),
 ]

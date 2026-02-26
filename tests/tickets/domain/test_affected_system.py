@@ -23,7 +23,7 @@ class TestAffectedSystem:
             id=system_id,
             name="Motor Diésel",
             code="MD",
-            failure_type_id=failure_type_id
+            failure_type_id=failure_type_id,
         )
 
         assert system.id == system_id
@@ -38,7 +38,7 @@ class TestAffectedSystem:
             name="Motor de tracción",
             code="MT",
             failure_type_id=uuid4(),
-            description="Motor eléctrico de tracción principal"
+            description="Motor eléctrico de tracción principal",
         )
 
         assert system.description == "Motor eléctrico de tracción principal"
@@ -46,10 +46,7 @@ class TestAffectedSystem:
     def test_description_defaults_to_none(self):
         """Verifica que description es opcional y por defecto es None."""
         system = AffectedSystem(
-            id=uuid4(),
-            name="Sistema de frenos",
-            code="SF",
-            failure_type_id=uuid4()
+            id=uuid4(), name="Sistema de frenos", code="SF", failure_type_id=uuid4()
         )
 
         assert system.description is None
@@ -57,10 +54,7 @@ class TestAffectedSystem:
     def test_is_active_defaults_to_true(self):
         """Verifica que los sistemas están activos por defecto."""
         system = AffectedSystem(
-            id=uuid4(),
-            name="Sistema ATS",
-            code="ATS",
-            failure_type_id=uuid4()
+            id=uuid4(), name="Sistema ATS", code="ATS", failure_type_id=uuid4()
         )
 
         assert system.is_active is True
@@ -72,7 +66,7 @@ class TestAffectedSystem:
             name="Sistema obsoleto",
             code="OBS",
             failure_type_id=uuid4(),
-            is_active=False
+            is_active=False,
         )
 
         assert system.is_active is False
@@ -80,10 +74,7 @@ class TestAffectedSystem:
     def test_str_representation(self):
         """Verifica la representación en string de un sistema."""
         system = AffectedSystem(
-            id=uuid4(),
-            name="Motor Diésel",
-            code="MD",
-            failure_type_id=uuid4()
+            id=uuid4(), name="Motor Diésel", code="MD", failure_type_id=uuid4()
         )
 
         assert str(system) == "Motor Diésel"
@@ -93,10 +84,16 @@ class TestAffectedSystem:
         system_id = uuid4()
         failure_type_id = uuid4()
         system1 = AffectedSystem(
-            id=system_id, name="Motor Diésel", code="MD", failure_type_id=failure_type_id
+            id=system_id,
+            name="Motor Diésel",
+            code="MD",
+            failure_type_id=failure_type_id,
         )
         system2 = AffectedSystem(
-            id=system_id, name="Motor Diésel", code="MD", failure_type_id=failure_type_id
+            id=system_id,
+            name="Motor Diésel",
+            code="MD",
+            failure_type_id=failure_type_id,
         )
 
         assert system1 == system2
@@ -118,10 +115,16 @@ class TestAffectedSystem:
         system_id = uuid4()
         failure_type_id = uuid4()
         system1 = AffectedSystem(
-            id=system_id, name="Motor Diésel", code="MD", failure_type_id=failure_type_id
+            id=system_id,
+            name="Motor Diésel",
+            code="MD",
+            failure_type_id=failure_type_id,
         )
         system2 = AffectedSystem(
-            id=system_id, name="Motor Diésel", code="MD", failure_type_id=failure_type_id
+            id=system_id,
+            name="Motor Diésel",
+            code="MD",
+            failure_type_id=failure_type_id,
         )
 
         assert hash(system1) == hash(system2)
@@ -143,7 +146,7 @@ class TestAffectedSystemByFailureType:
             id=uuid4(),
             name=name,
             code=code,
-            failure_type_id=uuid4()  # Mecánicas failure type ID
+            failure_type_id=uuid4(),  # Mecánicas failure type ID
         )
 
         assert system.name == name
@@ -162,7 +165,7 @@ class TestAffectedSystemByFailureType:
             id=uuid4(),
             name=name,
             code=code,
-            failure_type_id=uuid4()  # Eléctricas failure type ID
+            failure_type_id=uuid4(),  # Eléctricas failure type ID
         )
 
         assert system.name == name
@@ -181,7 +184,7 @@ class TestAffectedSystemByFailureType:
             id=uuid4(),
             name=name,
             code=code,
-            failure_type_id=uuid4()  # Neumáticas failure type ID
+            failure_type_id=uuid4(),  # Neumáticas failure type ID
         )
 
         assert system.name == name
@@ -200,7 +203,7 @@ class TestAffectedSystemByFailureType:
             id=uuid4(),
             name=name,
             code=code,
-            failure_type_id=uuid4()  # Electrónicas failure type ID
+            failure_type_id=uuid4(),  # Electrónicas failure type ID
         )
 
         assert system.name == name
@@ -219,7 +222,7 @@ class TestAffectedSystemByFailureType:
             id=uuid4(),
             name=name,
             code=code,
-            failure_type_id=uuid4()  # Otras failure type ID
+            failure_type_id=uuid4(),  # Otras failure type ID
         )
 
         assert system.name == name
@@ -238,10 +241,7 @@ class TestAffectedSystemByFailureType:
     ):
         """Verifica sistemas especializados (ATS, Hombre Vivo, Hasler)."""
         system = AffectedSystem(
-            id=uuid4(),
-            name=system_name,
-            code=system_code,
-            failure_type_id=uuid4()
+            id=uuid4(), name=system_name, code=system_code, failure_type_id=uuid4()
         )
 
         assert system.name == system_name

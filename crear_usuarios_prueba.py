@@ -2,6 +2,7 @@
 Crear usuarios de prueba para testear acceso concurrente.
 Ejecutar: python crear_usuarios_prueba.py
 """
+
 from __future__ import annotations
 
 import os

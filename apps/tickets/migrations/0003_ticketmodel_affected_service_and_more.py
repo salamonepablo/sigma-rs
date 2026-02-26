@@ -5,46 +5,121 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0002_remove_core_ticket_table'),
+        ("tickets", "0002_remove_core_ticket_table"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='ticketmodel',
-            name='affected_service',
-            field=models.CharField(blank=True, choices=[('si', 'Sí'), ('no', 'No')], help_text='Indica si la falla afectó el servicio', max_length=5, null=True, verbose_name='Afectó servicio'),
+            model_name="ticketmodel",
+            name="affected_service",
+            field=models.CharField(
+                blank=True,
+                choices=[("si", "Sí"), ("no", "No")],
+                help_text="Indica si la falla afectó el servicio",
+                max_length=5,
+                null=True,
+                verbose_name="Afectó servicio",
+            ),
         ),
         migrations.AlterField(
-            model_name='ticketmodel',
-            name='supervisor',
-            field=models.ForeignKey(blank=True, help_text='Campo legacy - usar interviniente', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='tickets', to='tickets.supervisormodel', verbose_name='Supervisor (legacy)'),
+            model_name="ticketmodel",
+            name="supervisor",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Campo legacy - usar interviniente",
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="tickets",
+                to="tickets.supervisormodel",
+                verbose_name="Supervisor (legacy)",
+            ),
         ),
         migrations.CreateModel(
-            name='PersonalModel',
+            name="PersonalModel",
             fields=[
-                ('id', models.UUIDField(editable=False, primary_key=True, serialize=False, verbose_name='ID')),
-                ('legajo_sap', models.CharField(help_text='Número de legajo en SAP', max_length=20, verbose_name='Legajo SAP')),
-                ('cuit', models.CharField(blank=True, max_length=20, null=True, verbose_name='CUIT')),
-                ('full_name', models.CharField(max_length=200, verbose_name='Nombre y Apellido')),
-                ('sector', models.CharField(choices=[('locomotora', 'Locomotoras'), ('coche_remolcado', 'Coches Remolcados')], help_text='Locomotoras o Coches Remolcados', max_length=20, verbose_name='Sector')),
-                ('sector_simaf', models.CharField(blank=True, help_text='Sector en sistema SIMAF', max_length=100, null=True, verbose_name='Sector SIMAF')),
-                ('is_active', models.BooleanField(default=True, verbose_name='Activo')),
-                ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')),
-                ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Fecha de actualización')),
+                (
+                    "id",
+                    models.UUIDField(
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "legajo_sap",
+                    models.CharField(
+                        help_text="Número de legajo en SAP",
+                        max_length=20,
+                        verbose_name="Legajo SAP",
+                    ),
+                ),
+                (
+                    "cuit",
+                    models.CharField(
+                        blank=True, max_length=20, null=True, verbose_name="CUIT"
+                    ),
+                ),
+                (
+                    "full_name",
+                    models.CharField(max_length=200, verbose_name="Nombre y Apellido"),
+                ),
+                (
+                    "sector",
+                    models.CharField(
+                        choices=[
+                            ("locomotora", "Locomotoras"),
+                            ("coche_remolcado", "Coches Remolcados"),
+                        ],
+                        help_text="Locomotoras o Coches Remolcados",
+                        max_length=20,
+                        verbose_name="Sector",
+                    ),
+                ),
+                (
+                    "sector_simaf",
+                    models.CharField(
+                        blank=True,
+                        help_text="Sector en sistema SIMAF",
+                        max_length=100,
+                        null=True,
+                        verbose_name="Sector SIMAF",
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True, verbose_name="Activo")),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Fecha de creación"
+                    ),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(
+                        auto_now=True, verbose_name="Fecha de actualización"
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Personal',
-                'verbose_name_plural': 'Personal',
-                'db_table': 'personal',
-                'ordering': ['full_name'],
-                'unique_together': {('legajo_sap', 'sector')},
+                "verbose_name": "Personal",
+                "verbose_name_plural": "Personal",
+                "db_table": "personal",
+                "ordering": ["full_name"],
+                "unique_together": {("legajo_sap", "sector")},
             },
         ),
         migrations.AddField(
-            model_name='ticketmodel',
-            name='interviniente',
-            field=models.ForeignKey(blank=True, help_text='Personal que interviene en la resolución', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='tickets', to='tickets.personalmodel', verbose_name='Interviniente'),
+            model_name="ticketmodel",
+            name="interviniente",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Personal que interviene en la resolución",
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="tickets",
+                to="tickets.personalmodel",
+                verbose_name="Interviniente",
+            ),
         ),
     ]

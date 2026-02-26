@@ -29,7 +29,7 @@ class TestBrand:
             id=uuid4(),
             name="CNR",
             code="CNR",
-            full_name="China CNR Corporation (Dalian)"
+            full_name="China CNR Corporation (Dalian)",
         )
 
         assert brand.full_name == "China CNR Corporation (Dalian)"
@@ -61,10 +61,7 @@ class TestBrand:
     def test_str_with_full_name(self):
         """Verifica que str usa el nombre corto, no el completo."""
         brand = Brand(
-            id=uuid4(),
-            name="CNR",
-            code="CNR",
-            full_name="China CNR Corporation"
+            id=uuid4(), name="CNR", code="CNR", full_name="China CNR Corporation"
         )
 
         assert str(brand) == "CNR"

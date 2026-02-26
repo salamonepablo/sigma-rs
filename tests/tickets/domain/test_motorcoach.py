@@ -77,7 +77,11 @@ class TestMotorcoach:
             id=same_id, number="CM001", brand="CNR", model="CKD", configuration="CM-CM"
         )
         cm2 = Motorcoach(
-            id=same_id, number="CM002", brand="CNR", model="CKD", configuration="CM-R-CM"
+            id=same_id,
+            number="CM002",
+            brand="CNR",
+            model="CKD",
+            configuration="CM-R-CM",
         )
 
         assert cm1 == cm2
@@ -89,7 +93,11 @@ class TestMotorcoach:
             id=same_id, number="CM001", brand="CNR", model="CKD", configuration="CM-CM"
         )
         cm2 = Motorcoach(
-            id=same_id, number="CM002", brand="CNR", model="CKD", configuration="CM-R-CM"
+            id=same_id,
+            number="CM002",
+            brand="CNR",
+            model="CKD",
+            configuration="CM-R-CM",
         )
 
         assert hash(cm1) == hash(cm2)

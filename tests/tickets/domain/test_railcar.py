@@ -102,7 +102,9 @@ class TestRailcarTypes:
             ("CNR", "FG", "FG001"),
         ],
     )
-    def test_create_railcar_with_known_types(self, brand: str, coach_type: str, number: str):
+    def test_create_railcar_with_known_types(
+        self, brand: str, coach_type: str, number: str
+    ):
         """Se pueden crear coches remolcados con tipos conocidos."""
         rc = Railcar(
             id=uuid4(),

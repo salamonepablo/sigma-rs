@@ -99,7 +99,9 @@ class TestLocomotiveBrands:
             ("CNR", "8H", "CKD0100"),
         ],
     )
-    def test_create_locomotive_with_known_brands(self, brand: str, model: str, number: str):
+    def test_create_locomotive_with_known_brands(
+        self, brand: str, model: str, number: str
+    ):
         """Se pueden crear locomotoras con marcas y modelos conocidos."""
         loc = Locomotive(
             id=uuid4(),
