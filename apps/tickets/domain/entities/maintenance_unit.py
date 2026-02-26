@@ -35,7 +35,7 @@ class MaintenanceUnit(ABC):
         Returns:
             String identifying the unit type.
         """
-        ...
+        ...  # pragma: no cover
 
     def __str__(self) -> str:
         """Return string representation with type and number."""
