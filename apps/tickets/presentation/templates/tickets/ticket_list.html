@@ -20,6 +20,17 @@
 .ticket-table .badge {
     font-size: 0.75rem;
 }
+
+.ticket-table td.actions .btn {
+    padding: 0.15rem 0.35rem;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.ticket-table th.affect,
+.ticket-table td.affect {
+    text-align: center;
+}
 </style>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -84,7 +95,7 @@
                     <th>Fecha</th>
                     <th>Unidad</th>
                     <th>Falla</th>
-                    <th>Afectó al Serv.</th>
+                    <th class="affect">Af/S</th>
                     <th>GOP</th>
                     <th>Ingreso</th>
                     <th>Estado</th>
@@ -106,9 +117,19 @@
                             {{ ticket.reported_failure|truncatewords:8 }}
                         </span>
                     </td>
-                    <td>
-                        {% if ticket.affected_service %}
-                        <span class="badge bg-info text-dark">{{ ticket.get_affected_service_display }}</span>
+                    <td class="affect">
+                        {% if ticket.affected_service == 'si' %}
+                            {% if ticket.resolution == 'aceptada' %}
+                            <span class="badge bg-success">Sí</span>
+                            {% elif ticket.resolution == 'rechazada' %}
+                            <span class="badge bg-danger">Sí</span>
+                            {% elif ticket.resolution == 'analisis' %}
+                            <span class="badge bg-warning text-dark">Sí</span>
+                            {% else %}
+                            <span class="badge bg-info text-dark">Sí</span>
+                            {% endif %}
+                        {% elif ticket.affected_service == 'no' %}
+                        <span class="badge bg-secondary">No</span>
                         {% else %}
                         <span class="text-muted">-</span>
                         {% endif %}
@@ -134,7 +155,7 @@
                         <span class="badge bg-success">Finalizado</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="actions">
                         <a href="{% url 'tickets:ticket_detail' ticket.pk %}" 
                            class="btn btn-sm btn-outline-info" title="Ver">
                             👁
