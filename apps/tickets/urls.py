@@ -10,6 +10,7 @@ from apps.tickets.presentation.views import (
     TicketDeleteView,
     TicketDetailView,
     TicketListView,
+    TicketStatusUpdateView,
     TicketUpdateView,
 )
 
@@ -37,4 +38,9 @@ urlpatterns = [
     path("ticket/<uuid:pk>/", TicketDetailView.as_view(), name="ticket_detail"),
     path("ticket/<uuid:pk>/edit/", TicketUpdateView.as_view(), name="ticket_update"),
     path("ticket/<uuid:pk>/delete/", TicketDeleteView.as_view(), name="ticket_delete"),
+    path(
+        "ticket/<uuid:pk>/status/",
+        TicketStatusUpdateView.as_view(),
+        name="ticket_status_update",
+    ),
 ]

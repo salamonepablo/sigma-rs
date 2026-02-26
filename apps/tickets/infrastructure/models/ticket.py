@@ -32,11 +32,16 @@ class TicketModel(models.Model):
     class EntryType(models.TextChoices):
         IMMEDIATE = "inmediato", "Inmediato"
         SCHEDULED = "programado", "Programado"
-        NO = "no", "NO"
+        NO = "no", "No"
 
     class AffectedService(models.TextChoices):
         YES = "si", "Sí"
         NO = "no", "No"
+
+    class Resolution(models.TextChoices):
+        ACCEPTED = "aceptada", "Aceptada"
+        REJECTED = "rechazada", "Rechazada"
+        ANALYSIS = "analisis", "Análisis"
 
     # Primary key
     id = models.UUIDField(
@@ -92,6 +97,14 @@ class TicketModel(models.Model):
         null=True,
         verbose_name="Afectó servicio",
         help_text="Indica si la falla afectó el servicio",
+    )
+    resolution = models.CharField(
+        max_length=20,
+        choices=Resolution.choices,
+        blank=True,
+        null=True,
+        verbose_name="Resolución",
+        help_text="Resultado cuando afectó al servicio",
     )
 
     # Optional foreign keys

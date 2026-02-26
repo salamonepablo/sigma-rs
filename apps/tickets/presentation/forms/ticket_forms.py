@@ -42,6 +42,7 @@ class TicketForm(forms.ModelForm):
             "status",
             "reported_failure",
             "affected_service",
+            "resolution",
             "failure_type",
             "affected_system",
             "interviniente",
@@ -71,6 +72,7 @@ class TicketForm(forms.ModelForm):
             "affected_service": forms.Select(
                 attrs={"class": "form-select form-select-sm"}
             ),
+            "resolution": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "failure_type": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "affected_system": forms.Select(
                 attrs={"class": "form-select form-select-sm"}
@@ -81,8 +83,8 @@ class TicketForm(forms.ModelForm):
             "work_order_number": forms.TextInput(
                 attrs={
                     "class": "form-control form-control-sm",
-                    "placeholder": "123456",
-                    "type": "number",
+                    "placeholder": "S/OT",
+                    "type": "text",
                 }
             ),
             "notification_time": forms.TimeInput(
@@ -145,6 +147,7 @@ class TicketForm(forms.ModelForm):
         self.fields["failure_type"].required = False
         self.fields["affected_system"].required = False
         self.fields["affected_service"].required = False
+        self.fields["resolution"].required = False
         self.fields["interviniente"].required = False
         self.fields["work_order_number"].required = False
         self.fields["notification_time"].required = False
@@ -158,6 +161,8 @@ class TicketForm(forms.ModelForm):
                 self.fields[
                     "train_number_input"
                 ].initial = self.instance.train_number.number
+        else:
+            self.fields["work_order_number"].initial = "S/OT"
 
     def save(self, commit=True):
         """Save the form, creating train_number if needed."""
@@ -178,6 +183,19 @@ class TicketForm(forms.ModelForm):
             instance.save()
 
         return instance
+
+    def clean(self) -> dict:
+        cleaned_data = super().clean()
+        affected_service = cleaned_data.get("affected_service")
+        resolution = cleaned_data.get("resolution")
+        if affected_service == TicketModel.AffectedService.YES and not resolution:
+            self.add_error(
+                "resolution",
+                "Debe indicar una resolución cuando afectó al servicio.",
+            )
+        if affected_service != TicketModel.AffectedService.YES:
+            cleaned_data["resolution"] = None
+        return cleaned_data
 
 
 class TicketFilterForm(forms.Form):

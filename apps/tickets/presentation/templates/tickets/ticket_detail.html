@@ -56,7 +56,7 @@
                         {% elif ticket.entry_type == 'programado' %}
                         <span class="badge bg-warning text-dark">Programado</span>
                         {% else %}
-                        <span class="badge bg-secondary">NO</span>
+                        <span class="badge bg-secondary">No</span>
                         {% endif %}
                     </div>
                 </div>
@@ -69,6 +69,18 @@
                         </div>
                     </div>
                 </div>
+                {% if ticket.affected_service %}
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Afectó al Servicio:</strong></div>
+                    <div class="col-sm-9">{{ ticket.get_affected_service_display }}</div>
+                </div>
+                {% endif %}
+                {% if ticket.resolution %}
+                <div class="row mb-3">
+                    <div class="col-sm-3"><strong>Resolución:</strong></div>
+                    <div class="col-sm-9">{{ ticket.get_resolution_display }}</div>
+                </div>
+                {% endif %}
                 {% if ticket.observations %}
                 <div class="row mb-3">
                     <div class="col-sm-3"><strong>Observaciones:</strong></div>
@@ -118,9 +130,15 @@
                     <strong>GOP:</strong><br>
                     {{ ticket.gop.name }}
                 </p>
+                {% if ticket.interviniente %}
+                <p class="mb-2">
+                    <strong>Interviniente:</strong><br>
+                    {{ ticket.interviniente.full_name }}
+                </p>
+                {% endif %}
                 {% if ticket.supervisor %}
                 <p class="mb-2">
-                    <strong>Supervisor:</strong><br>
+                    <strong>Supervisor (legacy):</strong><br>
                     {{ ticket.supervisor.name }}
                 </p>
                 {% endif %}

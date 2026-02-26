@@ -207,15 +207,33 @@ class Command(BaseCommand):
 
         counts = {"created": 0, "skipped": 0}
 
+        def _get_row_value(row, *keys):
+            for key in keys:
+                value = row.get(key)
+                if value is not None:
+                    return value
+            return ""
+
         with open(csv_path, encoding="latin-1") as f:
             reader = csv.DictReader(f, delimiter=";")
 
             for row in reader:
-                legajo_sap = row["Legajo SAP"].strip()
-                cuit = row.get("Cuit", "").strip()
-                full_name = row["Nombre y Apellido"].strip()
-                sector_csv = row["Sector"].strip()
-                sector_simaf = row.get("SectorSIMAF", "").strip()
+                legajo_sap = _get_row_value(row, "Legajo SAP", "LegajoSAP").strip()
+                cuit = _get_row_value(row, "Cuit", "CUIT").strip()
+                full_name = _get_row_value(row, "Nombre y Apellido").strip()
+                sector_csv = _get_row_value(row, "Sector").strip()
+                sector_simaf = _get_row_value(
+                    row, "SectorSIMAF", "Sector SIMAF"
+                ).strip()
+
+                if not legajo_sap or not full_name or not sector_csv:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            "  Skipping row with missing required fields"
+                        )
+                    )
+                    counts["skipped"] += 1
+                    continue
 
                 # Get sector
                 sector = sector_mapping.get(sector_csv)

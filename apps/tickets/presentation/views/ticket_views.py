@@ -5,7 +5,9 @@ import uuid
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -230,3 +232,22 @@ class TicketDeleteView(LoginRequiredMixin, DeleteView):
         response = super().form_valid(form)
         messages.success(self.request, f"Ticket {ticket_number} eliminado.")
         return response
+
+
+class TicketStatusUpdateView(LoginRequiredMixin, View):
+    """Update ticket status from list view."""
+
+    def post(self, request, *args, **kwargs):
+        ticket_id = kwargs.get("pk")
+        ticket = get_object_or_404(TicketModel, pk=ticket_id)
+
+        if ticket.status == TicketModel.Status.PENDING:
+            ticket.status = TicketModel.Status.COMPLETED
+            ticket.save(update_fields=["status", "updated_at"])
+            messages.success(
+                request, f"Ticket {ticket.ticket_number} marcado como finalizado."
+            )
+
+        return redirect(
+            request.META.get("HTTP_REFERER", reverse_lazy("tickets:ticket_list"))
+        )

@@ -11,6 +11,7 @@ from apps.tickets.models import (
     LocomotiveModelModel,
     MaintenanceUnitModel,
     MotorcoachModel,
+    PersonalModel,
     RailcarClassModel,
     RailcarModel,
     SupervisorModel,
@@ -91,6 +92,16 @@ class SupervisorAdmin(admin.ModelAdmin):
     list_filter = ["is_active"]
     search_fields = ["name", "employee_number", "email"]
     ordering = ["name"]
+
+
+@admin.register(PersonalModel)
+class PersonalAdmin(admin.ModelAdmin):
+    """Admin for Personal model."""
+
+    list_display = ["full_name", "legajo_sap", "sector", "sector_simaf", "is_active"]
+    list_filter = ["sector", "is_active"]
+    search_fields = ["full_name", "legajo_sap", "cuit", "sector_simaf"]
+    ordering = ["full_name"]
 
 
 @admin.register(TrainNumberModel)
@@ -189,6 +200,7 @@ class TicketAdmin(admin.ModelAdmin):
         "date",
         "maintenance_unit",
         "gop",
+        "interviniente",
         "entry_type",
         "status",
     ]
@@ -220,6 +232,8 @@ class TicketAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "reported_failure",
+                    "affected_service",
+                    "resolution",
                     "failure_type",
                     "affected_system",
                 )
@@ -230,6 +244,7 @@ class TicketAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "train_number",
+                    "interviniente",
                     "supervisor",
                     "work_order_number",
                 )

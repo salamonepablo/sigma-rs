@@ -2,6 +2,25 @@
 {% block page_title %}Tickets - {{ unit_type_display }}{% endblock %}
 
 {% block content %}
+<style>
+.ticket-table th,
+.ticket-table td {
+    white-space: nowrap;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+.ticket-table td.falla,
+.ticket-table td.gop {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ticket-table .badge {
+    font-size: 0.75rem;
+}
+</style>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-0">Tickets - {{ unit_type_display }}</h4>
@@ -58,13 +77,14 @@
 <!-- Tabla de tickets -->
 <div class="card shadow-sm">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-sm table-hover mb-0 ticket-table">
             <thead class="table-dark">
                 <tr>
                     <th>Nro</th>
                     <th>Fecha</th>
                     <th>Unidad</th>
                     <th>Falla</th>
+                    <th>Afectó al Serv.</th>
                     <th>GOP</th>
                     <th>Ingreso</th>
                     <th>Estado</th>
@@ -81,24 +101,35 @@
                             {{ ticket.maintenance_unit.number }}
                         </span>
                     </td>
-                    <td>
+                    <td class="falla">
                         <span title="{{ ticket.reported_failure }}">
                             {{ ticket.reported_failure|truncatewords:8 }}
                         </span>
                     </td>
-                    <td>{{ ticket.gop.name }}</td>
+                    <td>
+                        {% if ticket.affected_service %}
+                        <span class="badge bg-info text-dark">{{ ticket.get_affected_service_display }}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="gop">{{ ticket.gop.name }}</td>
                     <td>
                         {% if ticket.entry_type == 'inmediato' %}
                         <span class="badge bg-danger">Inmediato</span>
                         {% elif ticket.entry_type == 'programado' %}
                         <span class="badge bg-warning text-dark">Programado</span>
                         {% else %}
-                        <span class="badge bg-secondary">NO</span>
+                        <span class="badge bg-secondary">No</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if ticket.status == 'pendiente' %}
                         <span class="badge bg-danger">Pendiente</span>
+                        <form method="post" action="{% url 'tickets:ticket_status_update' ticket.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-success ms-1" title="Marcar como finalizado">✓</button>
+                        </form>
                         {% else %}
                         <span class="badge bg-success">Finalizado</span>
                         {% endif %}
@@ -120,7 +151,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">
+                    <td colspan="9" class="text-center text-muted py-4">
                         No hay tickets registrados.
                     </td>
                 </tr>

@@ -7,6 +7,8 @@ Todas las modificaciones relevantes del proyecto deben registrarse aquí siguien
 - Login UI redesign with TA and ARS logos.
 - New `PersonalModel` (interviniente) and CSV import via `load_initial_data`.
 - New `affected_service` field (Yes/No) in ticket form.
+- New `resolution` field for tickets when service is affected.
+- Ticket list now shows affected service and allows marking as completed.
 - GitHub Actions CI workflow (ruff + tests).
 - Ruff configuration and pytest tooling.
 

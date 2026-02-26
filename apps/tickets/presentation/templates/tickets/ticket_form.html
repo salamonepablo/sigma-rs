@@ -2,8 +2,54 @@
 {% block page_title %}{{ action }} Ticket{% endblock %}
 
 {% block content %}
+<style>
+.ticket-form .form-label {
+    color: #0d6efd;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.filter-select {
+    position: relative;
+}
+
+.filter-dropdown {
+    position: absolute;
+    z-index: 10;
+    width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.08);
+    display: none;
+}
+
+.filter-dropdown.show {
+    display: block;
+}
+
+.filter-option {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.filter-option:hover,
+.filter-option.active {
+    background: #f1f3f5;
+}
+
+.filter-empty {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+</style>
 <div class="row justify-content-center">
-    <div class="col-lg-11 col-xl-10">
+    <div class="col-lg-11 col-xl-11">
         <div class="card shadow-sm">
             <div class="card-header py-2 {% if unit_type == 'locomotora' %}bg-primary{% elif unit_type == 'coche_remolcado' %}bg-success{% else %}bg-dark{% endif %} text-white">
                 <h6 class="mb-0">
@@ -13,14 +59,14 @@
                 </h6>
             </div>
             <div class="card-body py-2 px-3">
-                <form method="post" novalidate>
+                <form method="post" novalidate class="ticket-form">
                     {% csrf_token %}
                     
                     <!-- Información Principal -->
                     <fieldset class="mb-2">
                         <legend class="small fw-bold border-bottom pb-1 mb-2">Información Principal</legend>
                         <div class="row g-2">
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-2 col-sm-4">
                                 <label class="form-label small mb-1">Nº Ticket</label>
                                 {% if ticket %}
                                 <input type="text" class="form-control form-control-sm bg-light" value="{{ ticket.ticket_number }}" disabled>
@@ -28,27 +74,39 @@
                                 <input type="text" class="form-control form-control-sm bg-light text-muted fst-italic" value="(Automático)" disabled>
                                 {% endif %}
                             </div>
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-2 col-sm-4">
                                 <label for="{{ form.date.id_for_label }}" class="form-label small mb-1">Fecha *</label>
                                 {{ form.date }}
                                 {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-2 col-sm-4">
                                 <label for="{{ form.maintenance_unit.id_for_label }}" class="form-label small mb-1">Unidad *</label>
-                                {{ form.maintenance_unit }}
+                                <div class="filter-select">
+                                    <input
+                                        type="text"
+                                        id="maintenance-unit-input"
+                                        class="form-control form-control-sm"
+                                        placeholder="Buscar unidad..."
+                                        autocomplete="off"
+                                    >
+                                    <div id="maintenance-unit-list" class="filter-dropdown"></div>
+                                    <div class="visually-hidden">
+                                        {{ form.maintenance_unit }}
+                                    </div>
+                                </div>
                                 {% if form.maintenance_unit.errors %}<div class="text-danger small">{{ form.maintenance_unit.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-2 col-sm-4">
                                 <label for="{{ form.gop.id_for_label }}" class="form-label small mb-1">GOP *</label>
                                 {{ form.gop }}
                                 {% if form.gop.errors %}<div class="text-danger small">{{ form.gop.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-2 col-sm-4">
                                 <label for="{{ form.entry_type.id_for_label }}" class="form-label small mb-1">Ingreso *</label>
                                 {{ form.entry_type }}
                                 {% if form.entry_type.errors %}<div class="text-danger small">{{ form.entry_type.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-2 col-sm-4">
                                 <label for="{{ form.status.id_for_label }}" class="form-label small mb-1">Estado *</label>
                                 {{ form.status }}
                                 {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors.0 }}</div>{% endif %}
@@ -60,20 +118,26 @@
                     <fieldset class="mb-2">
                         <legend class="small fw-bold border-bottom pb-1 mb-2">Falla</legend>
                         <div class="row g-2">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <label for="{{ form.reported_failure.id_for_label }}" class="form-label small mb-1">Descripción *</label>
                                 {{ form.reported_failure }}
                                 {% if form.reported_failure.errors %}<div class="text-danger small">{{ form.reported_failure.errors.0 }}</div>{% endif %}
                             </div>
                             <div class="col-md-2">
-                                <label for="{{ form.affected_service.id_for_label }}" class="form-label small mb-1">Afectó Servicio</label>
+                                <label for="{{ form.affected_service.id_for_label }}" class="form-label small mb-1">Afectó al Servicio</label>
                                 {{ form.affected_service }}
+                                {% if form.affected_service.errors %}<div class="text-danger small">{{ form.affected_service.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-2" id="resolution-wrapper">
+                                <label for="{{ form.resolution.id_for_label }}" class="form-label small mb-1">Resolución</label>
+                                {{ form.resolution }}
+                                {% if form.resolution.errors %}<div class="text-danger small">{{ form.resolution.errors.0 }}</div>{% endif %}
                             </div>
                             <div class="col-md-2">
                                 <label for="{{ form.failure_type.id_for_label }}" class="form-label small mb-1">Tipo</label>
                                 {{ form.failure_type }}
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label for="{{ form.affected_system.id_for_label }}" class="form-label small mb-1">Sistema</label>
                                 {{ form.affected_system }}
                             </div>
@@ -84,31 +148,43 @@
                     <fieldset class="mb-2">
                         <legend class="small fw-bold border-bottom pb-1 mb-2">Detalles y Tiempos</legend>
                         <div class="row g-2">
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-2 col-sm-4">
                                 <label for="id_train_number_input" class="form-label small mb-1">Nº Tren</label>
                                 {{ form.train_number_input }}
                                 <datalist id="train-list">
                                     {% for train in trains %}<option value="{{ train.number }}">{% endfor %}
                                 </datalist>
                             </div>
-                            <div class="col-md-3 col-sm-4">
-                                <label for="{{ form.interviniente.id_for_label }}" class="form-label small mb-1">Interviniente</label>
-                                {{ form.interviniente }}
+                            <div class="col-md-2 col-lg-3 col-sm-4">
+                                <label for="{{ form.interviniente.id_for_label }}" class="form-label small mb-1">Pers. Interviniente</label>
+                                <div class="filter-select">
+                                    <input
+                                        type="text"
+                                        id="interviniente-input"
+                                        class="form-control form-control-sm"
+                                        placeholder="Buscar personal..."
+                                        autocomplete="off"
+                                    >
+                                    <div id="interviniente-list" class="filter-dropdown"></div>
+                                    <div class="visually-hidden">
+                                        {{ form.interviniente }}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-2 col-lg-1 col-sm-4">
                                 <label for="{{ form.work_order_number.id_for_label }}" class="form-label small mb-1">Nº OT</label>
                                 {{ form.work_order_number }}
                             </div>
-                            <div class="col-md-2 col-sm-4">
-                                <label for="{{ form.notification_time.id_for_label }}" class="form-label small mb-1">Hora Aviso</label>
+                            <div class="col-md-2 col-lg-2 col-sm-4">
+                                <label for="{{ form.notification_time.id_for_label }}" class="form-label small mb-1">Hs. Aviso</label>
                                 {{ form.notification_time }}
                             </div>
-                            <div class="col-md-2 col-sm-4">
-                                <label for="{{ form.intervention_time.id_for_label }}" class="form-label small mb-1">Hora Interv.</label>
+                            <div class="col-md-2 col-lg-2 col-sm-4">
+                                <label for="{{ form.intervention_time.id_for_label }}" class="form-label small mb-1">Hs. Interv.</label>
                                 {{ form.intervention_time }}
                             </div>
-                            <div class="col-md-1 col-sm-4">
-                                <label for="{{ form.delivery_time.id_for_label }}" class="form-label small mb-1">Hora Entrega</label>
+                            <div class="col-md-2 col-lg-2 col-sm-4">
+                                <label for="{{ form.delivery_time.id_for_label }}" class="form-label small mb-1">Hs. Entrega</label>
                                 {{ form.delivery_time }}
                             </div>
                         </div>
@@ -151,6 +227,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     const failureTypeSelect = document.getElementById('id_failure_type');
     const affectedSystemSelect = document.getElementById('id_affected_system');
+    const affectedServiceSelect = document.getElementById('id_affected_service');
+    const resolutionWrapper = document.getElementById('resolution-wrapper');
+    const resolutionSelect = document.getElementById('id_resolution');
     
     // Mapping de failure_type code a affected_system code (mismo código)
     const failureToSystemMap = {
@@ -192,6 +271,212 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    const toggleResolution = () => {
+        if (!resolutionWrapper) {
+            return;
+        }
+        const showResolution = affectedServiceSelect && affectedServiceSelect.value === 'si';
+        resolutionWrapper.style.display = showResolution ? '' : 'none';
+        if (!showResolution && resolutionSelect) {
+            resolutionSelect.value = '';
+        }
+    };
+
+    if (affectedServiceSelect) {
+        affectedServiceSelect.addEventListener('change', toggleResolution);
+    }
+    toggleResolution();
+
+    const formatIntervinienteLabel = (label) => {
+        const base = label.split(' (')[0].trim();
+        const parts = base.split(/\s+/).filter(Boolean);
+        if (parts.length < 2) {
+            return base;
+        }
+        const apellido = parts[parts.length - 1];
+        const nombre = parts.slice(0, -1).join(' ');
+        return `${apellido}, ${nombre}`;
+    };
+
+    const bindFilterSelect = ({ inputId, selectId, listId, labelFormatter }) => {
+        const input = document.getElementById(inputId);
+        const select = document.getElementById(selectId);
+        const list = document.getElementById(listId);
+        if (!input || !select || !list) {
+            return;
+        }
+
+        let activeIndex = -1;
+
+        const options = Array.from(select.options)
+            .filter(option => option.value)
+            .map(option => {
+                const rawLabel = option.text.trim();
+                const displayLabel = labelFormatter ? labelFormatter(rawLabel) : rawLabel;
+                return {
+                    value: option.value,
+                    rawLabel,
+                    displayLabel,
+                    search: displayLabel.toLowerCase(),
+                };
+            });
+
+        const setInputFromSelect = () => {
+            const selected = options.find(option => option.value === select.value);
+            input.value = selected ? selected.displayLabel : "";
+        };
+
+        const setSelectFromInput = () => {
+            const query = input.value.trim().toLowerCase();
+            const match = options.find(option => option.displayLabel.toLowerCase() === query);
+            select.value = match ? match.value : "";
+        };
+
+        const renderList = () => {
+            const query = input.value.trim().toLowerCase();
+            const matches = options.filter(option => option.search.includes(query));
+            list.innerHTML = "";
+            activeIndex = -1;
+
+            if (!matches.length) {
+                const empty = document.createElement('div');
+                empty.className = 'filter-empty';
+                empty.textContent = 'Sin resultados';
+                list.appendChild(empty);
+                return;
+            }
+
+            matches.slice(0, 80).forEach((option, index) => {
+                const item = document.createElement('div');
+                item.className = 'filter-option';
+                item.textContent = option.displayLabel;
+                item.dataset.index = String(index);
+                item.addEventListener('mousedown', () => {
+                    select.value = option.value;
+                    input.value = option.displayLabel;
+                    list.classList.remove('show');
+                });
+                list.appendChild(item);
+            });
+        };
+
+        const setActiveItem = (items, nextIndex) => {
+            if (!items.length) {
+                return;
+            }
+            const total = items.length;
+            activeIndex = (nextIndex + total) % total;
+            items.forEach(item => item.classList.remove('active'));
+            const activeItem = items[activeIndex];
+            activeItem.classList.add('active');
+            activeItem.scrollIntoView({ block: 'nearest' });
+        };
+
+        input.addEventListener('focus', () => {
+            renderList();
+            list.classList.add('show');
+        });
+
+        input.addEventListener('input', () => {
+            renderList();
+            list.classList.add('show');
+        });
+
+        input.addEventListener('keydown', (event) => {
+            const items = Array.from(list.querySelectorAll('.filter-option'));
+            if (!items.length) {
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (!list.classList.contains('show')) {
+                    list.classList.add('show');
+                }
+                setActiveItem(items, activeIndex + 1);
+            }
+
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (!list.classList.contains('show')) {
+                    list.classList.add('show');
+                }
+                setActiveItem(items, activeIndex - 1);
+            }
+
+            if (event.key === 'Enter' && list.classList.contains('show')) {
+                event.preventDefault();
+                const activeItem = items[activeIndex];
+                if (activeItem) {
+                    activeItem.dispatchEvent(new MouseEvent('mousedown'));
+                }
+            }
+
+            if (event.key === 'Escape') {
+                list.classList.remove('show');
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            setTimeout(() => list.classList.remove('show'), 100);
+            setSelectFromInput();
+        });
+
+        select.addEventListener('change', setInputFromSelect);
+
+        document.addEventListener('click', (event) => {
+            if (!list.contains(event.target) && event.target !== input) {
+                list.classList.remove('show');
+            }
+        });
+
+        setInputFromSelect();
+    };
+
+    bindFilterSelect({
+        inputId: 'maintenance-unit-input',
+        selectId: 'id_maintenance_unit',
+        listId: 'maintenance-unit-list',
+    });
+
+    bindFilterSelect({
+        inputId: 'interviniente-input',
+        selectId: 'id_interviniente',
+        listId: 'interviniente-list',
+        labelFormatter: formatIntervinienteLabel,
+    });
+
+    const ticketForm = document.querySelector('form');
+    if (ticketForm) {
+        ticketForm.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            const target = event.target;
+            if (target && target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            const focusable = Array.from(
+                ticketForm.querySelectorAll(
+                    'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+                )
+            ).filter(element => element.offsetParent !== null);
+
+            const currentIndex = focusable.indexOf(target);
+            if (currentIndex === -1) {
+                return;
+            }
+
+            event.preventDefault();
+            const next = focusable[currentIndex + 1];
+            if (next) {
+                next.focus();
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

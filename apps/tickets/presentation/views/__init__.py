@@ -7,6 +7,7 @@ from apps.tickets.presentation.views.ticket_views import (
     TicketDeleteView,
     TicketDetailView,
     TicketListView,
+    TicketStatusUpdateView,
     TicketUpdateView,
 )
 
@@ -18,5 +19,6 @@ __all__ = [
     "TicketDeleteView",
     "TicketDetailView",
     "TicketListView",
+    "TicketStatusUpdateView",
     "TicketUpdateView",
 ]
