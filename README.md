@@ -1,69 +1,93 @@
-# Prototipo Material Rodante - Línea Roca
+# SIGMA-RS - Rolling Stock Ticketing System
 
-Prueba de concepto para validar arquitectura web como reemplazo de Microsoft Access.
+SIGMA-RS is a Django-based system for tracking maintenance tickets for rolling stock. It replaces legacy MS Access workflows and supports multi-user access on a corporate LAN.
 
-## Requisitos
+## Requirements
 
-- Python 3.11+ instalado y en el PATH
-- Conexión a internet (solo para el primer setup, descarga dependencias)
+- Python 3.11+
+- Internet access for initial dependency install
 
-## Instalación (una sola vez)
-
-1. Abrir una terminal (CMD o PowerShell) en esta carpeta
-2. Ejecutar:
-
-```
-setup.bat
-```
-
-3. Va a pedir crear un usuario administrador (nombre, email, contraseña)
-
-## Iniciar el servidor
-
-```
-start.bat
-```
-
-Va a mostrar la IP local, por ejemplo:
-```
-Red: http://192.168.1.50:8000
-```
-
-Compartir esa URL con los compañeros.
-
-## Crear usuarios de prueba
-
-Con el servidor detenido, ejecutar:
-
-```
-venv\Scripts\activate
-python crear_usuarios_prueba.py
-```
-
-Esto crea 4 usuarios (operativo1, operativo2, manten1, manten2) con password `test1234`.
-
-## Prueba de acceso por red
-
-1. Desde tu PC: abrir `http://localhost:8000`
-2. Desde otra PC de la red: abrir `http://<TU-IP>:8000`
-3. Si no accede, verificar que el firewall permita el puerto 8000 (ver abajo)
-
-## Abrir puerto en Firewall de Windows (si es necesario)
-
-Abrir PowerShell **como administrador** y ejecutar:
+## Quick Start
 
 ```powershell
-New-NetFirewallRule -DisplayName "Proto MR - Puerto 8000" -Direction Inbound -Port 8000 -Protocol TCP -Action Allow
+# 1. Clone repository
+git clone https://github.com/[usuario]/SIGMA-RS.git
+cd SIGMA-RS
+
+# 2. Create venv
+python -m venv venv
+
+# 3. Activate venv
+venv\Scripts\activate
+
+# 4. Install dependencies
+pip install -r requirements.txt
+
+# 5. Migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# 6. Create superuser
+python manage.py createsuperuser
+
+# 7. Load initial data (reference + personal)
+python manage.py load_initial_data
+
+# 8. Run server
+python -m waitress --host=0.0.0.0 --port=8000 config.wsgi:application
 ```
 
-## Estructura
+## URLs
+
+| Resource | URL |
+|---|---|
+| App | http://[SERVER_IP]:8000/sigma/ |
+| Login | http://[SERVER_IP]:8000/sigma/login/ |
+| Admin | http://[SERVER_IP]:8000/admin/ |
+
+## Project Structure
 
 ```
-proto_mr/
-├── config/          ← Configuración Django
-├── core/            ← App principal (tickets CRUD)
-├── db/              ← Base de datos SQLite (se crea sola)
-├── setup.bat        ← Instalación inicial
-├── start.bat        ← Arrancar servidor
-└── crear_usuarios_prueba.py
+sigma-rs/
+├── apps/
+│   └── tickets/          # Domain + application + infrastructure + presentation
+├── config/               # Django settings, urls, wsgi
+├── db/                   # SQLite database
+├── static/               # Static assets
+├── docs/                 # Documentation
+├── tests/                # Tests
+├── manage.py
+└── requirements.txt
 ```
+
+## Initial Data
+
+The command `python manage.py load_initial_data` loads:
+
+- Reference data (brands, GOPs, failure types, affected systems)
+- Maintenance units (from `context/ums.csv`)
+- Personnel (intervinientes) from `context/personal.csv`
+
+## CI (GitHub Actions)
+
+Each push/PR runs:
+
+- `ruff check .`
+- `ruff format --check .`
+- `python manage.py check`
+- `python manage.py makemigrations --check --dry-run`
+- `pytest -q`
+
+## Notes
+
+- `core/` prototype app was removed. All functionality lives in `apps/tickets/`.
+- Ticket numbers are auto-generated (YYYY-NNNN).
+- Login lives at `/sigma/login/` and redirects to `/sigma/`.
+
+## Security
+
+Do not commit sensitive files (`.env`, database files, credentials).
+
+## Changelog
+
+See `docs/CHANGELOG.md`.
