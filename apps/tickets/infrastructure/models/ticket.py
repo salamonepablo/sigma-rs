@@ -13,6 +13,7 @@ from apps.tickets.infrastructure.models.reference import (
     AffectedSystemModel,
     FailureTypeModel,
     GOPModel,
+    PersonalModel,
     SupervisorModel,
     TrainNumberModel,
 )
@@ -32,6 +33,10 @@ class TicketModel(models.Model):
         IMMEDIATE = "inmediato", "Inmediato"
         SCHEDULED = "programado", "Programado"
         NO = "no", "NO"
+
+    class AffectedService(models.TextChoices):
+        YES = "si", "Sí"
+        NO = "no", "No"
 
     # Primary key
     id = models.UUIDField(
@@ -80,6 +85,14 @@ class TicketModel(models.Model):
         verbose_name="Falla denunciada",
         help_text="Descripción de la falla reportada por el conductor",
     )
+    affected_service = models.CharField(
+        max_length=5,
+        choices=AffectedService.choices,
+        blank=True,
+        null=True,
+        verbose_name="Afectó servicio",
+        help_text="Indica si la falla afectó el servicio",
+    )
 
     # Optional foreign keys
     work_order_number = models.CharField(
@@ -95,8 +108,17 @@ class TicketModel(models.Model):
         related_name="tickets",
         blank=True,
         null=True,
-        verbose_name="Supervisor",
-        help_text="Supervisor interviniente (opcional)",
+        verbose_name="Supervisor (legacy)",
+        help_text="Campo legacy - usar interviniente",
+    )
+    interviniente = models.ForeignKey(
+        PersonalModel,
+        on_delete=models.PROTECT,
+        related_name="tickets",
+        blank=True,
+        null=True,
+        verbose_name="Interviniente",
+        help_text="Personal que interviene en la resolución",
     )
     train_number = models.ForeignKey(
         TrainNumberModel,

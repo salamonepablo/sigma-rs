@@ -336,10 +336,7 @@ class GOPModel(models.Model):
 
 
 class SupervisorModel(models.Model):
-    """Maintenance supervisor.
-
-    Supervisors oversee and coordinate GOP work.
-    """
+    """Maintenance supervisor (legacy - kept for migration compatibility)."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -387,6 +384,75 @@ class SupervisorModel(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class PersonalModel(models.Model):
+    """Maintenance personnel (Interviniente).
+
+    Represents workers who intervene in ticket resolution.
+    Loaded from SAP employee data.
+    """
+
+    class Sector(models.TextChoices):
+        LOCOMOTORAS = "locomotora", "Locomotoras"
+        COCHES_REMOLCADOS = "coche_remolcado", "Coches Remolcados"
+
+    id = models.UUIDField(
+        primary_key=True,
+        editable=False,
+        verbose_name="ID",
+    )
+    legajo_sap = models.CharField(
+        max_length=20,
+        verbose_name="Legajo SAP",
+        help_text="Número de legajo en SAP",
+    )
+    cuit = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name="CUIT",
+    )
+    full_name = models.CharField(
+        max_length=200,
+        verbose_name="Nombre y Apellido",
+    )
+    sector = models.CharField(
+        max_length=20,
+        choices=Sector.choices,
+        verbose_name="Sector",
+        help_text="Locomotoras o Coches Remolcados",
+    )
+    sector_simaf = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Sector SIMAF",
+        help_text="Sector en sistema SIMAF",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activo",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de creación",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Fecha de actualización",
+    )
+
+    class Meta:
+        db_table = "personal"
+        verbose_name = "Personal"
+        verbose_name_plural = "Personal"
+        ordering = ["full_name"]
+        # Un empleado puede estar en ambos sectores
+        unique_together = [["legajo_sap", "sector"]]
+
+    def __str__(self) -> str:
+        return f"{self.full_name} ({self.legajo_sap})"
 
 
 class TrainNumberModel(models.Model):

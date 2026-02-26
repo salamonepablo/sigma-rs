@@ -19,6 +19,7 @@ from apps.tickets.infrastructure.models import (
     LocomotiveModelModel,
     MaintenanceUnitModel,
     MotorcoachModel,
+    PersonalModel,
     RailcarClassModel,
     RailcarModel,
 )
@@ -39,6 +40,7 @@ class Command(BaseCommand):
         self._load_railcar_classes()
         self._load_gops()
         self._load_failure_types()
+        self._load_personal()
 
         # Load maintenance units
         self._load_maintenance_units()
@@ -180,6 +182,60 @@ class Command(BaseCommand):
             )
             sys_status = "created" if sys_created else "exists"
             self.stdout.write(f"    -> System {system.name}: {sys_status}")
+
+    def _load_personal(self):
+        """Load personnel (intervinientes) from CSV file."""
+        csv_path = Path("context/personal.csv")
+
+        if not csv_path.exists():
+            self.stdout.write(self.style.WARNING(f"CSV file not found: {csv_path}"))
+            return
+
+        # Map CSV sector names to model choices
+        sector_mapping = {
+            "Locomotoras": PersonalModel.Sector.LOCOMOTORAS,
+            "Coches Remolcados": PersonalModel.Sector.COCHES_REMOLCADOS,
+        }
+
+        counts = {"created": 0, "skipped": 0}
+
+        with open(csv_path, encoding="latin-1") as f:
+            reader = csv.DictReader(f, delimiter=";")
+
+            for row in reader:
+                legajo_sap = row["Legajo SAP"].strip()
+                cuit = row.get("Cuit", "").strip()
+                full_name = row["Nombre y Apellido"].strip()
+                sector_csv = row["Sector"].strip()
+                sector_simaf = row.get("SectorSIMAF", "").strip()
+
+                # Get sector
+                sector = sector_mapping.get(sector_csv)
+                if not sector:
+                    self.stdout.write(
+                        self.style.WARNING(f"  Unknown sector: {sector_csv} for {full_name}")
+                    )
+                    continue
+
+                # Check if already exists (same legajo + sector)
+                if PersonalModel.objects.filter(legajo_sap=legajo_sap, sector=sector).exists():
+                    counts["skipped"] += 1
+                    continue
+
+                # Create personal
+                PersonalModel.objects.create(
+                    id=uuid.uuid4(),
+                    legajo_sap=legajo_sap,
+                    cuit=cuit or None,
+                    full_name=full_name,
+                    sector=sector,
+                    sector_simaf=sector_simaf or None,
+                )
+                counts["created"] += 1
+
+        self.stdout.write(
+            f"  Personal: {counts['created']} created, {counts['skipped']} skipped"
+        )
 
     def _load_maintenance_units(self):
         """Load maintenance units from CSV file."""

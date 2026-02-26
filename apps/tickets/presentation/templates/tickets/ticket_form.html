@@ -60,12 +60,16 @@
                     <fieldset class="mb-2">
                         <legend class="small fw-bold border-bottom pb-1 mb-2">Falla</legend>
                         <div class="row g-2">
-                            <div class="col-md-6">
+                            <div class="col-md-5">
                                 <label for="{{ form.reported_failure.id_for_label }}" class="form-label small mb-1">Descripción *</label>
                                 {{ form.reported_failure }}
                                 {% if form.reported_failure.errors %}<div class="text-danger small">{{ form.reported_failure.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <label for="{{ form.affected_service.id_for_label }}" class="form-label small mb-1">Afectó Servicio</label>
+                                {{ form.affected_service }}
+                            </div>
+                            <div class="col-md-2">
                                 <label for="{{ form.failure_type.id_for_label }}" class="form-label small mb-1">Tipo</label>
                                 {{ form.failure_type }}
                             </div>
@@ -87,12 +91,9 @@
                                     {% for train in trains %}<option value="{{ train.number }}">{% endfor %}
                                 </datalist>
                             </div>
-                            <div class="col-md-2 col-sm-4">
-                                <label for="id_supervisor_name" class="form-label small mb-1">Supervisor</label>
-                                {{ form.supervisor_name }}
-                                <datalist id="supervisor-list">
-                                    {% for supervisor in supervisors %}<option value="{{ supervisor.name }}">{% endfor %}
-                                </datalist>
+                            <div class="col-md-3 col-sm-4">
+                                <label for="{{ form.interviniente.id_for_label }}" class="form-label small mb-1">Interviniente</label>
+                                {{ form.interviniente }}
                             </div>
                             <div class="col-md-2 col-sm-4">
                                 <label for="{{ form.work_order_number.id_for_label }}" class="form-label small mb-1">Nº OT</label>
@@ -106,7 +107,7 @@
                                 <label for="{{ form.intervention_time.id_for_label }}" class="form-label small mb-1">Hora Interv.</label>
                                 {{ form.intervention_time }}
                             </div>
-                            <div class="col-md-2 col-sm-4">
+                            <div class="col-md-1 col-sm-4">
                                 <label for="{{ form.delivery_time.id_for_label }}" class="form-label small mb-1">Hora Entrega</label>
                                 {{ form.delivery_time }}
                             </div>

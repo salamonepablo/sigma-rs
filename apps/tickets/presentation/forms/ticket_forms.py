@@ -9,7 +9,7 @@ from apps.tickets.models import (
     FailureTypeModel,
     GOPModel,
     MaintenanceUnitModel,
-    SupervisorModel,
+    PersonalModel,
     TicketModel,
     TrainNumberModel,
 )
@@ -18,19 +18,7 @@ from apps.tickets.models import (
 class TicketForm(forms.ModelForm):
     """Form for creating and editing tickets."""
 
-    # Override supervisor and train_number with text fields for free input
-    supervisor_name = forms.CharField(
-        max_length=200,
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control form-control-sm",
-                "placeholder": "Supervisor",
-                "list": "supervisor-list",
-            }
-        ),
-        label="Supervisor",
-    )
+    # Train number as text field for free input
     train_number_input = forms.CharField(
         max_length=10,
         required=False,
@@ -53,8 +41,10 @@ class TicketForm(forms.ModelForm):
             "entry_type",
             "status",
             "reported_failure",
+            "affected_service",
             "failure_type",
             "affected_system",
+            "interviniente",
             "work_order_number",
             "notification_time",
             "intervention_time",
@@ -76,10 +66,12 @@ class TicketForm(forms.ModelForm):
                     "placeholder": "Descripción de la falla",
                 }
             ),
+            "affected_service": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "failure_type": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "affected_system": forms.Select(attrs={"class": "form-select form-select-sm"}),
+            "interviniente": forms.Select(attrs={"class": "form-select form-select-sm"}),
             "work_order_number": forms.TextInput(
-                attrs={"class": "form-control form-control-sm", "placeholder": "OT-2024-100"}
+                attrs={"class": "form-control form-control-sm", "placeholder": "123456", "type": "number"}
             ),
             "notification_time": forms.TimeInput(
                 attrs={"class": "form-control form-control-sm", "type": "time"}
@@ -105,6 +97,9 @@ class TicketForm(forms.ModelForm):
         unit_type = kwargs.pop("unit_type", None)
         super().__init__(*args, **kwargs)
 
+        # Store unit_type for later use
+        self._unit_type = unit_type
+
         # Filter maintenance units by type if specified
         if unit_type:
             self.fields["maintenance_unit"].queryset = (
@@ -112,9 +107,19 @@ class TicketForm(forms.ModelForm):
                     unit_type=unit_type, is_active=True
                 )
             )
+            # Filter intervinientes by sector matching unit_type
+            self.fields["interviniente"].queryset = (
+                PersonalModel.objects.filter(
+                    sector=unit_type, is_active=True
+                ).order_by("full_name")
+            )
         else:
             self.fields["maintenance_unit"].queryset = (
                 MaintenanceUnitModel.objects.filter(is_active=True)
+            )
+            # Show all active intervinientes if no unit_type filter
+            self.fields["interviniente"].queryset = (
+                PersonalModel.objects.filter(is_active=True).order_by("full_name")
             )
 
         # Filter active items only for all FK fields
@@ -129,6 +134,8 @@ class TicketForm(forms.ModelForm):
         # Make optional fields not required
         self.fields["failure_type"].required = False
         self.fields["affected_system"].required = False
+        self.fields["affected_service"].required = False
+        self.fields["interviniente"].required = False
         self.fields["work_order_number"].required = False
         self.fields["notification_time"].required = False
         self.fields["intervention_time"].required = False
@@ -137,30 +144,14 @@ class TicketForm(forms.ModelForm):
 
         # Pre-populate text fields if editing existing ticket
         if self.instance and self.instance.pk:
-            if self.instance.supervisor:
-                self.fields["supervisor_name"].initial = self.instance.supervisor.name
             if self.instance.train_number:
                 self.fields["train_number_input"].initial = (
                     self.instance.train_number.number
                 )
 
     def save(self, commit=True):
-        """Save the form, creating supervisor/train_number if needed."""
+        """Save the form, creating train_number if needed."""
         instance = super().save(commit=False)
-
-        # Handle supervisor - create if doesn't exist
-        supervisor_name = self.cleaned_data.get("supervisor_name", "").strip()
-        if supervisor_name:
-            supervisor, _ = SupervisorModel.objects.get_or_create(
-                name=supervisor_name,
-                defaults={
-                    "id": uuid.uuid4(),
-                    "employee_number": f"TMP-{uuid.uuid4().hex[:8].upper()}",
-                },
-            )
-            instance.supervisor = supervisor
-        else:
-            instance.supervisor = None
 
         # Handle train number - create if doesn't exist
         train_number_input = self.cleaned_data.get("train_number_input", "").strip()

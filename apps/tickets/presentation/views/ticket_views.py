@@ -19,7 +19,7 @@ from django.views.generic import (
 from apps.tickets.models import (
     FailureTypeModel,
     MaintenanceUnitModel,
-    SupervisorModel,
+    PersonalModel,
     TicketModel,
     TrainNumberModel,
 )
@@ -55,7 +55,7 @@ class TicketListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         """Filter tickets based on query parameters."""
         queryset = TicketModel.objects.select_related(
-            "maintenance_unit", "gop", "supervisor", "failure_type"
+            "maintenance_unit", "gop", "interviniente", "failure_type"
         ).order_by("-date", "-created_at")
 
         # Get unit type filter from URL
@@ -125,7 +125,7 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
         return TicketModel.objects.select_related(
             "maintenance_unit",
             "gop",
-            "supervisor",
+            "interviniente",
             "train_number",
             "failure_type",
             "affected_system",
@@ -167,8 +167,7 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context["action"] = "Crear"
         context["unit_type"] = self.kwargs.get("unit_type")
-        # Add supervisors and trains for datalist autocomplete
-        context["supervisors"] = SupervisorModel.objects.filter(is_active=True)
+        # Add trains for datalist autocomplete
         context["trains"] = TrainNumberModel.objects.filter(is_active=True)
         # Add failure types for JS auto-select
         context["failure_types"] = FailureTypeModel.objects.filter(is_active=True)
@@ -191,6 +190,13 @@ class TicketUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "tickets/ticket_form.html"
     context_object_name = "ticket"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Pass unit_type to form based on the ticket's maintenance unit
+        if self.object and self.object.maintenance_unit:
+            kwargs["unit_type"] = self.object.maintenance_unit.unit_type
+        return kwargs
+
     def form_valid(self, form):
         messages.success(
             self.request,
@@ -201,8 +207,10 @@ class TicketUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["action"] = "Editar"
-        # Add supervisors and trains for datalist autocomplete
-        context["supervisors"] = SupervisorModel.objects.filter(is_active=True)
+        # Get unit_type from the ticket being edited
+        if self.object and self.object.maintenance_unit:
+            context["unit_type"] = self.object.maintenance_unit.unit_type
+        # Add trains for datalist autocomplete
         context["trains"] = TrainNumberModel.objects.filter(is_active=True)
         # Add failure types for JS auto-select
         context["failure_types"] = FailureTypeModel.objects.filter(is_active=True)
