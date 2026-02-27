@@ -4,15 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0005_merge_20260226_1446'),
+        ("tickets", "0005_merge_20260226_1446"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='ticketmodel',
-            name='entry_type',
-            field=models.CharField(choices=[('inmediato', 'Inmediato'), ('programado', 'Programado'), ('no', 'No')], help_text='Inmediato, Programado o NO', max_length=20, verbose_name='Tipo de ingreso'),
+            model_name="ticketmodel",
+            name="entry_type",
+            field=models.CharField(
+                choices=[
+                    ("inmediato", "Inmediato"),
+                    ("programado", "Programado"),
+                    ("no", "No"),
+                ],
+                help_text="Inmediato, Programado o NO",
+                max_length=20,
+                verbose_name="Tipo de ingreso",
+            ),
         ),
     ]

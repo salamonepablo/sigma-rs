@@ -4,11 +4,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0004_alter_affectedsystemmodel_id_alter_brandmodel_id_and_more'),
-        ('tickets', '0004_ticketmodel_resolution'),
+        ("tickets", "0004_alter_affectedsystemmodel_id_alter_brandmodel_id_and_more"),
+        ("tickets", "0004_ticketmodel_resolution"),
     ]
 
-    operations = [
-    ]
+    operations = []
