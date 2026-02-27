@@ -1,7 +1,5 @@
 """Tests para el comando load_initial_data."""
 
-from pathlib import Path
-
 import pytest
 
 from apps.tickets.infrastructure.models import (
