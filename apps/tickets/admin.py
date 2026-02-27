@@ -7,14 +7,16 @@ from apps.tickets.models import (
     BrandModel,
     FailureTypeModel,
     GOPModel,
+    IntervencionTipoModel,
     LocomotiveModel,
     LocomotiveModelModel,
+    LugarModel,
     MaintenanceUnitModel,
     MotorcoachModel,
+    NovedadModel,
     PersonalModel,
     RailcarClassModel,
     RailcarModel,
-    SupervisorModel,
     TicketModel,
     TrainNumberModel,
 )
@@ -48,10 +50,10 @@ class LocomotiveModelAdmin(admin.ModelAdmin):
 class RailcarClassAdmin(admin.ModelAdmin):
     """Admin for RailcarClass model."""
 
-    list_display = ["name", "code", "brand", "is_active"]
-    list_filter = ["brand", "is_active"]
+    list_display = ["code", "name", "is_active"]
+    list_filter = ["is_active"]
     search_fields = ["name", "code"]
-    ordering = ["brand", "name"]
+    ordering = ["code"]
 
 
 @admin.register(FailureTypeModel)
@@ -84,16 +86,6 @@ class GOPAdmin(admin.ModelAdmin):
     ordering = ["name"]
 
 
-@admin.register(SupervisorModel)
-class SupervisorAdmin(admin.ModelAdmin):
-    """Admin for Supervisor model."""
-
-    list_display = ["name", "employee_number", "email", "is_active"]
-    list_filter = ["is_active"]
-    search_fields = ["name", "employee_number", "email"]
-    ordering = ["name"]
-
-
 @admin.register(PersonalModel)
 class PersonalAdmin(admin.ModelAdmin):
     """Admin for Personal model."""
@@ -112,6 +104,26 @@ class TrainNumberAdmin(admin.ModelAdmin):
     list_filter = ["is_active"]
     search_fields = ["number", "route", "description"]
     ordering = ["number"]
+
+
+@admin.register(LugarModel)
+class LugarAdmin(admin.ModelAdmin):
+    """Admin for Lugar model."""
+
+    list_display = ["codigo", "descripcion", "short_desc", "tipo", "revision"]
+    list_filter = ["tipo", "revision"]
+    search_fields = ["codigo", "descripcion", "short_desc"]
+    ordering = ["codigo"]
+
+
+@admin.register(IntervencionTipoModel)
+class IntervencionTipoAdmin(admin.ModelAdmin):
+    """Admin for IntervencionTipo model."""
+
+    list_display = ["codigo", "descripcion", "clase"]
+    list_filter = ["clase"]
+    search_fields = ["codigo", "descripcion"]
+    ordering = ["codigo"]
 
 
 # =============================================================================
@@ -245,7 +257,6 @@ class TicketAdmin(admin.ModelAdmin):
                 "fields": (
                     "train_number",
                     "interviniente",
-                    "supervisor",
                     "work_order_number",
                 )
             },
@@ -269,3 +280,36 @@ class TicketAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+
+# =============================================================================
+# Novedad Admin
+# =============================================================================
+
+
+@admin.register(NovedadModel)
+class NovedadAdmin(admin.ModelAdmin):
+    """Admin for Novedad model."""
+
+    list_display = [
+        "maintenance_unit",
+        "fecha_desde",
+        "fecha_hasta",
+        "intervencion",
+        "lugar",
+        "is_legacy",
+    ]
+    list_filter = [
+        "is_legacy",
+        "intervencion",
+        "lugar",
+        "maintenance_unit__unit_type",
+    ]
+    search_fields = [
+        "maintenance_unit__number",
+        "legacy_unit_code",
+        "observaciones",
+    ]
+    date_hierarchy = "fecha_desde"
+    ordering = ["-fecha_desde"]
+    raw_id_fields = ["maintenance_unit", "intervencion", "lugar"]

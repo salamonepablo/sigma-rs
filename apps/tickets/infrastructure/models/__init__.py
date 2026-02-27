@@ -17,15 +17,19 @@ from apps.tickets.infrastructure.models.reference import (
     BrandModel,
     FailureTypeModel,
     GOPModel,
+    IntervencionTipoModel,
     LocomotiveModelModel,
+    LugarModel,
     PersonalModel,
     RailcarClassModel,
-    SupervisorModel,
     TrainNumberModel,
 )
 
 # Ticket model
 from apps.tickets.infrastructure.models.ticket import TicketModel
+
+# Novedad model
+from apps.tickets.infrastructure.models.novedad import NovedadModel
 
 __all__ = [
     # Base
@@ -35,10 +39,11 @@ __all__ = [
     "BrandModel",
     "FailureTypeModel",
     "GOPModel",
+    "IntervencionTipoModel",
     "LocomotiveModelModel",
+    "LugarModel",
     "PersonalModel",
     "RailcarClassModel",
-    "SupervisorModel",
     "TrainNumberModel",
     # Maintenance units
     "LocomotiveModel",
@@ -47,4 +52,6 @@ __all__ = [
     "RailcarModel",
     # Ticket
     "TicketModel",
+    # Novedad
+    "NovedadModel",
 ]

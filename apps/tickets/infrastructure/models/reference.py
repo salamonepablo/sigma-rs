@@ -2,7 +2,7 @@
 
 Contains models for auxiliary/reference tables that are rarely modified:
 Brand, LocomotiveModel, RailcarClass, FailureType, AffectedSystem,
-GOP, Supervisor, TrainNumber.
+GOP, Personal, TrainNumber, IntervencionTipo, Lugar.
 """
 
 import uuid
@@ -124,8 +124,8 @@ class LocomotiveModelModel(models.Model):
 class RailcarClassModel(models.Model):
     """Railcar class specification.
 
-    Known Materfer classes: U, FU, F.
-    Known CNR classes: CPA, CRA, PUA, PUAD, FS, FG.
+    Classes are independent of brand/manufacturer.
+    Known classes: U, FU, F, CT, CPA, CRA, PUA, PUAD, FS, FG, etc.
     """
 
     id = models.UUIDField(
@@ -134,22 +134,16 @@ class RailcarClassModel(models.Model):
         editable=False,
         verbose_name="ID",
     )
-    name = models.CharField(
-        max_length=50,
-        verbose_name="Nombre",
-        help_text="Nombre de la clase (ej: CPA)",
-    )
     code = models.CharField(
         max_length=20,
         unique=True,
         verbose_name="Código",
-        help_text="Código único de la clase",
+        help_text="Código único de la clase (ej: U, FU, CPA)",
     )
-    brand = models.ForeignKey(
-        BrandModel,
-        on_delete=models.PROTECT,
-        related_name="railcar_classes",
-        verbose_name="Marca",
+    name = models.CharField(
+        max_length=50,
+        verbose_name="Nombre",
+        help_text="Nombre descriptivo de la clase",
     )
     description = models.TextField(
         blank=True,
@@ -173,10 +167,10 @@ class RailcarClassModel(models.Model):
         db_table = "railcar_class"
         verbose_name = "Clase de coche remolcado"
         verbose_name_plural = "Clases de coche remolcado"
-        ordering = ["brand", "name"]
+        ordering = ["code"]
 
     def __str__(self) -> str:
-        return f"{self.brand.name} {self.name}"
+        return self.code
 
 
 class FailureTypeModel(models.Model):
@@ -341,58 +335,6 @@ class GOPModel(models.Model):
         return self.name
 
 
-class SupervisorModel(models.Model):
-    """Maintenance supervisor (legacy - kept for migration compatibility)."""
-
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-        verbose_name="ID",
-    )
-    name = models.CharField(
-        max_length=200,
-        verbose_name="Nombre completo",
-    )
-    employee_number = models.CharField(
-        max_length=20,
-        unique=True,
-        verbose_name="Número de legajo",
-    )
-    email = models.EmailField(
-        blank=True,
-        null=True,
-        verbose_name="Email",
-    )
-    phone = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        verbose_name="Teléfono",
-    )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name="Activo",
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Fecha de creación",
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name="Fecha de actualización",
-    )
-
-    class Meta:
-        db_table = "supervisor"
-        verbose_name = "Supervisor"
-        verbose_name_plural = "Supervisores"
-        ordering = ["name"]
-
-    def __str__(self) -> str:
-        return self.name
-
-
 class PersonalModel(models.Model):
     """Maintenance personnel (Interviniente).
 
@@ -461,6 +403,148 @@ class PersonalModel(models.Model):
 
     def __str__(self) -> str:
         return f"{self.full_name} ({self.legajo_sap})"
+
+
+class IntervencionTipoModel(models.Model):
+    """Intervention type for maintenance events (Novedades).
+
+    Imported from legacy baseLocs.mdb Access database table 'Intervenciones'.
+    Classifies the type of maintenance intervention performed.
+    """
+
+    class IntervencionClase(models.TextChoices):
+        REV = "REV", "Revisión"
+        DET = "DET", "Detención"
+        NONE = "-", "-"
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        verbose_name="ID",
+    )
+    codigo = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Código",
+        help_text="Código del tipo de intervención (ej: AL, RA, AB)",
+    )
+    descripcion = models.CharField(
+        max_length=100,
+        verbose_name="Descripción",
+        help_text="Descripción del tipo de intervención",
+    )
+    clase = models.CharField(
+        max_length=10,
+        choices=IntervencionClase.choices,
+        default=IntervencionClase.NONE,
+        verbose_name="Clase",
+        help_text="Clasificación: Revisión (REV) o Detención (DET)",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activo",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de creación",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Fecha de actualización",
+    )
+
+    class Meta:
+        db_table = "intervencion_tipo"
+        verbose_name = "Tipo de Intervención"
+        verbose_name_plural = "Tipos de Intervención"
+        ordering = ["codigo"]
+
+    def __str__(self) -> str:
+        return self.codigo
+
+
+class LugarModel(models.Model):
+    """Physical location for maintenance operations.
+
+    Represents stations, workshops, depots, and other locations
+    where maintenance activities take place.
+    Imported from legacy Access database (baseLocs.mdb).
+    """
+
+    class LugarTipo(models.TextChoices):
+        TALLER = "Taller", "Taller"
+        ESTACION = "Estación", "Estación"
+        DEPOSITO = "Depósito", "Depósito"
+        DESVIO = "Desvío", "Desvío"
+        MESA = "Mesa", "Mesa"
+        LINEA = "Línea", "Línea"
+
+    class LugarRevision(models.TextChoices):
+        REPARACION = "Reparacion", "Reparación"
+        ALISTAMIENTO = "Alistamiento", "Alistamiento"
+        NINGUNA = "-", "-"
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        verbose_name="ID",
+    )
+    codigo = models.IntegerField(
+        unique=True,
+        verbose_name="Código",
+        help_text="Código numérico del lugar (legacy)",
+    )
+    descripcion = models.CharField(
+        max_length=100,
+        verbose_name="Descripción",
+        help_text="Nombre completo del lugar",
+    )
+    short_desc = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name="Abreviatura",
+        help_text="Código corto (ej: LP, TY, RE)",
+    )
+    tipo = models.CharField(
+        max_length=20,
+        choices=LugarTipo.choices,
+        blank=True,
+        null=True,
+        verbose_name="Tipo",
+    )
+    revision = models.CharField(
+        max_length=20,
+        choices=LugarRevision.choices,
+        blank=True,
+        null=True,
+        verbose_name="Tipo de revisión",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activo",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de creación",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Fecha de actualización",
+    )
+
+    class Meta:
+        db_table = "lugar"
+        verbose_name = "Lugar"
+        verbose_name_plural = "Lugares"
+        ordering = ["descripcion"]
+
+    def __str__(self) -> str:
+        if self.short_desc and self.short_desc != "-":
+            return f"{self.codigo} - {self.descripcion} ({self.short_desc})"
+        return f"{self.codigo} - {self.descripcion}"
 
 
 class TrainNumberModel(models.Model):

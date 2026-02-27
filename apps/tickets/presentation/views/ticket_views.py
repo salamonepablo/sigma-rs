@@ -1,12 +1,14 @@
 """Views for Ticket CRUD operations."""
 
 import uuid
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import (
     CreateView,
@@ -19,6 +21,7 @@ from django.views.generic import (
 
 from apps.tickets.models import (
     FailureTypeModel,
+    NovedadModel,
     TicketModel,
     TrainNumberModel,
 )
@@ -40,6 +43,18 @@ class HomeView(LoginRequiredMixin, TemplateView):
             status=TicketModel.Status.COMPLETED
         ).count()
         context["total_count"] = TicketModel.objects.count()
+
+        # Count novedades
+        today = timezone.now().date()
+        week_start = today - timedelta(days=today.weekday())
+        context["novedades_hoy"] = NovedadModel.objects.filter(
+            fecha_desde=today
+        ).count()
+        context["novedades_semana"] = NovedadModel.objects.filter(
+            fecha_desde__gte=week_start
+        ).count()
+        context["novedades_total"] = NovedadModel.objects.count()
+
         return context
 
 
@@ -60,7 +75,13 @@ class TicketListView(LoginRequiredMixin, ListView):
         # Get unit type filter from URL
         unit_type = self.kwargs.get("unit_type")
         if unit_type:
-            queryset = queryset.filter(maintenance_unit__unit_type=unit_type)
+            # Locomotoras includes Coches Motor (same maintenance team)
+            if unit_type == "locomotora":
+                queryset = queryset.filter(
+                    maintenance_unit__unit_type__in=["locomotora", "coche_motor"]
+                )
+            else:
+                queryset = queryset.filter(maintenance_unit__unit_type=unit_type)
 
         # Apply form filters
         status = self.request.GET.get("status")

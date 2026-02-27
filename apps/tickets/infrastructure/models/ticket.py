@@ -14,7 +14,6 @@ from apps.tickets.infrastructure.models.reference import (
     FailureTypeModel,
     GOPModel,
     PersonalModel,
-    SupervisorModel,
     TrainNumberModel,
 )
 
@@ -114,15 +113,6 @@ class TicketModel(models.Model):
         null=True,
         verbose_name="Número de OT",
         help_text="Número de Orden de Trabajo (opcional)",
-    )
-    supervisor = models.ForeignKey(
-        SupervisorModel,
-        on_delete=models.PROTECT,
-        related_name="tickets",
-        blank=True,
-        null=True,
-        verbose_name="Supervisor (legacy)",
-        help_text="Campo legacy - usar interviniente",
     )
     interviniente = models.ForeignKey(
         PersonalModel,

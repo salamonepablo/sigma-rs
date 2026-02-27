@@ -119,10 +119,15 @@ class TicketForm(forms.ModelForm):
 
         # Filter maintenance units by type if specified
         if unit_type:
+            # Locomotoras includes Coches Motor (same maintenance team)
+            if unit_type == "locomotora":
+                unit_types = ["locomotora", "coche_motor"]
+            else:
+                unit_types = [unit_type]
             self.fields[
                 "maintenance_unit"
             ].queryset = MaintenanceUnitModel.objects.filter(
-                unit_type=unit_type, is_active=True
+                unit_type__in=unit_types, is_active=True
             )
             # Filter intervinientes by sector matching unit_type
             self.fields["interviniente"].queryset = PersonalModel.objects.filter(

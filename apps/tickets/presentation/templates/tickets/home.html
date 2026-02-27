@@ -3,105 +3,182 @@
 {% block page_title %}SIGMA-RS - Inicio{% endblock %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col-12 text-center">
-        <h4 class="mb-2">Sistema de Gestión de Tickets de Averías</h4>
-        <p class="text-muted small mb-0">Seleccione el tipo de unidad</p>
-    </div>
-</div>
-
-<!-- Cards de selección de tipo de unidad -->
-<div class="row justify-content-center g-3 mb-4">
-    <!-- Locomotoras -->
-    <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3">
-        <div class="card h-100 shadow-sm border-0 unit-card">
-            <div class="card-body text-center p-3">
-                <h5 class="card-title mb-2 text-primary">Locomotoras</h5>
-                <div class="d-flex justify-content-center gap-2 mb-2">
-                    <div class="brand-icon" title="General Motors">
-                        <img src="{% static 'images/IcoGM.png' %}" alt="GM" class="img-fluid">
-                        <small class="d-block text-muted">GM</small>
+<div class="row g-4">
+    <!-- COLUMNA IZQUIERDA: Sistema de Gestión de Tickets de Averías -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-primary text-white py-2">
+                <h5 class="mb-0 text-center">Sistema de Gestión de Tickets de Averías</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small text-center mb-3">Seleccione el tipo de unidad</p>
+                
+                <!-- Cards de selección de tipo de unidad -->
+                <div class="row g-3 mb-3">
+                    <!-- Locomotoras -->
+                    <div class="col-6">
+                        <div class="card h-100 border-0 unit-card bg-light">
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title mb-2 text-primary">Locomotoras</h6>
+                                <div class="d-flex justify-content-center gap-1 mb-2">
+                                    <div class="brand-icon" title="General Motors">
+                                        <img src="{% static 'images/IcoGM.png' %}" alt="GM" class="img-fluid">
+                                        <small class="d-block text-muted">GM</small>
+                                    </div>
+                                    <div class="brand-icon" title="CNR Dalian (CKD)">
+                                        <img src="{% static 'images/IcoCKD.png' %}" alt="CKD" class="img-fluid">
+                                        <small class="d-block text-muted">CKD</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <a href="{% url 'tickets:ticket_list_by_type' unit_type='locomotora' %}" 
+                                       class="btn btn-primary btn-sm">
+                                        Ver
+                                    </a>
+                                    <a href="{% url 'tickets:ticket_create_by_type' unit_type='locomotora' %}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        + Nuevo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="brand-icon" title="CNR Dalian (CKD)">
-                        <img src="{% static 'images/IcoCKD.png' %}" alt="CKD" class="img-fluid">
-                        <small class="d-block text-muted">CKD</small>
+
+                    <!-- Coches Remolcados -->
+                    <div class="col-6">
+                        <div class="card h-100 border-0 unit-card bg-light">
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title mb-2 text-success">Coches Remolcados</h6>
+                                <div class="d-flex justify-content-center gap-1 mb-2">
+                                    <div class="brand-icon" title="Materfer">
+                                        <img src="{% static 'images/IcoMTF.png' %}" alt="Materfer" class="img-fluid">
+                                        <small class="d-block text-muted">MTF</small>
+                                    </div>
+                                    <div class="brand-icon" title="CNR Dalian">
+                                        <img src="{% static 'images/IcoCNR.png' %}" alt="CNR" class="img-fluid">
+                                        <small class="d-block text-muted">CNR</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <a href="{% url 'tickets:ticket_list_by_type' unit_type='coche_remolcado' %}" 
+                                       class="btn btn-success btn-sm">
+                                        Ver
+                                    </a>
+                                    <a href="{% url 'tickets:ticket_create_by_type' unit_type='coche_remolcado' %}" 
+                                       class="btn btn-outline-success btn-sm">
+                                        + Nuevo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="d-flex gap-2 justify-content-center">
-                    <a href="{% url 'tickets:ticket_list_by_type' unit_type='locomotora' %}" 
-                       class="btn btn-primary btn-sm">
-                        Ver Tickets
-                    </a>
-                    <a href="{% url 'tickets:ticket_create_by_type' unit_type='locomotora' %}" 
-                       class="btn btn-outline-primary btn-sm">
-                        + Nuevo
-                    </a>
+
+                <!-- Resumen de tickets -->
+                <div class="card border-0 bg-light">
+                    <div class="card-header bg-dark text-white py-1">
+                        <small class="mb-0">Resumen de Tickets</small>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h5 class="text-danger mb-0">{{ pending_count }}</h5>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Pendientes</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h5 class="text-success mb-0">{{ completed_count }}</h5>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Finalizados</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h5 class="text-primary mb-0">{{ total_count }}</h5>
+                                <small class="text-muted" style="font-size: 0.7rem;">Total</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-center py-1">
+                        <a href="{% url 'tickets:ticket_list' %}" class="btn btn-outline-secondary btn-sm">
+                            Ver todos los tickets
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Coches Remolcados -->
-    <div class="col-sm-6 col-md-5 col-lg-4 col-xl-3">
-        <div class="card h-100 shadow-sm border-0 unit-card">
-            <div class="card-body text-center p-3">
-                <h5 class="card-title mb-2 text-success">Coches Remolcados</h5>
-                <div class="d-flex justify-content-center gap-2 mb-2">
-                    <div class="brand-icon" title="Materfer">
-                        <img src="{% static 'images/IcoMTF.png' %}" alt="Materfer" class="img-fluid">
-                        <small class="d-block text-muted">MTF</small>
-                    </div>
-                    <div class="brand-icon" title="CNR Dalian">
-                        <img src="{% static 'images/IcoCNR.png' %}" alt="CNR" class="img-fluid">
-                        <small class="d-block text-muted">CNR</small>
-                    </div>
-                </div>
-                <div class="d-flex gap-2 justify-content-center">
-                    <a href="{% url 'tickets:ticket_list_by_type' unit_type='coche_remolcado' %}" 
-                       class="btn btn-success btn-sm">
-                        Ver Tickets
-                    </a>
-                    <a href="{% url 'tickets:ticket_create_by_type' unit_type='coche_remolcado' %}" 
-                       class="btn btn-outline-success btn-sm">
-                        + Nuevo
-                    </a>
-                </div>
+    <!-- COLUMNA DERECHA: Sistema de Gestión de Novedades -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-info text-white py-2">
+                <h5 class="mb-0 text-center">Sistema de Gestión de Novedades</h5>
             </div>
-        </div>
-    </div>
-</div>
+            <div class="card-body">
+                <p class="text-muted small text-center mb-3">Registro de intervenciones y detenciones</p>
+                
+                <!-- Card de Novedades -->
+                <div class="row g-3 mb-3">
+                    <div class="col-12">
+                        <div class="card h-100 border-0 unit-card bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="card-title mb-2 text-info">Locomotoras y Coches Motor</h6>
+                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                    <div class="brand-icon" title="General Motors">
+                                        <img src="{% static 'images/IcoGM.png' %}" alt="GM" class="img-fluid">
+                                        <small class="d-block text-muted">GM</small>
+                                    </div>
+                                    <div class="brand-icon" title="CNR Dalian (CKD)">
+                                        <img src="{% static 'images/IcoCKD.png' %}" alt="CKD" class="img-fluid">
+                                        <small class="d-block text-muted">CKD</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="#" class="btn btn-info btn-sm disabled">
+                                        Ver Novedades
+                                    </a>
+                                    <a href="#" class="btn btn-outline-info btn-sm disabled">
+                                        + Nueva
+                                    </a>
+                                </div>
+                                <small class="text-muted d-block mt-2">(Próximamente)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-<!-- Resumen de tickets -->
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white py-2">
-                <h6 class="mb-0">Resumen de Tickets</h6>
-            </div>
-            <div class="card-body py-3">
-                <div class="row text-center">
-                    <div class="col-4">
-                        <div class="border-end">
-                            <h4 class="text-danger mb-0">{{ pending_count }}</h4>
-                            <small class="text-muted">Pendientes</small>
+                <!-- Resumen de novedades -->
+                <div class="card border-0 bg-light">
+                    <div class="card-header bg-dark text-white py-1">
+                        <small class="mb-0">Resumen de Novedades</small>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h5 class="text-info mb-0">{{ novedades_hoy|default:"0" }}</h5>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Hoy</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h5 class="text-warning mb-0">{{ novedades_semana|default:"0" }}</h5>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Esta Semana</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h5 class="text-secondary mb-0">{{ novedades_total|default:"0" }}</h5>
+                                <small class="text-muted" style="font-size: 0.7rem;">Total</small>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-4">
-                        <div class="border-end">
-                            <h4 class="text-success mb-0">{{ completed_count }}</h4>
-                            <small class="text-muted">Finalizados</small>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <h4 class="text-primary mb-0">{{ total_count }}</h4>
-                        <small class="text-muted">Total</small>
+                    <div class="card-footer text-center py-1">
+                        <a href="#" class="btn btn-outline-secondary btn-sm disabled">
+                            Ver todas las novedades
+                        </a>
                     </div>
                 </div>
-            </div>
-            <div class="card-footer text-center py-2">
-                <a href="{% url 'tickets:ticket_list' %}" class="btn btn-outline-secondary btn-sm">
-                    Ver todos los tickets
-                </a>
             </div>
         </div>
     </div>
@@ -112,15 +189,15 @@
         transition: transform 0.2s, box-shadow 0.2s;
     }
     .unit-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1) !important;
     }
     .brand-icon {
         text-align: center;
     }
     .brand-icon img {
-        width: 55px;
-        height: 55px;
+        width: 45px;
+        height: 45px;
         object-fit: contain;
         border-radius: 4px;
         transition: transform 0.2s;
@@ -129,7 +206,7 @@
         transform: scale(1.1);
     }
     .brand-icon small {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
     }
 </style>
 {% endblock %}

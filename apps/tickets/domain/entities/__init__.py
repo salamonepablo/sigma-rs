@@ -13,7 +13,6 @@ from apps.tickets.domain.entities.motorcoach import Motorcoach
 from apps.tickets.domain.entities.personal import Personal
 from apps.tickets.domain.entities.railcar import Railcar
 from apps.tickets.domain.entities.railcar_class import RailcarClass
-from apps.tickets.domain.entities.supervisor import Supervisor
 
 # Main entity
 from apps.tickets.domain.entities.ticket import Ticket
@@ -33,7 +32,6 @@ __all__ = [
     "LocomotiveModel",
     "Personal",
     "RailcarClass",
-    "Supervisor",
     "TrainNumber",
     # Main entity
     "Ticket",

@@ -15,7 +15,6 @@ from apps.tickets.domain.entities.motorcoach import Motorcoach
 from apps.tickets.domain.entities.personal import Personal, Sector
 from apps.tickets.domain.entities.railcar import Railcar
 from apps.tickets.domain.entities.railcar_class import RailcarClass
-from apps.tickets.domain.entities.supervisor import Supervisor
 from apps.tickets.domain.entities.ticket import Ticket
 from apps.tickets.domain.entities.train_number import TrainNumber
 from apps.tickets.domain.value_objects.ticket_enums import EntryType
@@ -73,14 +72,6 @@ from apps.tickets.domain.value_objects.ticket_enums import EntryType
                 "name": "CPA",
                 "code": "CPA",
                 "brand_id": uuid4(),
-            },
-        ),
-        (
-            Supervisor,
-            {
-                "id": uuid4(),
-                "name": "Juan Pérez",
-                "employee_number": "12345",
             },
         ),
         (
