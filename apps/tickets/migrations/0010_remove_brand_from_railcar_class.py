@@ -4,28 +4,40 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0009_remove_supervisor_model'),
+        ("tickets", "0009_remove_supervisor_model"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='railcarclassmodel',
-            options={'ordering': ['code'], 'verbose_name': 'Clase de coche remolcado', 'verbose_name_plural': 'Clases de coche remolcado'},
+            name="railcarclassmodel",
+            options={
+                "ordering": ["code"],
+                "verbose_name": "Clase de coche remolcado",
+                "verbose_name_plural": "Clases de coche remolcado",
+            },
         ),
         migrations.RemoveField(
-            model_name='railcarclassmodel',
-            name='brand',
+            model_name="railcarclassmodel",
+            name="brand",
         ),
         migrations.AlterField(
-            model_name='railcarclassmodel',
-            name='code',
-            field=models.CharField(help_text='Código único de la clase (ej: U, FU, CPA)', max_length=20, unique=True, verbose_name='Código'),
+            model_name="railcarclassmodel",
+            name="code",
+            field=models.CharField(
+                help_text="Código único de la clase (ej: U, FU, CPA)",
+                max_length=20,
+                unique=True,
+                verbose_name="Código",
+            ),
         ),
         migrations.AlterField(
-            model_name='railcarclassmodel',
-            name='name',
-            field=models.CharField(help_text='Nombre descriptivo de la clase', max_length=50, verbose_name='Nombre'),
+            model_name="railcarclassmodel",
+            name="name",
+            field=models.CharField(
+                help_text="Nombre descriptivo de la clase",
+                max_length=50,
+                verbose_name="Nombre",
+            ),
         ),
     ]

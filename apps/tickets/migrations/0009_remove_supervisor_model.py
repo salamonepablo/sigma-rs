@@ -4,17 +4,16 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0008_add_intervencion_tipo_model'),
+        ("tickets", "0008_add_intervencion_tipo_model"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='ticketmodel',
-            name='supervisor',
+            model_name="ticketmodel",
+            name="supervisor",
         ),
         migrations.DeleteModel(
-            name='SupervisorModel',
+            name="SupervisorModel",
         ),
     ]

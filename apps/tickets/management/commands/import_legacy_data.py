@@ -27,7 +27,6 @@ from apps.tickets.models import (
     LocomotiveModelModel,
     LugarModel,
     MaintenanceUnitModel,
-    MotorcoachModel,
     NovedadModel,
     RailcarClassModel,
     RailcarModel,
@@ -814,7 +813,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Importing detenciones from {file_path}...")
 
         # Build lookup dicts for faster access
-        lugares_by_codigo = {l.codigo: l for l in LugarModel.objects.all()}
+        lugares_by_codigo = {lugar.codigo: lugar for lugar in LugarModel.objects.all()}
         units_by_number = {u.number: u for u in MaintenanceUnitModel.objects.all()}
         intervenciones_by_codigo = {
             i.codigo: i for i in IntervencionTipoModel.objects.all()
@@ -929,7 +928,7 @@ class Command(BaseCommand):
 
         # Build lookup dicts for faster access
         self.stdout.write("Building lookup dictionaries...")
-        lugares_by_codigo = {l.codigo: l for l in LugarModel.objects.all()}
+        lugares_by_codigo = {lugar.codigo: lugar for lugar in LugarModel.objects.all()}
         units_by_number = {u.number: u for u in MaintenanceUnitModel.objects.all()}
         intervenciones_by_codigo = {
             i.codigo: i for i in IntervencionTipoModel.objects.all()

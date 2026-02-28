@@ -102,21 +102,18 @@ class Command(BaseCommand):
 
     def _load_railcar_classes(self):
         """Load railcar class specifications."""
-        cnr_brand = BrandModel.objects.get(code="CNR")
-        mtf_brand = BrandModel.objects.get(code="MTF")
-
         classes = [
             # CNR classes
-            {"code": "CDA", "name": "CDA", "brand": cnr_brand},
-            {"code": "CPA", "name": "CPA", "brand": cnr_brand},
-            {"code": "CRA", "name": "CRA", "brand": cnr_brand},
-            {"code": "FG", "name": "FG", "brand": cnr_brand},
-            {"code": "FS", "name": "FS", "brand": cnr_brand},
-            {"code": "PUA", "name": "PUA", "brand": cnr_brand},
-            {"code": "PUAD", "name": "PUAD", "brand": cnr_brand},
+            {"code": "CDA", "name": "CDA"},
+            {"code": "CPA", "name": "CPA"},
+            {"code": "CRA", "name": "CRA"},
+            {"code": "FG", "name": "FG"},
+            {"code": "FS", "name": "FS"},
+            {"code": "PUA", "name": "PUA"},
+            {"code": "PUAD", "name": "PUAD"},
             # Materfer classes
-            {"code": "FURGON_UNICA", "name": "Furgon Unica", "brand": mtf_brand},
-            {"code": "UNICA", "name": "Unica", "brand": mtf_brand},
+            {"code": "FURGON_UNICA", "name": "Furgon Unica"},
+            {"code": "UNICA", "name": "Unica"},
         ]
 
         for class_data in classes:
@@ -125,7 +122,6 @@ class Command(BaseCommand):
                 defaults={
                     "id": uuid.uuid4(),
                     "name": class_data["name"],
-                    "brand": class_data["brand"],
                 },
             )
             status = "created" if created else "exists"
