@@ -120,7 +120,7 @@
                 
                 <!-- Card de Novedades -->
                 <div class="row g-3 mb-3">
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <div class="card h-100 border-0 unit-card bg-light">
                             <div class="card-body text-center p-3">
                                 <h6 class="card-title mb-2 text-info">Locomotoras y Coches Motor</h6>
@@ -135,14 +135,38 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2 justify-content-center">
-                                    <a href="#" class="btn btn-info btn-sm disabled">
+                                    <a href="{% url 'tickets:novedad_list_by_type' unit_type='locomotora' %}" class="btn btn-info btn-sm">
                                         Ver Novedades
                                     </a>
-                                    <a href="#" class="btn btn-outline-info btn-sm disabled">
+                                    <a href="{% url 'tickets:novedad_create_by_type' unit_type='locomotora' %}" class="btn btn-outline-info btn-sm">
                                         + Nueva
                                     </a>
                                 </div>
-                                <small class="text-muted d-block mt-2">(Próximamente)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 unit-card bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="card-title mb-2 text-success">Coches Remolcados</h6>
+                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                    <div class="brand-icon" title="Materfer">
+                                        <img src="{% static 'images/IcoMTF.png' %}" alt="MTF" class="img-fluid">
+                                        <small class="d-block text-muted">MTF</small>
+                                    </div>
+                                    <div class="brand-icon" title="CNR Dalian">
+                                        <img src="{% static 'images/IcoCNR.png' %}" alt="CNR" class="img-fluid">
+                                        <small class="d-block text-muted">CNR</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="{% url 'tickets:novedad_list_by_type' unit_type='coche_remolcado' %}" class="btn btn-success btn-sm">
+                                        Ver Novedades
+                                    </a>
+                                    <a href="{% url 'tickets:novedad_create_by_type' unit_type='coche_remolcado' %}" class="btn btn-outline-success btn-sm">
+                                        + Nueva
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -174,7 +198,7 @@
                         </div>
                     </div>
                     <div class="card-footer text-center py-1">
-                        <a href="#" class="btn btn-outline-secondary btn-sm disabled">
+                        <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary btn-sm">
                             Ver todas las novedades
                         </a>
                     </div>

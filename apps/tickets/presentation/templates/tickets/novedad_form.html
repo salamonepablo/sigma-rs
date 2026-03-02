@@ -1,0 +1,142 @@
+{% extends "tickets/base.html" %}
+{% block page_title %}{{ action }} Novedad{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">{{ action }} novedad</h4>
+    <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post" class="novedad-form">
+            {% csrf_token %}
+            {{ form.maintenance_unit }}
+            {{ form.intervencion }}
+            {{ form.lugar }}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">{{ form.unit_input.label }} *</label>
+                    {{ form.unit_input }}
+                    <small class="text-muted">Numero de unidad o código legacy.</small>
+                    {% for error in form.unit_input.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">{{ form.intervencion_input.label }} *</label>
+                    {{ form.intervencion_input }}
+                    <small class="text-muted">Código AL, RA, etc.</small>
+                    {% for error in form.intervencion_input.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">{{ form.lugar_input.label }} *</label>
+                    {{ form.lugar_input }}
+                    <small class="text-muted">Ej: PMRE o código numérico.</small>
+                    {% for error in form.lugar_input.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Fecha desde *</label>
+                    {{ form.fecha_desde }}
+                    {% for error in form.fecha_desde.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Fecha hasta</label>
+                    {{ form.fecha_hasta }}
+                    {% for error in form.fecha_hasta.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label small fw-semibold">Observaciones</label>
+                {{ form.observaciones }}
+                {% for error in form.observaciones.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-4 text-end">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<datalist id="unit-list">
+    {% for option in unit_options %}
+    <option value="{{ option.number }}">{{ option.display }}</option>
+    {% endfor %}
+</datalist>
+<datalist id="intervencion-list">
+    {% for option in intervencion_options %}
+    <option value="{{ option.codigo }}">{{ option.descripcion }}</option>
+    {% endfor %}
+</datalist>
+<datalist id="lugar-list">
+    {% for option in lugar_options %}
+    <option value="{{ option.code }}">{{ option.label }}</option>
+    {% endfor %}
+</datalist>
+
+<script>
+(function() {
+    const form = document.querySelector('.novedad-form');
+    if (!form) {
+        return;
+    }
+
+    const upperInputs = form.querySelectorAll('[data-uppercase]');
+    upperInputs.forEach((input) => {
+        input.addEventListener('input', () => {
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            input.value = input.value.toUpperCase();
+            input.setSelectionRange(start, end);
+        });
+    });
+
+    const focusable = Array.from(form.querySelectorAll('input:not([type="hidden"]), textarea'));
+    form.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+            event.preventDefault();
+            const index = focusable.indexOf(event.target);
+            if (index > -1 && index < focusable.length - 1) {
+                focusable[index + 1].focus();
+            }
+        }
+    });
+
+    const fechaDesde = form.querySelector('input[name="fecha_desde"]');
+    const fechaHasta = form.querySelector('input[name="fecha_hasta"]');
+    if (fechaDesde && fechaHasta) {
+        const syncDates = () => {
+            if (!fechaHasta.value) {
+                fechaHasta.value = fechaDesde.value;
+            }
+        };
+        fechaDesde.addEventListener('change', syncDates);
+        fechaHasta.addEventListener('focus', syncDates);
+    }
+})();
+</script>
+{% endblock %}

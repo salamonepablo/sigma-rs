@@ -6,6 +6,11 @@ from apps.tickets.presentation.views import (
     HomeView,
     LoginView,
     LogoutView,
+    NovedadCreateView,
+    NovedadDeleteView,
+    NovedadDetailView,
+    NovedadListView,
+    NovedadUpdateView,
     TicketCreateView,
     TicketDeleteView,
     TicketDetailView,
@@ -43,4 +48,20 @@ urlpatterns = [
         TicketStatusUpdateView.as_view(),
         name="ticket_status_update",
     ),
+    # Novedad CRUD
+    path("novedades/", NovedadListView.as_view(), name="novedad_list"),
+    path("novedades/create/", NovedadCreateView.as_view(), name="novedad_create"),
+    path(
+        "novedades/<str:unit_type>/create/",
+        NovedadCreateView.as_view(),
+        name="novedad_create_by_type",
+    ),
+    path(
+        "novedades/<str:unit_type>/",
+        NovedadListView.as_view(),
+        name="novedad_list_by_type",
+    ),
+    path("novedad/<uuid:pk>/", NovedadDetailView.as_view(), name="novedad_detail"),
+    path("novedad/<uuid:pk>/edit/", NovedadUpdateView.as_view(), name="novedad_update"),
+    path("novedad/<uuid:pk>/delete/", NovedadDeleteView.as_view(), name="novedad_delete"),
 ]

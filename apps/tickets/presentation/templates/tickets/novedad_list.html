@@ -1,0 +1,220 @@
+{% extends "tickets/base.html" %}
+{% block page_title %}Novedades - {{ unit_type_display }}{% endblock %}
+
+{% block content %}
+<style>
+.novedad-table th,
+.novedad-table td {
+    font-size: 0.78rem;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.novedad-table td.observaciones {
+    max-width: 320px;
+    white-space: normal;
+}
+
+.novedad-table td.fechas {
+    min-width: 140px;
+}
+
+.novedad-table td.unidad .badge {
+    font-size: 0.7rem;
+}
+
+.filter-form .form-label,
+.filter-form .form-control,
+.filter-form .form-select {
+    font-size: 0.78rem;
+}
+
+.filter-form .form-control,
+.filter-form .form-select {
+    padding: 0.2rem 0.4rem;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-0">Novedades - {{ unit_type_display }}</h4>
+        <small class="text-muted">Mostrando últimos {{ range_days }} días (desde {{ default_date_from|date:"d/m/Y" }}) · {{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize:"s" }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'tickets:home' %}" class="btn btn-outline-secondary">
+            ← Inicio
+        </a>
+        {% if more_history_query %}
+        <a href="{{ more_history_query }}" class="btn btn-outline-warning">
+            +30 días históricos
+        </a>
+        {% endif %}
+        {% if unit_type %}
+        <a href="{% url 'tickets:novedad_create_by_type' unit_type=unit_type %}" class="btn btn-primary">
+            + Nueva novedad
+        </a>
+        {% else %}
+        <a href="{% url 'tickets:novedad_create' %}" class="btn btn-primary">
+            + Nueva novedad
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if show_processing_message %}
+<div class="alert alert-warning py-2">
+    ⏳ Procesando registros históricos. La carga puede demorar más de lo habitual.
+</div>
+{% endif %}
+
+<div class="card mb-3 shadow-sm">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end filter-form">
+            <input type="hidden" name="range_days" value="{{ range_days }}">
+            <div class="col-lg-2 col-md-3 col-sm-6">
+                <label class="form-label small mb-1">Tipo</label>
+                {{ filter_form.unit_type }}
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-6">
+                <label class="form-label small mb-1">Intervención</label>
+                {{ filter_form.intervencion }}
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-6">
+                <label class="form-label small mb-1">Lugar</label>
+                {{ filter_form.lugar }}
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-6">
+                <label class="form-label small mb-1">Desde</label>
+                {{ filter_form.date_from }}
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-6">
+                <label class="form-label small mb-1">Hasta</label>
+                {{ filter_form.date_to }}
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <label class="form-label small mb-1">Búsqueda</label>
+                {{ filter_form.search }}
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-6 d-flex align-items-center">
+                <div class="form-check mt-4">
+                    {{ filter_form.include_alistamientos }}
+                    <label class="form-check-label small">{{ filter_form.include_alistamientos.label }}</label>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6 text-end">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+                <a href="?" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0 novedad-table">
+            <thead class="table-dark">
+                <tr>
+                    <th class="fechas">Fechas</th>
+                    <th>Unidad</th>
+                    <th>Intervención</th>
+                    <th>Lugar</th>
+                    <th class="observaciones">Observaciones</th>
+                    <th>Origen</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for novedad in novedades %}
+                <tr>
+                    <td class="fechas">
+                        <div><strong>{{ novedad.fecha_desde|date:"d/m/Y" }}</strong></div>
+                        {% if novedad.fecha_hasta and novedad.fecha_hasta != novedad.fecha_desde %}
+                        <small class="text-muted">→ {{ novedad.fecha_hasta|date:"d/m/Y" }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="unidad">
+                        <span class="badge bg-secondary">
+                            {% if novedad.maintenance_unit %}
+                                {{ novedad.maintenance_unit.number }}
+                            {% elif novedad.legacy_unit_code %}
+                                {{ novedad.legacy_unit_code }}
+                            {% else %}-{% endif %}
+                        </span>
+                        {% if novedad.legacy_unit_code and novedad.maintenance_unit %}
+                        <small class="d-block text-muted">Legacy: {{ novedad.legacy_unit_code }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if novedad.intervencion %}
+                        <span class="badge bg-light text-dark">{{ novedad.intervencion.codigo }}</span>
+                        {% else %}
+                        <span class="text-muted">{{ novedad.legacy_intervencion_codigo|default:"-" }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if novedad.lugar %}
+                        <span class="badge bg-light text-dark">{{ novedad.lugar.short_desc|default:novedad.lugar.codigo }}</span>
+                        {% else %}
+                        <span class="text-muted">{{ novedad.legacy_lugar_codigo|default:"-" }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="observaciones">
+                        {% if novedad.observaciones %}
+                        <span title="{{ novedad.observaciones }}">
+                            {{ novedad.observaciones|truncatewords:18 }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if novedad.is_legacy %}
+                        <span class="badge bg-secondary">Legacy</span>
+                        {% else %}
+                        <span class="badge bg-info text-dark">Manual</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'tickets:novedad_detail' novedad.pk %}" class="btn btn-sm btn-outline-info" title="Ver">👁</a>
+                            <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
+                            <a href="{% url 'tickets:novedad_delete' novedad.pk %}" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No hay novedades para los filtros seleccionados.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Anterior
+            </a>
+        </li>
+        {% endif %}
+        <li class="page-item disabled">
+            <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Siguiente
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,13 @@
 """Views for the tickets presentation layer."""
 
 from apps.tickets.presentation.views.auth_views import LoginView, LogoutView
+from apps.tickets.presentation.views.novedad_views import (
+    NovedadCreateView,
+    NovedadDeleteView,
+    NovedadDetailView,
+    NovedadListView,
+    NovedadUpdateView,
+)
 from apps.tickets.presentation.views.ticket_views import (
     HomeView,
     TicketCreateView,
@@ -21,4 +28,9 @@ __all__ = [
     "TicketListView",
     "TicketStatusUpdateView",
     "TicketUpdateView",
+    "NovedadListView",
+    "NovedadDetailView",
+    "NovedadCreateView",
+    "NovedadUpdateView",
+    "NovedadDeleteView",
 ]

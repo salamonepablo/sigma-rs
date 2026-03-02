@@ -1,0 +1,81 @@
+{% extends "tickets/base.html" %}
+{% block page_title %}Detalle Novedad{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Novedad {{ novedad.pk|slice:":8" }}...</h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver al listado</a>
+        <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-primary">Editar</a>
+        <a href="{% url 'tickets:novedad_delete' novedad.pk %}" class="btn btn-danger">Eliminar</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white py-2">Unidad e intervención</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Unidad:</strong>
+                    {% if novedad.maintenance_unit %}
+                        {{ novedad.maintenance_unit.number }}
+                    {% elif novedad.legacy_unit_code %}
+                        {{ novedad.legacy_unit_code }}
+                    {% else %}-{% endif %}
+                </p>
+                {% if novedad.legacy_unit_code and novedad.maintenance_unit %}
+                <p class="text-muted small mb-2">Código legacy: {{ novedad.legacy_unit_code }}</p>
+                {% endif %}
+                <p class="mb-1"><strong>Intervención:</strong>
+                    {% if novedad.intervencion %}
+                    {{ novedad.intervencion.codigo }} - {{ novedad.intervencion.descripcion }}
+                    {% else %}
+                    {{ novedad.legacy_intervencion_codigo|default:"-" }}
+                    {% endif %}
+                </p>
+                <p class="mb-1"><strong>Lugar:</strong>
+                    {% if novedad.lugar %}
+                        {{ novedad.lugar.descripcion }} ({{ novedad.lugar.codigo }})
+                    {% else %}
+                        {{ novedad.legacy_lugar_codigo|default:"-" }}
+                    {% endif %}
+                </p>
+                <p class="mb-0"><strong>Origen:</strong>
+                    {% if novedad.is_legacy %}
+                    Importado de base legacy
+                    {% else %}
+                    Carga manual en SIGMA-RS
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-primary text-white py-2">Fechas y estado</div>
+            <div class="card-body">
+                <p><strong>Fecha desde:</strong> {{ novedad.fecha_desde|date:"d/m/Y" }}</p>
+                <p><strong>Fecha hasta:</strong>
+                    {% if novedad.fecha_hasta %}
+                    {{ novedad.fecha_hasta|date:"d/m/Y" }}
+                    {% else %}-{% endif %}
+                </p>
+                <p><strong>Creado:</strong> {{ novedad.created_at|date:"d/m/Y H:i" }}</p>
+                <p class="mb-0"><strong>Actualizado:</strong> {{ novedad.updated_at|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light py-2">Observaciones</div>
+            <div class="card-body">
+                {% if novedad.observaciones %}
+                <pre class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;">{{ novedad.observaciones }}</pre>
+                {% else %}
+                <span class="text-muted">Sin observaciones registradas.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
