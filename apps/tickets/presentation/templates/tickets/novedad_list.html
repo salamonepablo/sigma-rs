@@ -69,39 +69,39 @@
 
 <div class="card mb-3 shadow-sm">
     <div class="card-body py-3">
-        <form method="get" class="row g-2 align-items-end filter-form">
+        <form method="get" class="row row-cols-lg-auto row-cols-md-2 row-cols-1 g-2 align-items-end filter-form">
             <input type="hidden" name="range_days" value="{{ range_days }}">
-            <div class="col-lg-2 col-md-3 col-sm-6">
+            <div class="col">
                 <label class="form-label small mb-1">Tipo</label>
                 {{ filter_form.unit_type }}
             </div>
-            <div class="col-lg-2 col-md-3 col-sm-6">
+            <div class="col">
                 <label class="form-label small mb-1">Intervención</label>
                 {{ filter_form.intervencion }}
             </div>
-            <div class="col-lg-2 col-md-3 col-sm-6">
+            <div class="col">
                 <label class="form-label small mb-1">Lugar</label>
                 {{ filter_form.lugar }}
             </div>
-            <div class="col-lg-2 col-md-3 col-sm-6">
+            <div class="col">
                 <label class="form-label small mb-1">Desde</label>
                 {{ filter_form.date_from }}
             </div>
-            <div class="col-lg-2 col-md-3 col-sm-6">
+            <div class="col">
                 <label class="form-label small mb-1">Hasta</label>
                 {{ filter_form.date_to }}
             </div>
-            <div class="col-lg-3 col-md-4 col-sm-6">
+            <div class="col" style="min-width: 200px;">
                 <label class="form-label small mb-1">Búsqueda</label>
                 {{ filter_form.search }}
             </div>
-            <div class="col-lg-2 col-md-3 col-sm-6 d-flex align-items-center">
-                <div class="form-check mt-4">
+            <div class="col d-flex align-items-center">
+                <div class="form-check mt-4 mb-0">
                     {{ filter_form.include_alistamientos }}
                     <label class="form-check-label small">{{ filter_form.include_alistamientos.label }}</label>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-4 col-sm-6 text-end">
+            <div class="col text-end">
                 <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
                 <a href="?" class="btn btn-sm btn-outline-secondary">Limpiar</a>
             </div>

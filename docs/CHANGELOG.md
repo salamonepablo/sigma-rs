@@ -23,6 +23,7 @@ Todas las modificaciones relevantes del proyecto deben registrarse aquí siguien
 - Supervisor input replaced by `Interviniente` FK selection.
 - Navbar updated to `| Material Rodante - Linea Roca |`.
 - Project structure documentation updated to reflect `apps/tickets/`.
+- Layout de filtros de novedades optimizado para mantener un único renglón y etiquetas abreviadas.
 
 ### Fixed
 - Removed prototype app and legacy templates to avoid landing on old index.

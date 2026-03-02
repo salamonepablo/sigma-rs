@@ -242,7 +242,7 @@ class NovedadFilterForm(forms.Form):
         ("", "Todas las unidades"),
         (
             MaintenanceUnitModel.UnitType.LOCOMOTIVE,
-            "Locomotoras / Coches Motor",
+            "Locomotoras",
         ),
         (MaintenanceUnitModel.UnitType.RAILCAR, "Coches Remolcados"),
         (MaintenanceUnitModel.UnitType.MOTORCOACH, "Coches Motor"),
