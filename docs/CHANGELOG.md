@@ -16,6 +16,7 @@ Todas las modificaciones relevantes del proyecto deben registrarse aquí siguien
 - Listado de novedades limitado a los últimos 60 días con carga incremental y aviso de procesamiento.
 - Formularios de novedades con campos unificados (unidad/intervención/lugar) y autocompletado por código.
 - Nuevo tipo de intervención `NOV` y mejoras de UX: sin fecha estimada, fecha hasta automática, inputs en mayúsculas, exclusión de AL por defecto e interfaz de filtros compacta.
+- Overlay de carga con spinner al solicitar +30 días históricos en el listado de novedades.
 
 ### Changed
 - Ticket numbers are auto-generated (YYYY-NNNN) and not user-editable.

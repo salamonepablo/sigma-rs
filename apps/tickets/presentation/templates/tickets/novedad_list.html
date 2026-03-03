@@ -33,6 +33,36 @@
 .filter-form .form-select {
     padding: 0.2rem 0.4rem;
 }
+
+.history-loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 12, 16, 0.75);
+    z-index: 1050;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.history-loading-overlay.active {
+    display: flex;
+}
+
+.history-loading-overlay .loading-box {
+    background: #111827;
+    color: #f9fafb;
+    padding: 1.5rem 2rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    min-width: 240px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+.history-loading-overlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.35rem;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -45,7 +75,7 @@
             ← Inicio
         </a>
         {% if more_history_query %}
-        <a href="{{ more_history_query }}" class="btn btn-outline-warning">
+        <a href="{{ more_history_query }}" class="btn btn-outline-warning" data-action="load-more-history">
             +30 días históricos
         </a>
         {% endif %}
@@ -217,4 +247,32 @@
     </ul>
 </nav>
 {% endif %}
+<div id="history-loading-overlay" class="history-loading-overlay" aria-live="polite" aria-hidden="true">
+    <div class="loading-box">
+        <div class="spinner-border text-warning mb-3" role="status">
+            <span class="visually-hidden">Cargando historial</span>
+        </div>
+        <div class="fw-semibold">Sumando 30 días históricos…</div>
+        <small class="text-muted">Por favor, no cierres esta pestaña.</small>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const loadMoreButton = document.querySelector('[data-action="load-more-history"]');
+    const overlay = document.getElementById('history-loading-overlay');
+
+    if (!loadMoreButton || !overlay) {
+        return;
+    }
+
+    loadMoreButton.addEventListener('click', function () {
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+    });
+});
+</script>
 {% endblock %}

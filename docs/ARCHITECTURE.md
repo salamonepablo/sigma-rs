@@ -86,6 +86,17 @@ sigma-rs/
 
 4. **Modular Monolith**: Each module in `apps/` is a bounded context that can potentially be extracted to a microservice.
 
+## Quality Checks Before Push
+
+Run the local quality gate sequence before pushing any branch to keep GitHub Actions green:
+
+```powershell
+python manage.py check
+python manage.py makemigrations --check
+ruff check .
+pytest -q
+```
+
 ## Adding a New Module
 
 1. Create folder structure under `apps/<module_name>/`

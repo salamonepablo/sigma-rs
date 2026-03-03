@@ -66,6 +66,7 @@ sigma-rs/
 - **No subir archivos sensibles**: Nunca commitear `.env`, `db.sqlite3`, credenciales, ni archivos de base de datos.
 - **Repositorio público**: No subir datos oficiales, personales ni confidenciales. Usar `.env` para configuración sensible y mantenerlo fuera del control de versiones.
 - **CI/CD**: Validar siempre con `python manage.py check` y tests antes de mergear.
+- **Lint**: Ejecuta `ruff check .` y corrige los hallazgos antes de hacer push para evitar fallos en GitHub Actions.
 
 - **Documentación actualizada**: Actualiza la documentación cada vez que realices un cambio importante en el código o la arquitectura.
 - **Changelog**: Mantén un archivo `docs/CHANGELOG.md` con los cambios relevantes de cada versión.
@@ -176,6 +177,7 @@ Ejecutar en cada push/PR:
 ```powershell
 python manage.py check
 python manage.py makemigrations --check
+ruff check .
 pytest -q
 ```
 

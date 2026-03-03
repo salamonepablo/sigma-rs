@@ -156,6 +156,7 @@ DATABASES = {
 ### Desarrollo local:
 ```powershell
 # Hacer cambios en el código
+ruff check .  # corregir antes de seguir
 git add .
 git commit -m "Descripción del cambio"
 git push origin main
@@ -229,6 +230,19 @@ whitenoise==6.7.0
 2. Migrar a PostgreSQL si hay problemas de concurrencia
 3. Implementar sync automático con GitHub en el servidor
 4. Desarrollar funcionalidades adicionales según requerimientos
+
+---
+
+## Checklist de Calidad Local Antes de Cualquier Push
+
+Ejecutar siempre el siguiente bloque para evitar fallos del workflow en GitHub Actions:
+
+```powershell
+python manage.py check
+python manage.py makemigrations --check
+ruff check .
+pytest -q
+```
 
 ---
 
