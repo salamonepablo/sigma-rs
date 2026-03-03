@@ -4,6 +4,7 @@ Todas las modificaciones relevantes del proyecto deben registrarse aquí siguien
 
 ## [Unreleased]
 ### Added
+- Startup scripts for server deployment (`README_STARTUP.md`, `install_to_startup.bat`, `start_sigma_rs.bat`).
 - Login UI redesign with TA and ARS logos.
 - New `PersonalModel` (interviniente) and CSV import via `load_initial_data`.
 - New `affected_service` field (Yes/No) in ticket form.

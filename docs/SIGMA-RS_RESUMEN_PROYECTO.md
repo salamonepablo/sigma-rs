@@ -169,6 +169,16 @@ git pull origin main
 # Reiniciar waitress si es necesario
 ```
 
+### Importante: No crear archivos en el servidor
+Siempre crear/modificar archivos desde la PC de desarrollo y pushear. Si se crean archivos manualmente en el servidor y luego se pushean los mismos desde desarrollo, git abortará el pull con error "untracked working tree files would be overwritten by merge".
+
+**Solución si ocurre:**
+```powershell
+# En el servidor, borrar los archivos locales conflictivos
+Remove-Item archivo1.txt, archivo2.txt
+git pull origin main
+```
+
 ---
 
 ## Gestión de Usuarios
@@ -189,7 +199,12 @@ python manage.py shell
 
 ## Limitaciones Conocidas
 
-1. **SQLite**: Puede tener problemas con muchas escrituras concurrentes. Monitorear errores "database locked".
+1. **SQLite**: La arquitectura Django + Waitress mitiga los problemas típicos de concurrencia de SQLite porque:
+   - Los usuarios acceden vía HTTP, no directamente al archivo
+   - Waitress serializa las escrituras
+   - Solo si hay muchas escrituras simultáneas (20+ usuarios guardando a la vez) podría haber problemas
+   - En ese caso, migrar a PostgreSQL (ver configuración más abajo)
+   - **Nota**: SQLite con Django NO es comparable a Access/SQLite como archivo compartido en red
 
 2. **Políticas IT**: 
    - No permite ejecutar archivos .bat
