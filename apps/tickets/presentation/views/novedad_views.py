@@ -65,7 +65,9 @@ class NovedadListView(LoginRequiredMixin, ListView):
 
         if self.filter_form.is_valid():
             data = self.filter_form.cleaned_data
-            queryset = self._filter_by_unit_type(queryset, data.get("unit_type") or url_unit_type)
+            queryset = self._filter_by_unit_type(
+                queryset, data.get("unit_type") or url_unit_type
+            )
 
             if data.get("intervencion"):
                 queryset = queryset.filter(intervencion=data["intervencion"])
@@ -106,7 +108,8 @@ class NovedadListView(LoginRequiredMixin, ListView):
         else:
             queryset = self._filter_by_unit_type(queryset, url_unit_type)
             queryset = queryset.filter(
-                fecha_desde__gte=self.default_date_from, fecha_desde__lte=self.default_date_to
+                fecha_desde__gte=self.default_date_from,
+                fecha_desde__lte=self.default_date_to,
             )
             self.using_default_range = True
             queryset = queryset.exclude(
@@ -205,7 +208,9 @@ class NovedadReferenceMixin:
                 "code": option.short_desc or option.codigo,
                 "label": f"{option.codigo} - {option.descripcion}",
             }
-            for option in LugarModel.objects.filter(is_active=True).order_by("descripcion")
+            for option in LugarModel.objects.filter(is_active=True).order_by(
+                "descripcion"
+            )
         ]
 
         return {
@@ -244,7 +249,9 @@ class NovedadCreateView(NovedadReferenceMixin, LoginRequiredMixin, CreateView):
     def get_success_url(self):
         unit_type = self.kwargs.get("unit_type")
         if unit_type:
-            return reverse_lazy("tickets:novedad_list_by_type", kwargs={"unit_type": unit_type})
+            return reverse_lazy(
+                "tickets:novedad_list_by_type", kwargs={"unit_type": unit_type}
+            )
         return reverse_lazy("tickets:novedad_list")
 
 

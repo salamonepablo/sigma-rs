@@ -63,5 +63,7 @@ urlpatterns = [
     ),
     path("novedad/<uuid:pk>/", NovedadDetailView.as_view(), name="novedad_detail"),
     path("novedad/<uuid:pk>/edit/", NovedadUpdateView.as_view(), name="novedad_update"),
-    path("novedad/<uuid:pk>/delete/", NovedadDeleteView.as_view(), name="novedad_delete"),
+    path(
+        "novedad/<uuid:pk>/delete/", NovedadDeleteView.as_view(), name="novedad_delete"
+    ),
 ]

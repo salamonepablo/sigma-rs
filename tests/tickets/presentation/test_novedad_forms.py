@@ -72,7 +72,12 @@ class TestNovedadForm:
         unit, intervencion, lugar = self._dependencies()
         today = date.today()
         data = self._base_data(unit, intervencion, lugar)
-        data.update({"fecha_desde": today.isoformat(), "fecha_hasta": (today - timedelta(days=1)).isoformat()})
+        data.update(
+            {
+                "fecha_desde": today.isoformat(),
+                "fecha_hasta": (today - timedelta(days=1)).isoformat(),
+            }
+        )
 
         form = NovedadForm(data=data)
 

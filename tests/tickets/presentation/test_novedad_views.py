@@ -21,7 +21,9 @@ class TestNovedadViews:
 
     def _user(self):
         user_model = get_user_model()
-        return user_model.objects.create_user(username="novedades", password="secret123")
+        return user_model.objects.create_user(
+            username="novedades", password="secret123"
+        )
 
     def _references(self):
         unit_loco = MaintenanceUnitModel.objects.create(
@@ -100,7 +102,9 @@ class TestNovedadViews:
         """Los alistamientos (AL) quedan ocultos salvo que se pidan."""
         user = self._user()
         unit_loco, _, intervencion, lugar = self._references()
-        interv_al = IntervencionTipoModel.objects.create(codigo="AL", descripcion="Alistamiento")
+        interv_al = IntervencionTipoModel.objects.create(
+            codigo="AL", descripcion="Alistamiento"
+        )
         NovedadModel.objects.create(
             maintenance_unit=unit_loco,
             fecha_desde=date.today(),
@@ -119,6 +123,8 @@ class TestNovedadViews:
         page = response.context["page_obj"]
         assert page.paginator.count == 1
 
-        response_with_al = client.get(reverse("tickets:novedad_list"), data={"include_alistamientos": "on"})
+        response_with_al = client.get(
+            reverse("tickets:novedad_list"), data={"include_alistamientos": "on"}
+        )
         page_with_al = response_with_al.context["page_obj"]
         assert page_with_al.paginator.count == 2

@@ -103,28 +103,36 @@ class NovedadForm(forms.ModelForm):
         self.fields["intervencion"].queryset = IntervencionTipoModel.objects.filter(
             is_active=True
         ).order_by("codigo")
-        self.fields["lugar"].queryset = LugarModel.objects.filter(is_active=True).order_by(
-            "descripcion"
-        )
+        self.fields["lugar"].queryset = LugarModel.objects.filter(
+            is_active=True
+        ).order_by("descripcion")
 
         # Pre-fill manual inputs when editing
         if self.instance and self.instance.pk:
             if self.instance.maintenance_unit:
-                self.fields["unit_input"].initial = self.instance.maintenance_unit.number
+                self.fields[
+                    "unit_input"
+                ].initial = self.instance.maintenance_unit.number
             elif self.instance.legacy_unit_code:
                 self.fields["unit_input"].initial = self.instance.legacy_unit_code
 
             if self.instance.intervencion:
-                self.fields["intervencion_input"].initial = self.instance.intervencion.codigo
+                self.fields[
+                    "intervencion_input"
+                ].initial = self.instance.intervencion.codigo
             elif self.instance.legacy_intervencion_codigo:
-                self.fields["intervencion_input"].initial = self.instance.legacy_intervencion_codigo
+                self.fields[
+                    "intervencion_input"
+                ].initial = self.instance.legacy_intervencion_codigo
 
             if self.instance.lugar:
                 self.fields["lugar_input"].initial = (
                     self.instance.lugar.short_desc or str(self.instance.lugar.codigo)
                 )
             elif self.instance.legacy_lugar_codigo:
-                self.fields["lugar_input"].initial = str(self.instance.legacy_lugar_codigo)
+                self.fields["lugar_input"].initial = str(
+                    self.instance.legacy_lugar_codigo
+                )
 
         self._legacy_unit_code: str | None = None
         self._legacy_intervencion_codigo: str | None = None
@@ -173,7 +181,9 @@ class NovedadForm(forms.ModelForm):
         self._legacy_unit_code = None if unit else unit_value
 
     def _resolve_intervencion(self, cleaned_data):
-        interv_value = (self.cleaned_data.get("intervencion_input") or "").strip().upper()
+        interv_value = (
+            (self.cleaned_data.get("intervencion_input") or "").strip().upper()
+        )
         if not interv_value:
             self.add_error(
                 "intervencion_input",
@@ -255,7 +265,9 @@ class NovedadFilterForm(forms.Form):
         label="Tipo de unidad",
     )
     intervencion = forms.ModelChoiceField(
-        queryset=IntervencionTipoModel.objects.filter(is_active=True).order_by("codigo"),
+        queryset=IntervencionTipoModel.objects.filter(is_active=True).order_by(
+            "codigo"
+        ),
         required=False,
         empty_label="Todos los tipos",
         widget=forms.Select(attrs={"class": "form-select form-select-sm"}),

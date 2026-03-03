@@ -20,7 +20,6 @@ def remove_nov_intervencion(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("tickets", "0010_remove_brand_from_railcar_class"),
     ]
