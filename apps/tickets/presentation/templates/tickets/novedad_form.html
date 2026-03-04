@@ -129,12 +129,62 @@
     const fechaDesde = form.querySelector('input[name="fecha_desde"]');
     const fechaHasta = form.querySelector('input[name="fecha_hasta"]');
     if (fechaDesde && fechaHasta) {
+        let fechaHastaTouched = false;
+        const toIsoDate = (input) => {
+            if (!input.value) {
+                return "";
+            }
+            const raw = input.value.trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                return raw;
+            }
+            const match = raw.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2}|\d{4})$/);
+            if (match) {
+                const day = match[1];
+                const month = match[2];
+                let year = match[3];
+                if (year.length === 2) {
+                    year = `20${year}`;
+                }
+                return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+            }
+            return raw;
+        };
+        const extractIsoYear = (value) => {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return null;
+            }
+            return Number(value.slice(0, 4));
+        };
+        const isValidIsoDate = (value) => {
+            const year = extractIsoYear(value);
+            return year !== null && year >= 1900;
+        };
         const syncDates = () => {
-            if (!fechaHasta.value) {
-                fechaHasta.value = fechaDesde.value;
+            const isoDate = toIsoDate(fechaDesde);
+            const isoYear = extractIsoYear(isoDate);
+            if (isoYear !== null && isoYear < 1900) {
+                const hastaYear = extractIsoYear(fechaHasta.value.trim());
+                if (hastaYear !== null && hastaYear < 1900) {
+                    fechaHasta.value = "";
+                }
+                return;
+            }
+            if (isValidIsoDate(isoDate)) {
+                fechaDesde.value = isoDate;
+            }
+            const hastaValue = fechaHasta.value.trim();
+            const hastaInvalid = !hastaValue || !isValidIsoDate(hastaValue);
+            if ((hastaInvalid || !fechaHastaTouched) && isValidIsoDate(isoDate)) {
+                fechaHasta.value = isoDate;
             }
         };
+        fechaDesde.addEventListener('input', syncDates);
         fechaDesde.addEventListener('change', syncDates);
+        fechaDesde.addEventListener('blur', syncDates);
+        fechaHasta.addEventListener('input', () => {
+            fechaHastaTouched = true;
+        });
         fechaHasta.addEventListener('focus', syncDates);
     }
 })();

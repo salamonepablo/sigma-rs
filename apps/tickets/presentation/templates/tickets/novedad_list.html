@@ -170,7 +170,7 @@
                                 {{ novedad.legacy_unit_code }}
                             {% else %}-{% endif %}
                         </span>
-                        {% if novedad.legacy_unit_code and novedad.maintenance_unit %}
+                        {% if novedad.legacy_unit_code and novedad.maintenance_unit and novedad.legacy_unit_code != novedad.maintenance_unit.number %}
                         <small class="d-block text-muted">Legacy: {{ novedad.legacy_unit_code }}</small>
                         {% endif %}
                     </td>
