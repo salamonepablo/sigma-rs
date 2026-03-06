@@ -6,6 +6,7 @@
     <h4 class="mb-0">Novedad {{ novedad.pk|slice:":8" }}...</h4>
     <div class="d-flex gap-2">
         <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver al listado</a>
+        <a href="{% url 'tickets:maintenance_entry_create' novedad.pk %}" class="btn btn-success">Ingreso a Mantenimiento</a>
         <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-primary">Editar</a>
         <a href="{% url 'tickets:novedad_delete' novedad.pk %}" class="btn btn-danger">Eliminar</a>
     </div>

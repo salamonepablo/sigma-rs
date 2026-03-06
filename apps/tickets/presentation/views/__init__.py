@@ -2,6 +2,7 @@
 
 from apps.tickets.presentation.views.auth_views import LoginView, LogoutView
 from apps.tickets.presentation.views.novedad_views import (
+    MaintenanceEntryCreateView,
     NovedadCreateView,
     NovedadDeleteView,
     NovedadDetailView,
@@ -31,6 +32,7 @@ __all__ = [
     "NovedadListView",
     "NovedadDetailView",
     "NovedadCreateView",
+    "MaintenanceEntryCreateView",
     "NovedadUpdateView",
     "NovedadDeleteView",
 ]

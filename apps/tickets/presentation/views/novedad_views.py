@@ -14,17 +14,28 @@ from django.views.generic import (
     CreateView,
     DeleteView,
     DetailView,
+    FormView,
     ListView,
     UpdateView,
 )
 
+from apps.tickets.application.use_cases.maintenance_entry_use_case import (
+    MaintenanceEntryUseCase,
+)
+from apps.tickets.infrastructure.services.legacy_kilometrage import (
+    LegacyKilometrageRepository,
+)
 from apps.tickets.models import (
     IntervencionTipoModel,
     LugarModel,
     MaintenanceUnitModel,
     NovedadModel,
 )
-from apps.tickets.presentation.forms import NovedadFilterForm, NovedadForm
+from apps.tickets.presentation.forms import (
+    MaintenanceEntryForm,
+    NovedadFilterForm,
+    NovedadForm,
+)
 
 
 class NovedadListView(LoginRequiredMixin, ListView):
@@ -185,6 +196,124 @@ class NovedadDetailView(LoginRequiredMixin, DetailView):
             "intervencion",
             "lugar",
         )
+
+
+class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
+    """Create maintenance entry from a novedad."""
+
+    template_name = "tickets/maintenance_entry_form.html"
+    form_class = MaintenanceEntryForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.novedad = (
+            NovedadModel.objects.select_related(
+                "maintenance_unit",
+                "lugar",
+                "maintenance_unit__locomotive__brand",
+                "maintenance_unit__locomotive__model",
+                "maintenance_unit__railcar__brand",
+                "maintenance_unit__railcar__railcar_class",
+                "maintenance_unit__motorcoach__brand",
+            )
+            .filter(pk=kwargs.get("pk"))
+            .first()
+        )
+        if not self.novedad:
+            messages.error(request, "No se encontró la novedad seleccionada.")
+            return super().dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        draft = self._get_draft()
+        if draft and draft.suggestion.suggested_code:
+            kwargs["suggested_code"] = draft.suggestion.suggested_code
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        if not self.novedad:
+            return initial
+        initial["lugar"] = self.novedad.lugar
+        initial["observations"] = self.novedad.observaciones
+        trigger_value = self._prefill_trigger_value()
+        if trigger_value is not None:
+            initial["trigger_km"] = trigger_value
+        return initial
+
+    def form_valid(self, form):
+        if not self.novedad:
+            messages.error(self.request, "No se pudo crear el ingreso.")
+            return self.form_invalid(form)
+
+        use_case = MaintenanceEntryUseCase()
+        result = use_case.create_entry(
+            novedad_id=str(self.novedad.pk),
+            entry_datetime=form.cleaned_data["entry_datetime"],
+            trigger_type=form.resolved_trigger_type,
+            trigger_value=form.resolved_trigger_value,
+            trigger_unit=form.resolved_trigger_unit,
+            lugar_id=str(form.cleaned_data["lugar"].pk)
+            if form.cleaned_data.get("lugar")
+            else None,
+            selected_intervention_code=(
+                form.cleaned_data["selected_intervention"].codigo
+                if form.cleaned_data.get("selected_intervention")
+                else None
+            ),
+            checklist_tasks=form.cleaned_data.get("checklist_tasks"),
+            observations=form.cleaned_data.get("observations"),
+            user=self.request.user,
+        )
+
+        messages.success(
+            self.request, "Ingreso a mantenimiento generado correctamente."
+        )
+
+        if result.recipients_status != "ok":
+            messages.warning(
+                self.request,
+                "No se encontraron destinatarios configurados para el lugar. "
+                "Revise la configuración de destinatarios.",
+            )
+        elif result.outlook_status != "ok":
+            messages.warning(
+                self.request,
+                "No se pudo abrir Outlook automáticamente. "
+                "Verifique la instalación local.",
+            )
+
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["novedad"] = self.novedad
+        draft = self._get_draft()
+        context["draft"] = draft
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy("tickets:novedad_detail", kwargs={"pk": self.novedad.pk})
+
+    def _get_draft(self):
+        if not self.novedad:
+            return None
+        trigger_value = self._prefill_trigger_value()
+        trigger_type = "km" if trigger_value is not None else None
+        trigger_unit = "km" if trigger_value is not None else None
+        use_case = MaintenanceEntryUseCase()
+        return use_case.prepare_draft(
+            novedad_id=str(self.novedad.pk),
+            trigger_value=trigger_value,
+            trigger_type=trigger_type,
+            trigger_unit=trigger_unit,
+        )
+
+    def _prefill_trigger_value(self):
+        if not self.novedad or not self.novedad.maintenance_unit:
+            return None
+        repo = LegacyKilometrageRepository()
+        return repo.get_latest_km(self.novedad.maintenance_unit.number)
 
 
 class NovedadReferenceMixin:

@@ -20,6 +20,7 @@ sigma-rs/
 │       ├── infrastructure/         # Infrastructure layer (Django, DB)
 │       │   ├── models/             # Django ORM models
 │       │   ├── repositories/       # Repository implementations
+│       │   ├── services/            # Infra services (PDF, Outlook, legacy files)
 │       │   └── migrations/         # Django migrations
 │       └── presentation/           # Presentation layer (HTTP)
 │           ├── views/              # Django views

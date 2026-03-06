@@ -10,7 +10,10 @@ from apps.tickets.models import (
     IntervencionTipoModel,
     LocomotiveModel,
     LocomotiveModelModel,
+    LugarEmailRecipientModel,
     LugarModel,
+    MaintenanceCycleModel,
+    MaintenanceEntryModel,
     MaintenanceUnitModel,
     MotorcoachModel,
     NovedadModel,
@@ -124,6 +127,34 @@ class IntervencionTipoAdmin(admin.ModelAdmin):
     list_filter = ["clase"]
     search_fields = ["codigo", "descripcion"]
     ordering = ["codigo"]
+
+
+@admin.register(MaintenanceCycleModel)
+class MaintenanceCycleAdmin(admin.ModelAdmin):
+    """Admin for MaintenanceCycle model."""
+
+    list_display = [
+        "rolling_stock_type",
+        "brand",
+        "model",
+        "intervention_code",
+        "trigger_value",
+        "trigger_unit",
+        "is_active",
+    ]
+    list_filter = ["rolling_stock_type", "brand", "trigger_unit", "is_active"]
+    search_fields = ["intervention_code", "intervention_name"]
+    ordering = ["rolling_stock_type", "brand", "trigger_value"]
+
+
+@admin.register(LugarEmailRecipientModel)
+class LugarEmailRecipientAdmin(admin.ModelAdmin):
+    """Admin for LugarEmailRecipient model."""
+
+    list_display = ["lugar", "unit_type", "recipient_type", "email", "is_active"]
+    list_filter = ["unit_type", "recipient_type", "is_active"]
+    search_fields = ["email", "lugar__descripcion", "lugar__codigo"]
+    ordering = ["unit_type", "recipient_type", "email"]
 
 
 # =============================================================================
@@ -313,3 +344,24 @@ class NovedadAdmin(admin.ModelAdmin):
     date_hierarchy = "fecha_desde"
     ordering = ["-fecha_desde"]
     raw_id_fields = ["maintenance_unit", "intervencion", "lugar"]
+
+
+@admin.register(MaintenanceEntryModel)
+class MaintenanceEntryAdmin(admin.ModelAdmin):
+    """Admin for MaintenanceEntry model."""
+
+    list_display = [
+        "novedad",
+        "maintenance_unit",
+        "lugar",
+        "entry_datetime",
+        "selected_intervention",
+    ]
+    list_filter = ["lugar", "maintenance_unit__unit_type"]
+    search_fields = [
+        "maintenance_unit__number",
+        "novedad__legacy_unit_code",
+        "observations",
+    ]
+    ordering = ["-entry_datetime"]
+    raw_id_fields = ["novedad", "maintenance_unit", "lugar", "selected_intervention"]

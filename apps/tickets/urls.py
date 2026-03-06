@@ -6,6 +6,7 @@ from apps.tickets.presentation.views import (
     HomeView,
     LoginView,
     LogoutView,
+    MaintenanceEntryCreateView,
     NovedadCreateView,
     NovedadDeleteView,
     NovedadDetailView,
@@ -62,6 +63,11 @@ urlpatterns = [
         name="novedad_list_by_type",
     ),
     path("novedad/<uuid:pk>/", NovedadDetailView.as_view(), name="novedad_detail"),
+    path(
+        "novedad/<uuid:pk>/ingreso/",
+        MaintenanceEntryCreateView.as_view(),
+        name="maintenance_entry_create",
+    ),
     path("novedad/<uuid:pk>/edit/", NovedadUpdateView.as_view(), name="novedad_update"),
     path(
         "novedad/<uuid:pk>/delete/", NovedadDeleteView.as_view(), name="novedad_delete"
