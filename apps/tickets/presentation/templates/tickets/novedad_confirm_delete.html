@@ -6,7 +6,14 @@
     <div class="card-body">
         <h4 class="text-danger">Confirmar eliminación</h4>
         <p>¿Está seguro de eliminar la novedad del {{ novedad.fecha_desde|date:"d/m/Y" }} para la unidad
-            <strong>{{ novedad.maintenance_unit.number if novedad.maintenance_unit else novedad.legacy_unit_code }}</strong>?</p>
+            <strong>
+                {% if novedad.maintenance_unit %}
+                    {{ novedad.maintenance_unit.number }}
+                {% else %}
+                    {{ novedad.legacy_unit_code }}
+                {% endif %}
+            </strong>?
+        </p>
         <form method="post" class="mt-3">
             {% csrf_token %}
             <a href="{% url 'tickets:novedad_detail' novedad.pk %}" class="btn btn-outline-secondary">Cancelar</a>

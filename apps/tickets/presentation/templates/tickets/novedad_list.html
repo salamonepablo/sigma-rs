@@ -206,6 +206,7 @@
                     </td>
                     <td>
                         <div class="d-flex gap-1">
+                            <a href="{% url 'tickets:maintenance_entry_create' novedad.pk %}" class="btn btn-sm btn-outline-success" title="Ingreso">⚙️</a>
                             <a href="{% url 'tickets:novedad_detail' novedad.pk %}" class="btn btn-sm btn-outline-info" title="Ver">👁</a>
                             <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
                             <a href="{% url 'tickets:novedad_delete' novedad.pk %}" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</a>
