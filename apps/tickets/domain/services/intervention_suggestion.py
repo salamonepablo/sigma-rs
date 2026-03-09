@@ -24,6 +24,20 @@ class InterventionHistoryItem:
 
     intervention_code: str
     date_from: date
+    date_until: date | None
+
+
+@dataclass(frozen=True)
+class UnitMaintenanceHistory:
+    """Summary of unit's maintenance history for display."""
+
+    last_rg_date: date | None
+    last_rg_km_since: int | None
+    last_numeral_code: str | None
+    last_numeral_date: date | None
+    last_numeral_km_since: int | None
+    last_abc_date: date | None
+    last_abc_km_since: int | None
 
 
 @dataclass(frozen=True)
@@ -260,4 +274,75 @@ class InterventionSuggestionService:
             else None,
             km_since_last=km_since,
             period_since_last=period_since,
+        )
+
+    def get_maintenance_history(
+        self,
+        unit_type: str | None,
+        brand_code: str | None,
+        model_code: str | None,
+        history: Iterable[InterventionHistoryItem],
+        current_km_value: int | None = None,
+        current_period_value: int | None = None,
+        entry_date: date | None = None,
+    ) -> UnitMaintenanceHistory:
+        """Extract key maintenance history items for display.
+
+        Args:
+            unit_type: Unit type identifier.
+            brand_code: Brand code.
+            model_code: Model code when applicable.
+            history: Historical interventions for the unit.
+            current_km_value: Current kilometer value.
+            current_period_value: Current period value (months).
+            entry_date: Date of entry for period calculations.
+
+        Returns:
+            UnitMaintenanceHistory with RG, numeral, and ABC info.
+        """
+
+        sorted_history = sorted(
+            history, key=lambda item: item.date_until or item.date_from, reverse=True
+        )
+
+        last_rg_date = None
+        last_numeral_code = None
+        last_numeral_date = None
+        last_abc_date = None
+
+        for item in sorted_history:
+            code = item.intervention_code.upper()
+            item_date = item.date_until or item.date_from
+
+            if code == "RG" and last_rg_date is None:
+                last_rg_date = item_date
+
+            if code.startswith("N") and code[1:].isdigit():
+                if last_numeral_code is None:
+                    last_numeral_code = code
+                    last_numeral_date = item_date
+
+            if code == "ABC" and last_abc_date is None:
+                last_abc_date = item_date
+
+        last_rg_km_since = None
+        last_numeral_km_since = None
+        last_abc_km_since = None
+
+        if current_km_value is not None and entry_date is not None:
+            if last_rg_date:
+                last_rg_km_since = current_km_value
+            if last_numeral_date:
+                last_numeral_km_since = current_km_value
+            if last_abc_date:
+                last_abc_km_since = current_km_value
+
+        return UnitMaintenanceHistory(
+            last_rg_date=last_rg_date,
+            last_rg_km_since=last_rg_km_since,
+            last_numeral_code=last_numeral_code,
+            last_numeral_date=last_numeral_date,
+            last_numeral_km_since=last_numeral_km_since,
+            last_abc_date=last_abc_date,
+            last_abc_km_since=last_abc_km_since,
         )

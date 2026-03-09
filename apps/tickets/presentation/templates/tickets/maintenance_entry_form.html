@@ -1,4 +1,5 @@
 {% extends "tickets/base.html" %}
+{% load km_filters %}
 {% block page_title %}Ingreso a Mantenimiento{% endblock %}
 
 {% block content %}
@@ -25,21 +26,38 @@
     </div>
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
-            <div class="card-header bg-primary text-white py-2">Sugerencia</div>
+            <div class="card-header bg-primary text-white py-2">Historial de Mantenimiento</div>
             <div class="card-body">
-                {% if draft.suggestion.suggested_code %}
-                <p class="mb-1"><strong>Intervención sugerida:</strong> {{ draft.suggestion.suggested_code }}{% if draft.suggestion.suggested_name %} - {{ draft.suggestion.suggested_name }}{% endif %}</p>
+                <p class="mb-1"><strong>Última RG:</strong> 
+                {% if draft.history.last_rg_date %}
+                    {{ draft.history.last_rg_date|date:"d/m/Y" }}
+                    {% if draft.history.last_rg_km_since %}
+                        <span class="text-muted">({{ draft.history.last_rg_km_since|km_format }} km)</span>
+                    {% endif %}
                 {% else %}
-                <p class="mb-1 text-muted">Complete KM o período para sugerencia.</p>
+                    <span class="text-muted">Sin registro</span>
                 {% endif %}
-                {% if draft.suggestion.last_intervention_date %}
-                <p class="mb-1"><strong>Última intervención:</strong> {{ draft.suggestion.last_intervention_code }} ({{ draft.suggestion.last_intervention_date|date:"d/m/Y" }})</p>
+                </p>
+                <p class="mb-1"><strong>Última Numeral:</strong> 
+                {% if draft.history.last_numeral_code %}
+                    {{ draft.history.last_numeral_code }} ({{ draft.history.last_numeral_date|date:"d/m/Y" }})
+                    {% if draft.history.last_numeral_km_since %}
+                        <span class="text-muted">({{ draft.history.last_numeral_km_since|km_format }} km)</span>
+                    {% endif %}
+                {% else %}
+                    <span class="text-muted">Sin registro</span>
                 {% endif %}
-                {% if draft.suggestion.km_since_last %}
-                <p class="mb-0"><strong>KM desde última:</strong> {{ draft.suggestion.km_since_last }}</p>
-                {% elif draft.suggestion.period_since_last %}
-                <p class="mb-0"><strong>Meses desde última:</strong> {{ draft.suggestion.period_since_last }}</p>
+                </p>
+                <p class="mb-0"><strong>Última ABC:</strong> 
+                {% if draft.history.last_abc_date %}
+                    {{ draft.history.last_abc_date|date:"d/m/Y" }}
+                    {% if draft.history.last_abc_km_since %}
+                        <span class="text-muted">({{ draft.history.last_abc_km_since|km_format }} km)</span>
+                    {% endif %}
+                {% else %}
+                    <span class="text-muted">Sin registro</span>
                 {% endif %}
+                </p>
             </div>
         </div>
     </div>
@@ -51,27 +69,41 @@
         <form method="post">
             {% csrf_token %}
 
-            <div class="row g-3">
-                <div class="col-md-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-auto">
                     <label class="form-label small fw-semibold">{{ form.entry_datetime.label }} *</label>
                     {{ form.entry_datetime }}
                     {% for error in form.entry_datetime.errors %}
                     <div class="text-danger small">{{ error }}</div>
                     {% endfor %}
                 </div>
-                <div class="col-md-4">
+                <div class="col-auto">
                     <label class="form-label small fw-semibold">{{ form.trigger_km.label }} *</label>
                     {{ form.trigger_km }}
                     {% for error in form.trigger_km.errors %}
                     <div class="text-danger small">{{ error }}</div>
                     {% endfor %}
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label small fw-semibold">{{ form.trigger_months.label }} *</label>
-                    {{ form.trigger_months }}
-                    {% for error in form.trigger_months.errors %}
-                    <div class="text-danger small">{{ error }}</div>
-                    {% endfor %}
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold text-center">Última Reparación</label>
+                    <div class="d-flex gap-2 align-items-end">
+                        <div>
+                            <label class="form-label small text-muted mb-1">Tipo</label>
+                            {{ form.last_intervention_type }}
+                        </div>
+                        <div>
+                            <label class="form-label small text-muted mb-1">Fecha</label>
+                            {{ form.last_intervention_date }}
+                        </div>
+                        <div>
+                            <label class="form-label small text-muted mb-1">Km</label>
+                            {{ form.last_intervention_km }}
+                        </div>
+                        <div>
+                            <label class="form-label small text-muted mb-1">Días</label>
+                            {{ form.last_intervention_days }}
+                        </div>
+                    </div>
                 </div>
             </div>
 

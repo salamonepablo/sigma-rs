@@ -14,6 +14,7 @@ from apps.tickets.domain.services.intervention_suggestion import (
     InterventionSuggestion,
     InterventionSuggestionService,
     MaintenanceCycle,
+    UnitMaintenanceHistory,
 )
 from apps.tickets.domain.services.recipient_resolution import (
     RecipientConfig,
@@ -41,7 +42,7 @@ from apps.tickets.infrastructure.services.pdf_generator import (
 class MaintenanceEntryDraft:
     """Draft data for the maintenance entry screen."""
 
-    novedad: NovedadModel
+    novelty: NovedadModel
     maintenance_unit: MaintenanceUnitModel | None
     unit_label: str
     brand_label: str
@@ -50,6 +51,7 @@ class MaintenanceEntryDraft:
     trigger_type: str | None
     trigger_unit: str | None
     suggestion: InterventionSuggestion
+    history: UnitMaintenanceHistory
 
 
 @dataclass(frozen=True)
@@ -151,6 +153,35 @@ class MaintenanceEntryUseCase:
             entry_date=entry_date or timezone.now().date(),
         )
 
+        history_summary = self._suggestion_service.get_maintenance_history(
+            unit_type=maintenance_unit.unit_type if maintenance_unit else None,
+            brand_code=brand_code,
+            model_code=model_code,
+            history=history,
+            current_km_value=trigger_value if trigger_type == "km" else None,
+            current_period_value=trigger_value if trigger_type == "time" else None,
+            entry_date=entry_date or timezone.now().date(),
+        )
+
+        history_summary = self._enrich_history_with_km(
+            history_summary,
+            maintenance_unit=maintenance_unit,
+            current_km_value=trigger_value if trigger_type == "km" else None,
+        )
+
+        return MaintenanceEntryDraft(
+            novelty=novedad,
+            maintenance_unit=maintenance_unit,
+            unit_label=unit_label,
+            brand_label=brand_label,
+            model_label=model_label,
+            trigger_value=trigger_value,
+            trigger_type=trigger_type,
+            trigger_unit=trigger_unit,
+            suggestion=suggestion,
+            history=history_summary,
+        )
+
         return MaintenanceEntryDraft(
             novedad=novedad,
             maintenance_unit=maintenance_unit,
@@ -210,10 +241,10 @@ class MaintenanceEntryUseCase:
             ).first()
 
         entry = MaintenanceEntryModel.objects.create(
-            novedad=draft.novedad,
+            novedad=draft.novelty,
             maintenance_unit=draft.maintenance_unit,
             lugar_id=lugar_id
-            or (draft.novedad.lugar_id if draft.novedad.lugar_id else None),
+            or (draft.novelty.lugar_id if draft.novelty.lugar_id else None),
             entry_datetime=entry_datetime,
             trigger_type=trigger_type,
             trigger_value=trigger_value,
@@ -316,6 +347,7 @@ class MaintenanceEntryUseCase:
                     InterventionHistoryItem(
                         intervention_code=code,
                         date_from=item.fecha_desde,
+                        date_until=item.fecha_hasta,
                     )
                 )
         return history
@@ -357,6 +389,47 @@ class MaintenanceEntryUseCase:
             period_since_last=period_since,
         )
 
+    def _enrich_history_with_km(
+        self,
+        history: UnitMaintenanceHistory,
+        maintenance_unit: MaintenanceUnitModel | None,
+        current_km_value: int | None,
+    ) -> UnitMaintenanceHistory:
+        if not maintenance_unit or current_km_value is None:
+            return history
+
+        unit_number = maintenance_unit.number
+
+        history_items = self._load_history(maintenance_unit)
+
+        def get_date_for_code(code: str) -> date | None:
+            for item in history_items:
+                if item.intervention_code.upper() == code:
+                    return item.date_until or item.date_from
+            return None
+
+        def get_km_since_for_code(code: str) -> int | None:
+            target_date = get_date_for_code(code)
+            if target_date is None:
+                return None
+            return self._kilometrage_repo.get_km_since(unit_number, target_date)
+
+        last_rg_km_since = get_km_since_for_code("RG")
+        last_numeral_km_since = None
+        if history.last_numeral_code:
+            last_numeral_km_since = get_km_since_for_code(history.last_numeral_code)
+        last_abc_km_since = get_km_since_for_code("ABC")
+
+        return UnitMaintenanceHistory(
+            last_rg_date=history.last_rg_date,
+            last_rg_km_since=last_rg_km_since,
+            last_numeral_code=history.last_numeral_code,
+            last_numeral_date=history.last_numeral_date,
+            last_numeral_km_since=last_numeral_km_since,
+            last_abc_date=history.last_abc_date,
+            last_abc_km_since=last_abc_km_since,
+        )
+
     def _resolve_recipients(self, lugar_id: str | None, unit_type: str | None):
         if not unit_type:
             return self._recipient_resolver.resolve(None, "", [])
@@ -390,7 +463,7 @@ class MaintenanceEntryUseCase:
         lugar_label = (
             entry.lugar.descripcion
             if entry.lugar
-            else (draft.novedad.lugar.descripcion if draft.novedad.lugar else "-")
+            else (draft.novelty.lugar.descripcion if draft.novelty.lugar else "-")
         )
 
         trigger_label = "-"

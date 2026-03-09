@@ -236,9 +236,19 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             return initial
         initial["lugar"] = self.novedad.lugar
         initial["observations"] = self.novedad.observaciones
-        trigger_value = self._prefill_trigger_value()
-        if trigger_value is not None:
-            initial["trigger_km"] = trigger_value
+        km_since_rg, days_since, intervention_type, intervention_date, km_since_last = (
+            self._prefill_trigger_value()
+        )
+        if km_since_rg is not None:
+            initial["trigger_km"] = self._format_km(km_since_rg)
+        if intervention_type:
+            initial["last_intervention_type"] = intervention_type
+        if intervention_date:
+            initial["last_intervention_date"] = intervention_date
+        if km_since_last is not None:
+            initial["last_intervention_km"] = self._format_km(km_since_last)
+        if days_since is not None:
+            initial["last_intervention_days"] = days_since
         return initial
 
     def form_valid(self, form):
@@ -298,7 +308,8 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
     def _get_draft(self):
         if not self.novedad:
             return None
-        trigger_value = self._prefill_trigger_value()
+        km_value, _, _, _, _ = self._prefill_trigger_value()
+        trigger_value = km_value
         trigger_type = "km" if trigger_value is not None else None
         trigger_unit = "km" if trigger_value is not None else None
         use_case = MaintenanceEntryUseCase()
@@ -311,9 +322,124 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
 
     def _prefill_trigger_value(self):
         if not self.novedad or not self.novedad.maintenance_unit:
-            return None
+            return None, None, None, None, None
+        use_case = MaintenanceEntryUseCase()
         repo = LegacyKilometrageRepository()
-        return repo.get_latest_km(self.novedad.maintenance_unit.number)
+        latest_km = repo.get_latest_km(self.novedad.maintenance_unit.number)
+        if latest_km is None:
+            return None, None, None, None, None
+        draft = use_case.prepare_draft(
+            novedad_id=str(self.novedad.pk),
+            trigger_value=latest_km,
+            trigger_type="km",
+            trigger_unit="km",
+        )
+
+        km_since_rg = draft.history.last_rg_km_since
+        entry_date = timezone.now().date()
+
+        last_intervention_date = None
+        last_intervention_code = None
+        last_intervention_km = None
+        unit_type = self.novedad.maintenance_unit.unit_type
+        if unit_type == "locomotora":
+            brand = getattr(
+                getattr(self.novedad.maintenance_unit, "locomotive", None),
+                "brand",
+                None,
+            )
+            brand_code = brand.code if brand else None
+            model = getattr(
+                getattr(self.novedad.maintenance_unit, "locomotive", None),
+                "model",
+                None,
+            )
+            model_code = model.code if model else None
+
+            priority_codes = []
+            if model_code and model_code.startswith("CKD"):
+                priority_codes = [
+                    "RG",
+                    "720K",
+                    "360K",
+                    "R6",
+                    "R5",
+                    "R4",
+                    "R3",
+                    "R2",
+                    "R1",
+                    "EX",
+                ]
+            else:
+                priority_codes = [
+                    "RG",
+                    "N11",
+                    "N10",
+                    "N9",
+                    "N8",
+                    "N7",
+                    "N6",
+                    "N5",
+                    "N4",
+                    "N3",
+                    "N2",
+                    "N1",
+                    "ABC",
+                    "AB",
+                    "A",
+                ]
+        elif unit_type == "coche_remolcado":
+            brand = getattr(
+                getattr(self.novedad.maintenance_unit, "railcar", None),
+                "brand",
+                None,
+            )
+            brand_code = brand.code if brand else None
+            if brand_code == "CNR":
+                priority_codes = ["A4", "A3", "A2", "A1", "SEM", "MEN"]
+            else:
+                priority_codes = ["RG", "RP", "ABC", "AB", "A"]
+        elif unit_type == "coche_motor":
+            priority_codes = ["RG", "RP", "SEM", "MEN"]
+        else:
+            priority_codes = []
+
+        if priority_codes:
+            last_intervention = (
+                NovedadModel.objects.filter(
+                    maintenance_unit=self.novedad.maintenance_unit,
+                    intervencion__codigo__in=priority_codes,
+                )
+                .select_related("intervencion")
+                .order_by("-fecha_hasta", "-fecha_desde")
+                .first()
+            )
+            if last_intervention and last_intervention.intervencion:
+                last_intervention_code = last_intervention.intervencion.codigo
+                last_intervention_date = (
+                    last_intervention.fecha_hasta or last_intervention.fecha_desde
+                )
+                if last_intervention_date:
+                    last_intervention_km = repo.get_km_since(
+                        self.novedad.maintenance_unit.number,
+                        last_intervention_date,
+                    )
+
+        days_since = None
+        if last_intervention_date:
+            days_since = (entry_date - last_intervention_date).days
+
+        return (
+            km_since_rg,
+            days_since,
+            last_intervention_code,
+            last_intervention_date,
+            last_intervention_km,
+        )
+
+    @staticmethod
+    def _format_km(value: int) -> str:
+        return f"{value:,}".replace(",", ".")
 
 
 class NovedadReferenceMixin:

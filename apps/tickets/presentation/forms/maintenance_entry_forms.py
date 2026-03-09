@@ -14,14 +14,71 @@ class MaintenanceEntryForm(forms.Form):
     entry_datetime = forms.DateTimeField(
         label="Fecha y hora de ingreso",
         widget=forms.DateTimeInput(
-            attrs={"class": "form-control form-control-sm", "type": "datetime-local"}
+            attrs={
+                "class": "form-control form-control-sm",
+                "type": "datetime-local",
+                "style": "max-width: 180px;",
+            }
         ),
     )
-    trigger_km = forms.IntegerField(
-        label="Kilometraje",
+    trigger_km = forms.CharField(
+        label="Km RG",
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control form-control-sm",
+                "placeholder": "KM",
+                "style": "max-width: 150px;",
+            }
+        ),
+    )
+    last_intervention_type = forms.CharField(
+        label="Tipo",
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control form-control-sm",
+                "readonly": True,
+                "style": "max-width: 80px;",
+                "placeholder": "-",
+            }
+        ),
+    )
+    last_intervention_date = forms.DateField(
+        label="Fecha",
+        required=False,
+        widget=forms.DateInput(
+            format="%d/%m/%Y",
+            attrs={
+                "class": "form-control form-control-sm",
+                "readonly": True,
+                "style": "max-width: 120px;",
+                "placeholder": "-",
+            },
+        ),
+    )
+    last_intervention_km = forms.CharField(
+        label="Km",
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control form-control-sm",
+                "readonly": True,
+                "style": "max-width: 120px;",
+                "placeholder": "-",
+            }
+        ),
+    )
+    last_intervention_days = forms.IntegerField(
+        label="Días",
         required=False,
         widget=forms.NumberInput(
-            attrs={"class": "form-control form-control-sm", "placeholder": "KM"}
+            attrs={
+                "class": "form-control form-control-sm",
+                "readonly": True,
+                "style": "max-width: 80px;",
+                "placeholder": "-",
+            }
         ),
     )
     trigger_months = forms.IntegerField(
@@ -79,8 +136,17 @@ class MaintenanceEntryForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        km_value = cleaned_data.get("trigger_km")
+        km_raw = cleaned_data.get("trigger_km")
         months_value = cleaned_data.get("trigger_months")
+
+        km_value = None
+        if km_raw:
+            km_value = str(km_raw).replace(".", "").replace(",", "").strip()
+            if km_value.isdigit():
+                km_value = int(km_value)
+            else:
+                self.add_error("trigger_km", "Kilometraje inválido.")
+                return cleaned_data
 
         if km_value and months_value:
             self.add_error(

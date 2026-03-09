@@ -42,6 +42,28 @@ class LegacyKilometrageRepository:
         filtered.sort(key=lambda r: r.record_date)
         return filtered[-1].km_value
 
+    def get_km_since(self, unit_number: str, from_date: date) -> int | None:
+        """Return total kilometers since a given date.
+
+        Sums all km values from the first record on or after from_date
+        to the latest record.
+
+        Args:
+            unit_number: Unit identifier.
+            from_date: Starting date (inclusive).
+
+        Returns:
+            Total kilometers accumulated since from_date, or None if no records.
+        """
+
+        records = self._get_records(unit_number)
+        filtered = [r for r in records if r.record_date >= from_date]
+        if not filtered:
+            return None
+        filtered.sort(key=lambda r: r.record_date)
+        total_km = sum(r.km_value for r in filtered)
+        return total_km
+
     def get_latest_km(self, unit_number: str) -> int | None:
         """Return latest kilometer value for a unit."""
 

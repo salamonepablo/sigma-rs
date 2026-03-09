@@ -41,6 +41,7 @@ class TestInterventionSuggestionService:
             InterventionHistoryItem(
                 intervention_code="ABC",
                 date_from=date(2024, 1, 10),
+                date_until=date(2024, 1, 15),
             )
         ]
 
