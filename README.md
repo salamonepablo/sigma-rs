@@ -88,6 +88,20 @@ For test runs, you can skip the heavy legacy import in migrations:
 set SKIP_KILOMETRAGE_IMPORT=1
 ```
 
+## Database Maintenance (SQLite)
+
+To compact the SQLite file and report size before/after:
+
+```powershell
+python manage.py maintenance_vacuum
+```
+
+Optionally run ANALYZE:
+
+```powershell
+python manage.py maintenance_vacuum --analyze
+```
+
 ## CI (GitHub Actions)
 
 Each push/PR runs:
