@@ -1,6 +1,7 @@
 """Django models for the tickets infrastructure layer."""
 
 from apps.tickets.infrastructure.models.base import BaseModel
+from apps.tickets.infrastructure.models.kilometrage import KilometrageRecordModel
 from apps.tickets.infrastructure.models.mail_recipient import LugarEmailRecipientModel
 from apps.tickets.infrastructure.models.maintenance_cycle import MaintenanceCycleModel
 from apps.tickets.infrastructure.models.maintenance_entry import MaintenanceEntryModel
@@ -47,6 +48,8 @@ __all__ = [
     # Maintenance cycles and entries
     "MaintenanceCycleModel",
     "MaintenanceEntryModel",
+    # Kilometrage
+    "KilometrageRecordModel",
     # Mail recipients
     "LugarEmailRecipientModel",
     # Ticket

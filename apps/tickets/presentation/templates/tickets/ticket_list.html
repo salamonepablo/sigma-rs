@@ -41,7 +41,15 @@
         <a href="{% url 'tickets:home' %}" class="btn btn-outline-secondary">
             ← Inicio
         </a>
-        {% if unit_type %}
+        {% if category == 'traccion' %}
+        <a href="{% url 'tickets:ticket_create_locomotoras' %}" class="btn btn-primary">
+            + Nuevo Ticket
+        </a>
+        {% elif category == 'ccrr' %}
+        <a href="{% url 'tickets:ticket_create_ccrr' %}" class="btn btn-primary">
+            + Nuevo Ticket
+        </a>
+        {% elif unit_type %}
         <a href="{% url 'tickets:ticket_create_by_type' unit_type=unit_type %}" class="btn btn-primary">
             + Nuevo Ticket
         </a>

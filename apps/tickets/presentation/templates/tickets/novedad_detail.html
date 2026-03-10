@@ -5,7 +5,13 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Novedad {{ novedad.pk|slice:":8" }}...</h4>
     <div class="d-flex gap-2">
+        {% if category == 'traccion' %}
+        <a href="{% url 'tickets:novedad_list_locomotoras' %}" class="btn btn-outline-secondary">← Volver al listado</a>
+        {% elif category == 'ccrr' %}
+        <a href="{% url 'tickets:novedad_list_ccrr' %}" class="btn btn-outline-secondary">← Volver al listado</a>
+        {% else %}
         <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver al listado</a>
+        {% endif %}
         <a href="{% url 'tickets:maintenance_entry_create' novedad.pk %}" class="btn btn-success">Ingreso a Mantenimiento</a>
         <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-primary">Editar</a>
         <a href="{% url 'tickets:novedad_delete' novedad.pk %}" class="btn btn-danger">Eliminar</a>

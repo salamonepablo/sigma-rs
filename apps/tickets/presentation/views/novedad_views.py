@@ -22,8 +22,8 @@ from django.views.generic import (
 from apps.tickets.application.use_cases.maintenance_entry_use_case import (
     MaintenanceEntryUseCase,
 )
-from apps.tickets.infrastructure.services.legacy_kilometrage import (
-    LegacyKilometrageRepository,
+from apps.tickets.infrastructure.services.kilometrage_repository import (
+    KilometrageRepository,
 )
 from apps.tickets.models import (
     IntervencionTipoModel,
@@ -59,6 +59,12 @@ class NovedadListView(LoginRequiredMixin, ListView):
             .order_by("-fecha_desde", "-created_at")
             .all()
         )
+
+        category = self.kwargs.get("category")
+        if category:
+            queryset = queryset.filter(
+                maintenance_unit__rolling_stock_category=category
+            )
 
         self.range_days = self._determine_range_days()
         today = timezone.now().date()
@@ -134,6 +140,7 @@ class NovedadListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["filter_form"] = self.filter_form
         context["unit_type"] = self.kwargs.get("unit_type")
+        context["category"] = self.kwargs.get("category")
         context["unit_type_display"] = self._unit_type_display()
         context["range_days"] = self.range_days
         context["default_date_from"] = self.default_date_from
@@ -156,6 +163,11 @@ class NovedadListView(LoginRequiredMixin, ListView):
 
     def _unit_type_display(self) -> str:
         unit_type = self.kwargs.get("unit_type")
+        category = self.kwargs.get("category")
+        if category == "traccion":
+            return "Locomotoras y Coches Motor"
+        if category == "ccrr":
+            return "Coches Remolcados"
         if unit_type == MaintenanceUnitModel.UnitType.LOCOMOTIVE:
             return "Locomotoras / Coches Motor"
         if unit_type == MaintenanceUnitModel.UnitType.RAILCAR:
@@ -196,6 +208,14 @@ class NovedadDetailView(LoginRequiredMixin, DetailView):
             "intervencion",
             "lugar",
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        category = None
+        if self.object and self.object.maintenance_unit:
+            category = self.object.maintenance_unit.rolling_stock_category
+        context["category"] = category
+        return context
 
 
 class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
@@ -324,7 +344,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
         if not self.novedad or not self.novedad.maintenance_unit:
             return None, None, None, None, None
         use_case = MaintenanceEntryUseCase()
-        repo = LegacyKilometrageRepository()
+        repo = KilometrageRepository()
         latest_km = repo.get_latest_km(self.novedad.maintenance_unit.number)
         if latest_km is None:
             return None, None, None, None, None
@@ -446,12 +466,16 @@ class NovedadReferenceMixin:
     """Provide reference data for novedad forms."""
 
     def _reference_options(self):
+        category = self.kwargs.get("category")
+        unit_queryset = MaintenanceUnitModel.objects.order_by("number")
+        if category:
+            unit_queryset = unit_queryset.filter(rolling_stock_category=category)
         unit_options = [
             {
                 "number": unit.number,
                 "display": f"{unit.number} ({unit.get_unit_type_display()})",
             }
-            for unit in MaintenanceUnitModel.objects.order_by("number")
+            for unit in unit_queryset
         ]
         intervencion_options = list(
             IntervencionTipoModel.objects.filter(is_active=True)
@@ -485,8 +509,13 @@ class NovedadCreateView(NovedadReferenceMixin, LoginRequiredMixin, CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         unit_type = self.kwargs.get("unit_type")
+        category = self.kwargs.get("category")
         if unit_type:
             kwargs["unit_type"] = unit_type
+        elif category == "traccion":
+            kwargs["unit_type"] = "locomotora"
+        elif category == "ccrr":
+            kwargs["unit_type"] = "coche_remolcado"
         return kwargs
 
     def form_valid(self, form):
@@ -499,10 +528,16 @@ class NovedadCreateView(NovedadReferenceMixin, LoginRequiredMixin, CreateView):
         context.update(self._reference_options())
         context["action"] = "Crear"
         context["unit_type"] = self.kwargs.get("unit_type")
+        context["category"] = self.kwargs.get("category")
         return context
 
     def get_success_url(self):
         unit_type = self.kwargs.get("unit_type")
+        category = self.kwargs.get("category")
+        if category == "traccion":
+            return reverse_lazy("tickets:novedad_list_locomotoras")
+        elif category == "ccrr":
+            return reverse_lazy("tickets:novedad_list_ccrr")
         if unit_type:
             return reverse_lazy(
                 "tickets:novedad_list_by_type", kwargs={"unit_type": unit_type}
@@ -533,6 +568,9 @@ class NovedadUpdateView(NovedadReferenceMixin, LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context.update(self._reference_options())
         context["action"] = "Editar"
+        if self.object and self.object.maintenance_unit:
+            context["unit_type"] = self.object.maintenance_unit.unit_type
+            context["category"] = self.object.maintenance_unit.rolling_stock_category
         return context
 
     def get_success_url(self):
@@ -545,8 +583,17 @@ class NovedadDeleteView(LoginRequiredMixin, DeleteView):
     model = NovedadModel
     template_name = "tickets/novedad_confirm_delete.html"
     context_object_name = "novedad"
-    success_url = reverse_lazy("tickets:novedad_list")
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Novedad eliminada correctamente.")
         return super().delete(request, *args, **kwargs)
+
+    def get_success_url(self):
+        category = None
+        if self.object and self.object.maintenance_unit:
+            category = self.object.maintenance_unit.rolling_stock_category
+        if category == "traccion":
+            return reverse_lazy("tickets:novedad_list_locomotoras")
+        if category == "ccrr":
+            return reverse_lazy("tickets:novedad_list_ccrr")
+        return reverse_lazy("tickets:novedad_list")

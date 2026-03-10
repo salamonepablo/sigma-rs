@@ -66,7 +66,7 @@ class MaintenanceEntryPdfGenerator:
         draw_line("Lugar:", data.lugar_label)
         draw_line("Fecha ingreso:", data.entry_datetime.strftime("%d/%m/%Y %H:%M"))
         draw_line("Fecha egreso:", data.exit_datetime)
-        draw_line("KM/Período:", data.trigger_label)
+        draw_line("", data.trigger_label)
 
         y -= 0.4 * cm
         pdf.setFont("Helvetica-Bold", 10)

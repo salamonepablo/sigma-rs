@@ -28,8 +28,8 @@ from apps.tickets.infrastructure.models import (
     MaintenanceUnitModel,
     NovedadModel,
 )
-from apps.tickets.infrastructure.services.legacy_kilometrage import (
-    LegacyKilometrageRepository,
+from apps.tickets.infrastructure.services.kilometrage_repository import (
+    KilometrageRepository,
 )
 from apps.tickets.infrastructure.services.outlook_client import OutlookDraftClient
 from apps.tickets.infrastructure.services.pdf_generator import (
@@ -47,6 +47,8 @@ class MaintenanceEntryDraft:
     unit_label: str
     brand_label: str
     model_label: str
+    unit_type: str | None
+    brand_code: str | None
     trigger_value: int | None
     trigger_type: str | None
     trigger_unit: str | None
@@ -75,13 +77,13 @@ class MaintenanceEntryUseCase:
         recipient_resolver: RecipientResolver | None = None,
         pdf_generator: MaintenanceEntryPdfGenerator | None = None,
         outlook_client: OutlookDraftClient | None = None,
-        kilometrage_repo: LegacyKilometrageRepository | None = None,
+        kilometrage_repo: KilometrageRepository | None = None,
     ) -> None:
         self._suggestion_service = suggestion_service or InterventionSuggestionService()
         self._recipient_resolver = recipient_resolver or RecipientResolver()
         self._pdf_generator = pdf_generator or MaintenanceEntryPdfGenerator()
         self._outlook_client = outlook_client or OutlookDraftClient()
-        self._kilometrage_repo = kilometrage_repo or LegacyKilometrageRepository()
+        self._kilometrage_repo = kilometrage_repo or KilometrageRepository()
 
     def prepare_draft(
         self,
@@ -126,8 +128,8 @@ class MaintenanceEntryUseCase:
         )
         unit_label = unit_label or "-"
 
-        brand_label, model_label, brand_code, model_code = self._unit_brand_model(
-            maintenance_unit
+        brand_label, model_label, brand_code, model_code, unit_type = (
+            self._unit_brand_model(maintenance_unit)
         )
 
         cycles = self._load_cycles(maintenance_unit, brand_code, model_code)
@@ -175,23 +177,13 @@ class MaintenanceEntryUseCase:
             unit_label=unit_label,
             brand_label=brand_label,
             model_label=model_label,
+            unit_type=unit_type,
+            brand_code=brand_code,
             trigger_value=trigger_value,
             trigger_type=trigger_type,
             trigger_unit=trigger_unit,
             suggestion=suggestion,
             history=history_summary,
-        )
-
-        return MaintenanceEntryDraft(
-            novedad=novedad,
-            maintenance_unit=maintenance_unit,
-            unit_label=unit_label,
-            brand_label=brand_label,
-            model_label=model_label,
-            trigger_value=trigger_value,
-            trigger_type=trigger_type,
-            trigger_unit=trigger_unit,
-            suggestion=suggestion,
         )
 
     def create_entry(
@@ -418,6 +410,9 @@ class MaintenanceEntryUseCase:
         last_numeral_km_since = None
         if history.last_numeral_code:
             last_numeral_km_since = get_km_since_for_code(history.last_numeral_code)
+        last_rp_km_since = None
+        if history.last_rp_code:
+            last_rp_km_since = get_km_since_for_code(history.last_rp_code)
         last_abc_km_since = get_km_since_for_code("ABC")
 
         return UnitMaintenanceHistory(
@@ -426,6 +421,9 @@ class MaintenanceEntryUseCase:
             last_numeral_code=history.last_numeral_code,
             last_numeral_date=history.last_numeral_date,
             last_numeral_km_since=last_numeral_km_since,
+            last_rp_code=history.last_rp_code,
+            last_rp_date=history.last_rp_date,
+            last_rp_km_since=last_rp_km_since,
             last_abc_date=history.last_abc_date,
             last_abc_km_since=last_abc_km_since,
         )
@@ -468,9 +466,10 @@ class MaintenanceEntryUseCase:
 
         trigger_label = "-"
         if entry.trigger_type == "km" and entry.trigger_value is not None:
-            trigger_label = f"{entry.trigger_value} km"
+            formatted_km = f"{entry.trigger_value:,}".replace(",", ".")
+            trigger_label = f"KM RG: {formatted_km}"
         if entry.trigger_type == "time" and entry.trigger_value is not None:
-            trigger_label = f"{entry.trigger_value} meses"
+            trigger_label = f"Período: {entry.trigger_value} meses"
 
         data = MaintenanceEntryPdfData(
             entry_number=entry_number,
@@ -547,12 +546,24 @@ class MaintenanceEntryUseCase:
         if hasattr(maintenance_unit, "locomotive"):
             brand = maintenance_unit.locomotive.brand
             model = maintenance_unit.locomotive.model
-            return brand.name, model.name, brand.code, model.code
+            return (
+                brand.name,
+                model.name,
+                brand.code,
+                model.code,
+                maintenance_unit.unit_type,
+            )
 
         if hasattr(maintenance_unit, "railcar"):
             brand = maintenance_unit.railcar.brand
             railcar_class = maintenance_unit.railcar.railcar_class
-            return brand.name, railcar_class.name, brand.code, None
+            return (
+                brand.name,
+                railcar_class.name,
+                brand.code,
+                None,
+                maintenance_unit.unit_type,
+            )
 
         if hasattr(maintenance_unit, "motorcoach"):
             brand = maintenance_unit.motorcoach.brand
@@ -561,6 +572,7 @@ class MaintenanceEntryUseCase:
                 maintenance_unit.motorcoach.configuration,
                 brand.code,
                 None,
+                maintenance_unit.unit_type,
             )
 
-        return "-", "-", None, None
+        return "-", "-", None, None, None

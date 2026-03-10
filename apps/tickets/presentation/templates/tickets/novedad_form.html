@@ -4,7 +4,15 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">{{ action }} novedad</h4>
+    {% if category == 'traccion' %}
+    <a href="{% url 'tickets:novedad_list_locomotoras' %}" class="btn btn-outline-secondary">← Volver</a>
+    {% elif category == 'ccrr' %}
+    <a href="{% url 'tickets:novedad_list_ccrr' %}" class="btn btn-outline-secondary">← Volver</a>
+    {% elif unit_type %}
+    <a href="{% url 'tickets:novedad_list_by_type' unit_type=unit_type %}" class="btn btn-outline-secondary">← Volver</a>
+    {% else %}
     <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver</a>
+    {% endif %}
 </div>
 
 <div class="card shadow-sm">

@@ -5,9 +5,19 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>Ticket {{ ticket.ticket_number }}</h4>
     <div>
+        {% if category == 'traccion' %}
+        <a href="{% url 'tickets:ticket_list_locomotoras' %}" class="btn btn-outline-secondary">
+            ← Volver
+        </a>
+        {% elif category == 'ccrr' %}
+        <a href="{% url 'tickets:ticket_list_ccrr' %}" class="btn btn-outline-secondary">
+            ← Volver
+        </a>
+        {% else %}
         <a href="{% url 'tickets:ticket_list' %}" class="btn btn-outline-secondary">
             ← Volver
         </a>
+        {% endif %}
         <a href="{% url 'tickets:ticket_update' ticket.pk %}" class="btn btn-primary">
             Editar
         </a>

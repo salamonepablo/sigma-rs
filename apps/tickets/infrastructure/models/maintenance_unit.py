@@ -25,6 +25,10 @@ class MaintenanceUnitModel(models.Model):
         RAILCAR = "coche_remolcado", "Coche Remolcado"
         MOTORCOACH = "coche_motor", "Coche Motor"
 
+    class Category(models.TextChoices):
+        TRACTION = "traccion", "Tracción (Locomotoras + Coches Motor)"
+        RAILCAR = "ccrr", "Coches Remolcados"
+
     id = models.UUIDField(
         primary_key=True,
         editable=False,
@@ -40,6 +44,14 @@ class MaintenanceUnitModel(models.Model):
         max_length=20,
         choices=UnitType.choices,
         verbose_name="Tipo de unidad",
+    )
+    rolling_stock_category = models.CharField(
+        max_length=10,
+        choices=Category.choices,
+        verbose_name="Categoría",
+        help_text="Tracción (locomotoras + coches motor) o Coches Remolcados",
+        null=True,
+        blank=True,
     )
     is_active = models.BooleanField(
         default=True,

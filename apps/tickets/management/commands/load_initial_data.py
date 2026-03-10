@@ -389,6 +389,7 @@ class Command(BaseCommand):
             id=unit_id,
             number=number,
             unit_type=MaintenanceUnitModel.UnitType.LOCOMOTIVE,
+            rolling_stock_category=MaintenanceUnitModel.Category.TRACTION,
         )
 
         # Create locomotive
@@ -407,6 +408,7 @@ class Command(BaseCommand):
             id=unit_id,
             number=number,
             unit_type=MaintenanceUnitModel.UnitType.RAILCAR,
+            rolling_stock_category=MaintenanceUnitModel.Category.RAILCAR,
         )
 
         # Create railcar
@@ -425,6 +427,7 @@ class Command(BaseCommand):
             id=unit_id,
             number=number,
             unit_type=MaintenanceUnitModel.UnitType.MOTORCOACH,
+            rolling_stock_category=MaintenanceUnitModel.Category.TRACTION,
         )
 
         # Create motorcoach

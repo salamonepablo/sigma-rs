@@ -36,6 +36,9 @@ class UnitMaintenanceHistory:
     last_numeral_code: str | None
     last_numeral_date: date | None
     last_numeral_km_since: int | None
+    last_rp_code: str | None
+    last_rp_date: date | None
+    last_rp_km_since: int | None
     last_abc_date: date | None
     last_abc_km_since: int | None
 
@@ -308,6 +311,8 @@ class InterventionSuggestionService:
         last_rg_date = None
         last_numeral_code = None
         last_numeral_date = None
+        last_rp_code = None
+        last_rp_date = None
         last_abc_date = None
 
         for item in sorted_history:
@@ -322,11 +327,17 @@ class InterventionSuggestionService:
                     last_numeral_code = code
                     last_numeral_date = item_date
 
+            if code == "RP":
+                if last_rp_code is None:
+                    last_rp_code = code
+                    last_rp_date = item_date
+
             if code == "ABC" and last_abc_date is None:
                 last_abc_date = item_date
 
         last_rg_km_since = None
         last_numeral_km_since = None
+        last_rp_km_since = None
         last_abc_km_since = None
 
         if current_km_value is not None and entry_date is not None:
@@ -334,6 +345,8 @@ class InterventionSuggestionService:
                 last_rg_km_since = current_km_value
             if last_numeral_date:
                 last_numeral_km_since = current_km_value
+            if last_rp_date:
+                last_rp_km_since = current_km_value
             if last_abc_date:
                 last_abc_km_since = current_km_value
 
@@ -343,6 +356,9 @@ class InterventionSuggestionService:
             last_numeral_code=last_numeral_code,
             last_numeral_date=last_numeral_date,
             last_numeral_km_since=last_numeral_km_since,
+            last_rp_code=last_rp_code,
+            last_rp_date=last_rp_date,
+            last_rp_km_since=last_rp_km_since,
             last_abc_date=last_abc_date,
             last_abc_km_since=last_abc_km_since,
         )

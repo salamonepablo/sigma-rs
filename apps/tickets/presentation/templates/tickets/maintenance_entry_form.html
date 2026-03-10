@@ -38,11 +38,17 @@
                     <span class="text-muted">Sin registro</span>
                 {% endif %}
                 </p>
-                <p class="mb-1"><strong>Última Numeral:</strong> 
+                {% get_maintenance_label draft.unit_type draft.brand_code as dynamic_label %}
+                <p class="mb-1"><strong>{{ dynamic_label }}:</strong> 
                 {% if draft.history.last_numeral_code %}
                     {{ draft.history.last_numeral_code }} ({{ draft.history.last_numeral_date|date:"d/m/Y" }})
                     {% if draft.history.last_numeral_km_since %}
                         <span class="text-muted">({{ draft.history.last_numeral_km_since|km_format }} km)</span>
+                    {% endif %}
+                {% elif draft.history.last_rp_code %}
+                    {{ draft.history.last_rp_code }} ({{ draft.history.last_rp_date|date:"d/m/Y" }})
+                    {% if draft.history.last_rp_km_since %}
+                        <span class="text-muted">({{ draft.history.last_rp_km_since|km_format }} km)</span>
                     {% endif %}
                 {% else %}
                     <span class="text-muted">Sin registro</span>

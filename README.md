@@ -68,6 +68,26 @@ The command `python manage.py load_initial_data` loads:
 - Maintenance units (from `context/ums.csv`)
 - Personnel (intervinientes) from `context/personal.csv`
 
+## Kilometrage Updates
+
+Kilometrage records are stored in the database. To import legacy TXT updates:
+
+```powershell
+python manage.py import_kilometrage
+```
+
+Use `--full` to reimport everything (duplicates are ignored):
+
+```powershell
+python manage.py import_kilometrage --full
+```
+
+For test runs, you can skip the heavy legacy import in migrations:
+
+```powershell
+set SKIP_KILOMETRAGE_IMPORT=1
+```
+
 ## CI (GitHub Actions)
 
 Each push/PR runs:

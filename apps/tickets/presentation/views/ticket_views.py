@@ -72,6 +72,13 @@ class TicketListView(LoginRequiredMixin, ListView):
             "maintenance_unit", "gop", "interviniente", "failure_type"
         ).order_by("-date", "-created_at")
 
+        # Get category filter from URL (traccion or ccrr)
+        category = self.kwargs.get("category")
+        if category:
+            queryset = queryset.filter(
+                maintenance_unit__rolling_stock_category=category
+            )
+
         # Get unit type filter from URL
         unit_type = self.kwargs.get("unit_type")
         if unit_type:
@@ -119,13 +126,19 @@ class TicketListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["filter_form"] = TicketFilterForm(self.request.GET)
         context["unit_type"] = self.kwargs.get("unit_type")
+        context["category"] = self.kwargs.get("category")
         context["unit_type_display"] = self._get_unit_type_display()
         return context
 
     def _get_unit_type_display(self):
         """Get display name for unit type."""
         unit_type = self.kwargs.get("unit_type")
-        if unit_type == "locomotora":
+        category = self.kwargs.get("category")
+        if category == "traccion":
+            return "Locomotoras y Coches Motor"
+        elif category == "ccrr":
+            return "Coches Remolcados"
+        elif unit_type == "locomotora":
             return "Locomotoras"
         elif unit_type == "coche_remolcado":
             return "Coches Remolcados"
@@ -151,6 +164,14 @@ class TicketDetailView(LoginRequiredMixin, DetailView):
             "affected_system",
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        category = None
+        if self.object and self.object.maintenance_unit:
+            category = self.object.maintenance_unit.rolling_stock_category
+        context["category"] = category
+        return context
+
 
 class TicketCreateView(LoginRequiredMixin, CreateView):
     """Create a new ticket."""
@@ -164,8 +185,13 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         kwargs = super().get_form_kwargs()
         # Pass unit_type to form if specified in URL
         unit_type = self.kwargs.get("unit_type")
+        category = self.kwargs.get("category")
         if unit_type:
             kwargs["unit_type"] = unit_type
+        elif category == "traccion":
+            kwargs["unit_type"] = "locomotora"
+        elif category == "ccrr":
+            kwargs["unit_type"] = "coche_remolcado"
         return kwargs
 
     def get_initial(self):
@@ -187,6 +213,7 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context["action"] = "Crear"
         context["unit_type"] = self.kwargs.get("unit_type")
+        context["category"] = self.kwargs.get("category")
         # Add trains for datalist autocomplete
         context["trains"] = TrainNumberModel.objects.filter(is_active=True)
         # Add failure types for JS auto-select
@@ -195,6 +222,11 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         unit_type = self.kwargs.get("unit_type")
+        category = self.kwargs.get("category")
+        if category == "traccion":
+            return reverse_lazy("tickets:ticket_list_locomotoras")
+        elif category == "ccrr":
+            return reverse_lazy("tickets:ticket_list_ccrr")
         if unit_type:
             return reverse_lazy(
                 "tickets:ticket_list_by_type", kwargs={"unit_type": unit_type}
@@ -230,6 +262,7 @@ class TicketUpdateView(LoginRequiredMixin, UpdateView):
         # Get unit_type from the ticket being edited
         if self.object and self.object.maintenance_unit:
             context["unit_type"] = self.object.maintenance_unit.unit_type
+            context["category"] = self.object.maintenance_unit.rolling_stock_category
         # Add trains for datalist autocomplete
         context["trains"] = TrainNumberModel.objects.filter(is_active=True)
         # Add failure types for JS auto-select
@@ -246,13 +279,22 @@ class TicketDeleteView(LoginRequiredMixin, DeleteView):
     model = TicketModel
     template_name = "tickets/ticket_confirm_delete.html"
     context_object_name = "ticket"
-    success_url = reverse_lazy("tickets:ticket_list")
 
     def form_valid(self, form):
         ticket_number = self.object.ticket_number
         response = super().form_valid(form)
         messages.success(self.request, f"Ticket {ticket_number} eliminado.")
         return response
+
+    def get_success_url(self):
+        category = None
+        if self.object and self.object.maintenance_unit:
+            category = self.object.maintenance_unit.rolling_stock_category
+        if category == "traccion":
+            return reverse_lazy("tickets:ticket_list_locomotoras")
+        if category == "ccrr":
+            return reverse_lazy("tickets:ticket_list_ccrr")
+        return reverse_lazy("tickets:ticket_list")
 
 
 class TicketStatusUpdateView(LoginRequiredMixin, View):

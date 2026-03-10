@@ -49,7 +49,7 @@ urlpatterns = [
         TicketStatusUpdateView.as_view(),
         name="ticket_status_update",
     ),
-    # Novedad CRUD
+    # Novedad CRUD - General
     path("novedades/", NovedadListView.as_view(), name="novedad_list"),
     path("novedades/create/", NovedadCreateView.as_view(), name="novedad_create"),
     path(
@@ -70,6 +70,58 @@ urlpatterns = [
     ),
     path("novedad/<uuid:pk>/edit/", NovedadUpdateView.as_view(), name="novedad_update"),
     path(
-        "novedad/<uuid:pk>/delete/", NovedadDeleteView.as_view(), name="novedad_delete"
+        "novedad/<uuid:pk>/delete/",
+        NovedadDeleteView.as_view(),
+        name="novedad_delete",
+    ),
+    # Novedad CRUD - Separated by category
+    path(
+        "locomotoras/novedades/",
+        NovedadListView.as_view(),
+        name="novedad_list_locomotoras",
+        kwargs={"category": "traccion"},
+    ),
+    path(
+        "locomotoras/novedades/create/",
+        NovedadCreateView.as_view(),
+        name="novedad_create_locomotoras",
+        kwargs={"category": "traccion"},
+    ),
+    path(
+        "ccrr/novedades/",
+        NovedadListView.as_view(),
+        name="novedad_list_ccrr",
+        kwargs={"category": "ccrr"},
+    ),
+    path(
+        "ccrr/novedades/create/",
+        NovedadCreateView.as_view(),
+        name="novedad_create_ccrr",
+        kwargs={"category": "ccrr"},
+    ),
+    # Tickets - Separated by category
+    path(
+        "locomotoras/tickets/",
+        TicketListView.as_view(),
+        name="ticket_list_locomotoras",
+        kwargs={"category": "traccion"},
+    ),
+    path(
+        "locomotoras/tickets/create/",
+        TicketCreateView.as_view(),
+        name="ticket_create_locomotoras",
+        kwargs={"category": "traccion"},
+    ),
+    path(
+        "ccrr/tickets/",
+        TicketListView.as_view(),
+        name="ticket_list_ccrr",
+        kwargs={"category": "ccrr"},
+    ),
+    path(
+        "ccrr/tickets/create/",
+        TicketCreateView.as_view(),
+        name="ticket_create_ccrr",
+        kwargs={"category": "ccrr"},
     ),
 ]
