@@ -1,114 +1,78 @@
-
 # AGENTS.md - SIGMA-RS (Sistema de Gestión de Tickets para Material Rodante)
 
-> Instrucciones para agentes de codificación AI. Responde en **español**. Código, docstrings y documentación técnica en **inglés**.
+> AI coding agent instructions. Respond in  **Spanish**. Code, docstrings, and technical docs in **English**.
 
-## Referencia Rápida
+## Quick Start
 
-```PowerShell
-# 1. Clonar repositorio
-git clone https://github.com/[usuario]/SIGMA-RS.git
-cd SIGMA-RS
-
-# 2. Crear entorno virtual
+```powershell
+# Setup
 python -m venv venv
-
-# 3. Activar entorno
 venv\Scripts\activate
-
-# 4. Instalar dependencias
 pip install -r requirements.txt
-
-# 5. Migraciones
-python manage.py makemigrations
 python manage.py migrate
-
-# 6. Crear superusuario
 python manage.py createsuperuser
 
-# 7. Levantar servidor
+# Run server
 python -m waitress --host=0.0.0.0 --port=8000 config.wsgi:application
 ```
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 sigma-rs/
-├── config/           # Configuración Django (settings, wsgi, urls)
-├── core/             # App principal (modelos, vistas, templates)
-├── db/               # Base de datos SQLite
-├── static/           # Archivos estáticos
-├── docs/             # Documentación
-├── manage.py         # Entrypoint Django
-├── requirements.txt  # Dependencias
-└── tests/            # Tests (estructura espejo)
+├── config/        # Django settings, WSGI, URLs
+├── core/          # Main app (models, views, templates)
+├── db/            # SQLite database
+├── static/        # Static files
+├── docs/          # Documentation
+├── tests/         # Tests (mirror structure)
+└── manage.py      # Django entrypoint
 ```
 
-## Stack Tecnológico
+## Tech Stack
 
-| Componente | Tecnología | Versión |
-|------------|------------|---------|
+| Component | Technology | Version |
+|-----------|------------|---------|
 | Backend | Django | 5.1 |
-| Servidor WSGI | Waitress | 3.0.0 |
-| Base de datos | SQLite | (default) |
-| Static files | WhiteNoise | 6.7.0 |
+| WSGI Server | Waitress | 3.0.0 |
+| Database | SQLite | default |
+| Linter | Ruff | 0.8.6 |
+| Test Runner | pytest | 8.3.5 |
 | Python | 3.11+ | |
-| Control de versiones | Git + GitHub | |
 
-## Principios de Desarrollo
+## Commands
 
-- **SOLID**: Aplica los principios SOLID en el diseño de clases y servicios.
-- **TDD**: Desarrolla usando Test Driven Development (Red-Green-Refactor):
-  1. Escribe primero el test (falla - rojo)
-  2. Implementa el código mínimo para pasar el test (verde)
-  3. Refactoriza manteniendo los tests en verde
-- **Pequeños commits**: Usa mensajes convencionales (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`)
-- **No subir archivos sensibles**: Nunca commitear `.env`, `db.sqlite3`, credenciales, ni archivos de base de datos.
-- **Repositorio público**: No subir datos oficiales, personales ni confidenciales. Usar `.env` para configuración sensible y mantenerlo fuera del control de versiones.
-- **CI/CD**: Validar siempre con `python manage.py check` y tests antes de mergear.
-- **Lint**: Ejecuta `ruff check .` y corrige los hallazgos antes de hacer push para evitar fallos en GitHub Actions.
+```powershell
+# Django checks
+python manage.py check
+python manage.py makemigrations --check
 
-- **Documentación actualizada**: Actualiza la documentación cada vez que realices un cambio importante en el código o la arquitectura.
-- **Changelog**: Mantén un archivo `docs/CHANGELOG.md` con los cambios relevantes de cada versión.
-- **Control de versiones**: Usa git con tags semánticos (`v1.0.0`, `v1.1.0`, etc.) para marcar releases y facilitar el seguimiento de versiones.
+# Lint (required before push)
+ruff check .
 
-## Glosario y Convenciones de Dominio
+# Run all tests
+pytest -q
 
-| Abreviatura | Significado |
-|-------------|-------------|
-| Loc, Locs | Locomotora(s) |
-| CR, CCRR | Coche(s) Remolcado(s) |
-| CM, CMN | Coche Motor |
-| GOP | Guardia Operativa |
-| OT | Orden de Trabajo |
+# Run single test (by name pattern)
+pytest -k "test_name_here" -v
 
-### Jerarquía de Unidades de Mantenimiento
+# Run specific test file
+pytest tests/core/test_models.py -v
 
-```
-UnidadMantenimiento (abstracta)
-├── Locomotora (Marca, Modelo, Activo)
-├── CocheRemolcado (Marca, Clase, Activo)
-└── CocheMotor (Marca, Modelo, CantidadCoches, Activo)
+# Run with coverage
+pytest --cov=. --cov-report=term-missing
 ```
 
-### Fabricantes
+## Code Style
 
-| Marca | Fabrica |
-|-------|---------|
-| CNR (Dalian) | Locomotoras, Coches Remolcados, Coches Motor |
-| GM (General Motors) | Solo Locomotoras (en Argentina) |
-| Materfer | Solo Coches Remolcados |
+- **Imports order**: stdlib → third-party → local/first-party
+- **Type hints**: Mandatory on public functions, use `None` instead of `Optional[x]`
+- **Docstrings**: Google format, in English. Tests in Spanish (business context)
+- **Naming**: Classes PascalCase, functions snake_case, constants UPPER_SNAKE
+- **Line length**: 88 characters (ruff default)
+- **Ruff rules enabled**: E, W, F, I, B, C4, ARG, SIM
 
-## Estilo de Código
-
-- **Imports**: stdlib → terceros → locales
-- **Type hints** obligatorios en funciones públicas
-- **Docstrings**: Formato Google, en inglés. Tests con docstrings en español (contexto de negocio)
-- **Nombres**: Clases en PascalCase, funciones en snake_case, constantes en UPPER_SNAKE
-- **Modelos Django**: Sufijo `Model`, `verbose_name` en español, UUIDField como PK, timestamps automáticos
-- **Tests**: Estructura espejo, clases `Test*`, fixtures en `conftest.py`, mocks con `unittest.mock.patch`
-
-## Ejemplo de Modelo Django
+## Django Models
 
 ```python
 import uuid
@@ -130,49 +94,46 @@ class TicketModel(models.Model):
         return self.titulo
 ```
 
-## Ejemplo de Test
+## Tests
 
 ```python
 import pytest
 from core.models import TicketModel
 
 class TestTicketModel:
-    """Pruebas de negocio para el modelo Ticket."""
+    """Business tests for Ticket model."""
 
     def test_str(self):
         ticket = TicketModel(titulo="Test", descripcion="Desc", estado="nuevo")
         assert str(ticket) == "Test"
 ```
 
-## Manejo de Errores y Logging
+- Test classes: `Test*` prefix
+- Test methods: `test_*` prefix
+- Fixtures in `conftest.py`
+- Use `unittest.mock.patch` for mocking
 
-- Usa excepciones descriptivas (`ValueError`, custom exceptions)
-- Logging con `logging.getLogger(__name__)`
-- Cierra conexiones en bloques `finally`
+## Error Handling & Logging
 
-## Flujo de Trabajo con Git
+- Use descriptive exceptions (`ValueError`, custom exceptions)
+- Logging: `logging.getLogger(__name__)`
+- Close connections in `finally` blocks
+- Django: use `get_object_or_404` for 404 handling
+
+## Git Workflow
 
 ```powershell
-# Hacer cambios
+# Make changes
 git add .
-git commit -m "feat: descripción clara"
+git commit -m "feat: clear description"
 git push origin main
-
-# En el servidor
-# En el servidor corre el script servidor_auto.ps1, que chequea cambios, realiza pull y reinicia waitress
-git pull origin main
-# Reiniciar waitress si es necesario
 ```
 
-## Entorno y Configuración
-
-- **ALLOWED_HOSTS**: `['*']` o IPs específicas
-- **Base de datos**: SQLite por defecto, migrar a PostgreSQL si hay problemas de concurrencia
-- **Proxy corporativo**: Configurar pip y git según documentación
+- Use conventional commits: `feat:`, `fix:`, `test:`, `docs:`, `refactor:`
+- Never commit: `.env`, `db.sqlite3`, credentials
+- Run CI pipeline before pushing
 
 ## CI Pipeline
-
-Ejecutar en cada push/PR:
 
 ```powershell
 python manage.py check
@@ -181,7 +142,17 @@ ruff check .
 pytest -q
 ```
 
+## Domain Glossary
+
+| Abbreviation | Meaning |
+|--------------|---------|
+| Loc, Locs | Locomotora(s) |
+| CR, CCRR | Coche(s) Remolcado(s) |
+| CM, CMN | Coche Motor |
+| GOP | Guardia Operativa |
+| OT | Orden de Trabajo |
+
 ---
 
-Para detalles adicionales, ver `docs/SIGMA-RS_RESUMEN_PROYECTO.md`.
-El changelog se encuentra en `docs/CHANGELOG.md`.
+See `docs/SIGMA-RS_RESUMEN_PROYECTO.md` for details.
+Changelog at `docs/CHANGELOG.md`.
