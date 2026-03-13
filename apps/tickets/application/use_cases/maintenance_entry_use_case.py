@@ -16,6 +16,9 @@ from apps.tickets.domain.services.intervention_suggestion import (
     MaintenanceCycle,
     UnitMaintenanceHistory,
 )
+from apps.tickets.domain.services.maintenance_labels import (
+    resolve_maintenance_display_rules,
+)
 from apps.tickets.domain.services.recipient_resolution import (
     RecipientConfig,
     RecipientResolver,
@@ -490,6 +493,7 @@ class MaintenanceEntryUseCase:
             unit_label=unit_label,
             unit_type=draft.unit_type or "",
             brand_label=draft.brand_label,
+            brand_code=draft.brand_code,
             model_label=draft.model_label,
             user_label=user_label or "-",
             intervention_label=intervention_label,
@@ -505,6 +509,9 @@ class MaintenanceEntryUseCase:
             last_numeral_code=history.last_numeral_code if history else None,
             last_numeral_date=fmt_date(history.last_numeral_date) if history else None,
             last_numeral_km=fmt_km(history.last_numeral_km_since) if history else None,
+            last_rp_code=history.last_rp_code if history else None,
+            last_rp_date=fmt_date(history.last_rp_date) if history else None,
+            last_rp_km=fmt_km(history.last_rp_km_since) if history else None,
             last_abc_date=fmt_date(history.last_abc_date) if history else None,
             last_abc_km=fmt_km(history.last_abc_km_since) if history else None,
         )
@@ -550,6 +557,29 @@ class MaintenanceEntryUseCase:
             return val.strftime("%d/%m/%Y")
 
         history = draft.history
+        created_by = getattr(entry, "created_by", None)
+        sender_name = ""
+        if created_by:
+            sender_name = getattr(created_by, "get_full_name", lambda: "")() or getattr(
+                created_by,
+                "username",
+                "",
+            )
+        display_rules = resolve_maintenance_display_rules(
+            draft.unit_type,
+            draft.brand_code,
+        )
+
+        if display_rules.use_rp_history:
+            secondary_code = history.last_rp_code if history else None
+            secondary_date = history.last_rp_date if history else None
+            secondary_km = history.last_rp_km_since if history else None
+        else:
+            secondary_code = history.last_numeral_code if history else None
+            secondary_date = history.last_numeral_date if history else None
+            secondary_km = history.last_numeral_km_since if history else None
+
+        model_detail_label = "Clase" if draft.unit_type == "coche_remolcado" else "Modelo"
 
         body_lines = [
             "=" * 50,
@@ -558,7 +588,7 @@ class MaintenanceEntryUseCase:
             "",
             f"Unidad: {unit_label}",
             f"Marca: {draft.brand_label}",
-            f"Modelo: {draft.model_label}",
+            f"{model_detail_label}: {draft.model_label}",
             f"Lugar: {lugar_label}",
             f"Intervención: {intervention_label}",
             f"Fecha ingreso: {entry.entry_datetime:%d/%m/%Y %H:%M}",
@@ -583,30 +613,25 @@ class MaintenanceEntryUseCase:
         else:
             body_lines.append("Última RG: Sin registro")
 
-        # Numeral
-        if history and history.last_numeral_code:
+        # Dynamic maintenance label
+        if secondary_code:
             body_lines.append(
-                f"Última {history.last_numeral_code}: "
-                f"{fmt_date(history.last_numeral_date)} "
-                f"({fmt_km(history.last_numeral_km_since)} km)"
-            )
-        elif history and history.last_rp_code:
-            body_lines.append(
-                f"Última {history.last_rp_code}: "
-                f"{fmt_date(history.last_rp_date)} "
-                f"({fmt_km(history.last_rp_km_since)} km)"
+                f"{display_rules.history_label}: {secondary_code} "
+                f"({fmt_date(secondary_date)}) "
+                f"({fmt_km(secondary_km)} km)"
             )
         else:
-            body_lines.append("Última Intervención: Sin registro")
+            body_lines.append(f"{display_rules.history_label}: Sin registro")
 
         # ABC
-        if history and history.last_abc_date:
-            body_lines.append(
-                f"Última ABC: {fmt_date(history.last_abc_date)} "
-                f"({fmt_km(history.last_abc_km_since)} km)"
-            )
-        else:
-            body_lines.append("Última ABC: Sin registro")
+        if display_rules.show_abc:
+            if history and history.last_abc_date:
+                body_lines.append(
+                    f"Última ABC: {fmt_date(history.last_abc_date)} "
+                    f"({fmt_km(history.last_abc_km_since)} km)"
+                )
+            else:
+                body_lines.append("Última ABC: Sin registro")
 
         if entry.observations:
             body_lines.append("")
@@ -615,10 +640,9 @@ class MaintenanceEntryUseCase:
             body_lines.append("-" * 50)
             body_lines.append(entry.observations)
 
-        body_lines.append("")
-        body_lines.append("=" * 50)
-        body_lines.append("Adjunto: Ingreso a mantenimiento (PDF)")
-        body_lines.append("=" * 50)
+        if sender_name:
+            body_lines.append("")
+            body_lines.append(f"Saludos, {sender_name}")
 
         return subject, "\n".join(body_lines)
 
@@ -657,7 +681,7 @@ class MaintenanceEntryUseCase:
             railcar_class = maintenance_unit.railcar.railcar_class
             return (
                 brand.name,
-                railcar_class.name,
+                railcar_class.code,
                 brand.code,
                 None,
                 maintenance_unit.unit_type,

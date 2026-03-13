@@ -12,7 +12,13 @@ from django.conf import settings
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
+
+from apps.tickets.domain.services.maintenance_labels import (
+    MaintenanceDisplayRules,
+    resolve_maintenance_display_rules,
+)
 
 
 @dataclass(frozen=True)
@@ -23,6 +29,7 @@ class MaintenanceEntryPdfData:
     unit_label: str
     unit_type: str
     brand_label: str
+    brand_code: str | None
     model_label: str
     user_label: str
     intervention_label: str
@@ -38,6 +45,9 @@ class MaintenanceEntryPdfData:
     last_numeral_code: str | None
     last_numeral_date: str | None
     last_numeral_km: str | None
+    last_rp_code: str | None
+    last_rp_date: str | None
+    last_rp_km: str | None
     last_abc_date: str | None
     last_abc_km: str | None
 
@@ -57,7 +67,7 @@ class MaintenanceEntryPdfGenerator:
 
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer, pagesize=A4)
-        width, height = A4
+        _, height = A4
 
         pdf.setTitle("Ingreso a Mantenimiento")
 
@@ -67,12 +77,22 @@ class MaintenanceEntryPdfGenerator:
         )
         if os.path.exists(logo_path):
             with contextlib.suppress(Exception):
+                image = ImageReader(logo_path)
+                original_width, original_height = image.getSize()
+                max_width = 3 * cm
+                max_height = 1.5 * cm
+                ratio = min(
+                    max_width / original_width,
+                    max_height / original_height,
+                )
+                draw_width = original_width * ratio
+                draw_height = original_height * ratio
                 pdf.drawImage(
-                    logo_path,
+                    image,
                     2 * cm,
-                    height - 2.5 * cm,
-                    width=3 * cm,
-                    height=1.5 * cm,
+                    height - 2.5 * cm + (max_height - draw_height) / 2,
+                    width=draw_width,
+                    height=draw_height,
                     mask="auto",
                 )
 
@@ -86,13 +106,17 @@ class MaintenanceEntryPdfGenerator:
 
         # Unit number in blue next to title
         if data.unit_label:
-            pdf.setFont("Helvetica-Bold", 12)
+            pdf.setFont("Helvetica-Bold", 14)
             pdf.setFillColor(colors.blue)
-            pdf.drawString(14 * cm, height - 2 * cm, data.unit_label)
+            pdf.drawString(12.2 * cm, height - 2 * cm, data.unit_label)
             pdf.setFillColor(colors.black)
 
         pdf.setFont("Helvetica", 10)
         y = height - 3 * cm
+        display_rules = resolve_maintenance_display_rules(
+            data.unit_type,
+            data.brand_code,
+        )
 
         def draw_line(label: str, value: str):
             nonlocal y
@@ -104,12 +128,18 @@ class MaintenanceEntryPdfGenerator:
 
         draw_line("Nro. Ingreso:", data.entry_number)
         draw_line("Unidad:", data.unit_label)
-        draw_line("Usuario:", data.user_label)
+        draw_line("Marca:", data.brand_label or "-")
+        draw_line(
+            self._get_model_detail_title(data.unit_type),
+            data.model_label or "-",
+        )
         draw_line("Intervención:", data.intervention_label)
         draw_line("Lugar:", data.lugar_label)
         draw_line("Fecha ingreso:", data.entry_datetime.strftime("%d/%m/%Y %H:%M"))
         draw_line("Fecha egreso:", data.exit_datetime)
-        draw_line("", data.trigger_label)
+        for km_label, km_value in self._km_lines(data, display_rules):
+            draw_line(km_label, self._format_km_value(km_value))
+        draw_line("Usuario:", data.user_label)
 
         y -= 0.4 * cm
         pdf.setFont("Helvetica-Bold", 10)
@@ -143,51 +173,6 @@ class MaintenanceEntryPdfGenerator:
                 y = height - 2 * cm
                 pdf.setFont("Helvetica", 9)
 
-        # Segunda página: Historial
-        pdf.showPage()
-        y = height - 2 * cm
-        pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(2 * cm, y, "Historial de Mantenimiento")
-        y -= 0.8 * cm
-
-        # RG
-        pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(2 * cm, y, "Última RG:")
-        pdf.setFont("Helvetica", 10)
-        if data.last_rg_date:
-            pdf.drawString(6 * cm, y, f"{data.last_rg_date}")
-            if data.last_rg_km:
-                pdf.drawString(10 * cm, y, f"({data.last_rg_km} km)")
-        else:
-            pdf.drawString(6 * cm, y, "Sin registro")
-        y -= 0.6 * cm
-
-        # Numeral
-        pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(2 * cm, y, "Última Intervención:")
-        pdf.setFont("Helvetica", 10)
-        if data.last_numeral_code:
-            pdf.drawString(
-                6 * cm, y, f"{data.last_numeral_code} ({data.last_numeral_date})"
-            )
-            if data.last_numeral_km:
-                pdf.drawString(11 * cm, y, f"({data.last_numeral_km} km)")
-        else:
-            pdf.drawString(6 * cm, y, "Sin registro")
-        y -= 0.6 * cm
-
-        # ABC
-        pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(2 * cm, y, "Última ABC:")
-        pdf.setFont("Helvetica", 10)
-        if data.last_abc_date:
-            pdf.drawString(6 * cm, y, f"{data.last_abc_date}")
-            if data.last_abc_km:
-                pdf.drawString(10 * cm, y, f"({data.last_abc_km} km)")
-        else:
-            pdf.drawString(6 * cm, y, "Sin registro")
-
-        pdf.showPage()
         pdf.save()
         buffer.seek(0)
         return buffer.read()
@@ -196,9 +181,50 @@ class MaintenanceEntryPdfGenerator:
     def _get_unit_type_title(unit_type: str | None) -> str:
         """Return the title for the unit type."""
         if unit_type == "locomotora":
-            return "Ingreso de Locomotora"
+            return "Ingreso de Locomotora: "
         if unit_type == "coche_remolcado":
-            return "Ingreso de Coche Remolcado"
+            return "Ingreso de Coche Remolcado: "
         if unit_type == "coche_motor":
-            return "Ingreso de Coche Motor"
-        return "Ingreso a Mantenimiento"
+            return "Ingreso de Coche Motor: "
+        return "Ingreso a Mantenimiento: "
+
+    @staticmethod
+    def _get_model_detail_title(unit_type: str | None) -> str:
+        """Return label for model/class detail based on unit type."""
+        if unit_type == "coche_remolcado":
+            return "Clase:"
+        return "Modelo:"
+
+    @staticmethod
+    def _format_km_value(value: str | None) -> str:
+        """Return kilometrage value with unit or fallback marker."""
+        if not value:
+            return "-"
+        return f"{value}"
+
+    @staticmethod
+    def _km_lines(
+        data: MaintenanceEntryPdfData,
+        display_rules: MaintenanceDisplayRules,
+    ) -> list[tuple[str, str | None]]:
+        """Return kilometrage lines based on rolling stock type and brand."""
+        lines: list[tuple[str, str | None]] = [("KM RG:", data.last_rg_km)]
+
+        _, _, second_km = MaintenanceEntryPdfGenerator._get_secondary_history(
+            data,
+            display_rules,
+        )
+        lines.append((display_rules.km_label, second_km))
+        if display_rules.show_abc:
+            lines.append(("KM ABC:", data.last_abc_km))
+        return lines
+
+    @staticmethod
+    def _get_secondary_history(
+        data: MaintenanceEntryPdfData,
+        display_rules: MaintenanceDisplayRules,
+    ) -> tuple[str | None, str | None, str | None]:
+        """Return secondary maintenance record based on shared display rules."""
+        if display_rules.use_rp_history:
+            return data.last_rp_code, data.last_rp_date, data.last_rp_km
+        return data.last_numeral_code, data.last_numeral_date, data.last_numeral_km

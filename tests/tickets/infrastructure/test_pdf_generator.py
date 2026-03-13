@@ -18,6 +18,7 @@ class TestMaintenanceEntryPdfGenerator:
             unit_label="A904",
             unit_type="locomotora",
             brand_label="GM",
+            brand_code="GM",
             model_label="GT22-CW",
             user_label="Usuario Test",
             intervention_label="A - Revision",
@@ -32,6 +33,9 @@ class TestMaintenanceEntryPdfGenerator:
             last_numeral_code="A",
             last_numeral_date="01/03/2026",
             last_numeral_km="150.000",
+            last_rp_code=None,
+            last_rp_date=None,
+            last_rp_km=None,
             last_abc_date="01/03/2026",
             last_abc_km="150.000",
         )
