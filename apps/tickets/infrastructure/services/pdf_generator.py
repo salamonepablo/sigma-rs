@@ -67,18 +67,24 @@ class MaintenanceEntryPdfGenerator:
 
         buffer = BytesIO()
         pdf = canvas.Canvas(buffer, pagesize=A4)
-        _, height = A4
+        width, height = A4
 
         pdf.setTitle("Ingreso a Mantenimiento")
 
-        # Logo TA (izquierda)
-        logo_path = os.path.join(settings.BASE_DIR, "static", "images", "Logo_TAO.png")
-        if os.path.exists(logo_path):
+        images_dir = os.path.join(settings.BASE_DIR, "static", "images")
+        left_logo = os.path.join(images_dir, "Logo_TAO.jpg")
+        right_logo = os.path.join(images_dir, "ARS_MP_Logo.png")
+
+        max_width = 3 * cm
+        max_height = 1.5 * cm
+        logo_y = height - 2.5 * cm
+
+        def draw_logo(path: str, x: float) -> None:
+            if not os.path.exists(path):
+                return
             with contextlib.suppress(Exception):
-                image = ImageReader(logo_path)
+                image = ImageReader(path)
                 original_width, original_height = image.getSize()
-                max_width = 3 * cm
-                max_height = 1.5 * cm
                 ratio = min(
                     max_width / original_width,
                     max_height / original_height,
@@ -87,12 +93,15 @@ class MaintenanceEntryPdfGenerator:
                 draw_height = original_height * ratio
                 pdf.drawImage(
                     image,
-                    2 * cm,
-                    height - 2.5 * cm + (max_height - draw_height) / 2,
+                    x,
+                    logo_y + (max_height - draw_height) / 2,
                     width=draw_width,
                     height=draw_height,
                     mask="auto",
                 )
+
+        draw_logo(left_logo, 2 * cm)
+        draw_logo(right_logo, width - 2 * cm - max_width)
 
         # Título
         pdf.setFont("Helvetica-Bold", 14)

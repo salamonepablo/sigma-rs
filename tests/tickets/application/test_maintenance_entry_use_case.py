@@ -35,6 +35,7 @@ class FakeOutlookClient:
         cc_recipients,
         subject,
         body,
+        body_html,
         attachment_path,
         sender_email,
     ):
@@ -44,6 +45,7 @@ class FakeOutlookClient:
                 "cc": cc_recipients,
                 "subject": subject,
                 "body": body,
+                "body_html": body_html,
                 "attachment_path": attachment_path,
                 "sender_email": sender_email,
             }

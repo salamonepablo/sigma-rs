@@ -16,6 +16,7 @@ class OutlookDraftClient:
         cc_recipients: list[str],
         subject: str,
         body: str,
+        body_html: str | None,
         attachment_path: str | None,
         sender_email: str | None,
     ) -> None:
@@ -25,7 +26,8 @@ class OutlookDraftClient:
             to_recipients: Primary recipients.
             cc_recipients: CC recipients.
             subject: Email subject.
-            body: Email body.
+            body: Email body (plain text).
+            body_html: Email body (HTML).
             attachment_path: File path to attach.
             sender_email: Sender email address.
         """
@@ -42,10 +44,13 @@ class OutlookDraftClient:
             message.CC = ";".join(cc_recipients)
             message.Subject = subject
             message.Body = body
+            if body_html:
+                message.HTMLBody = body_html
             if sender_email:
                 message.SentOnBehalfOfName = sender_email
             if attachment_path:
                 message.Attachments.Add(attachment_path)
             message.Display()
         except Exception as exc:  # pragma: no cover - COM failure
-            raise OutlookDraftError("Failed to create Outlook draft") from exc
+            message = str(exc) or "Failed to create Outlook draft"
+            raise OutlookDraftError(message) from exc

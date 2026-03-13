@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -265,13 +266,14 @@ class MaintenanceEntryUseCase:
         outlook_status = "skipped"
         outlook_reason = None
         if recipients.status == "ok":
-            subject, body = self._build_email_content(entry, draft)
+            subject, body, body_html = self._build_email_content(entry, draft)
             try:
                 self._outlook_client.create_draft(
                     to_recipients=recipients.to,
                     cc_recipients=recipients.cc,
                     subject=subject,
                     body=body,
+                    body_html=body_html,
                     attachment_path=pdf_path,
                     sender_email=getattr(user, "email", None),
                 )
@@ -583,70 +585,156 @@ class MaintenanceEntryUseCase:
             "Clase" if draft.unit_type == "coche_remolcado" else "Modelo"
         )
 
-        body_lines = [
-            "=" * 50,
-            f"MATERIAL RODANTE - INGRESO DE {unit_type_title.upper()}",
-            "=" * 50,
-            "",
-            f"Unidad: {unit_label}",
-            f"Marca: {draft.brand_label}",
-            f"{model_detail_label}: {draft.model_label}",
-            f"Lugar: {lugar_label}",
-            f"Intervención: {intervention_label}",
-            f"Fecha ingreso: {entry.entry_datetime:%d/%m/%Y %H:%M}",
+        entry_datetime = entry.entry_datetime
+        if timezone.is_aware(entry_datetime):
+            entry_datetime = entry_datetime.astimezone()
+        else:
+            entry_datetime = timezone.make_aware(
+                entry_datetime,
+                timezone.get_current_timezone(),
+            )
+
+        detail_items = [
+            ("Unidad", unit_label),
+            ("Marca", draft.brand_label),
+            (model_detail_label, draft.model_label),
+            ("Lugar", lugar_label),
+            ("Intervención", intervention_label),
+            ("Fecha ingreso", entry_datetime.strftime("%d/%m/%Y %H:%M")),
         ]
 
         if entry.trigger_type == "km" and entry.trigger_value is not None:
-            body_lines.append(f"KM: {fmt_km(entry.trigger_value)}")
+            detail_items.append(("KM", fmt_km(entry.trigger_value)))
         if entry.trigger_type == "time" and entry.trigger_value is not None:
-            body_lines.append(f"Período: {entry.trigger_value} meses")
+            detail_items.append(("Período", f"{entry.trigger_value} meses"))
+
+        detail_width = max(len(label) for label, _ in detail_items)
+
+        def fmt_item(label: str, value: str) -> str:
+            return f"{label:<{detail_width}} : {value}"
+
+        separator = "=" * 62
+        section_separator = "-" * 62
+
+        body_lines = [
+            separator,
+            f"MATERIAL RODANTE - INGRESO DE {unit_type_title.upper()}",
+            separator,
+            "",
+        ]
+        body_lines.extend(fmt_item(label, value) for label, value in detail_items)
 
         body_lines.append("")
-        body_lines.append("-" * 50)
+        body_lines.append(section_separator)
         body_lines.append("HISTORIAL DE MANTENIMIENTO")
-        body_lines.append("-" * 50)
+        body_lines.append(section_separator)
 
-        # RG
         if history and history.last_rg_date:
-            body_lines.append(
-                f"Última RG: {fmt_date(history.last_rg_date)} "
-                f"({fmt_km(history.last_rg_km_since)} km)"
+            rg_value = (
+                f"{fmt_date(history.last_rg_date)} - "
+                f"{fmt_km(history.last_rg_km_since)} km"
             )
         else:
-            body_lines.append("Última RG: Sin registro")
+            rg_value = "Sin registro"
 
-        # Dynamic maintenance label
         if secondary_code:
-            body_lines.append(
-                f"{display_rules.history_label}: {secondary_code} "
-                f"({fmt_date(secondary_date)}) "
-                f"({fmt_km(secondary_km)} km)"
+            secondary_value = (
+                f"{secondary_code} - {fmt_date(secondary_date)} - "
+                f"{fmt_km(secondary_km)} km"
             )
         else:
-            body_lines.append(f"{display_rules.history_label}: Sin registro")
+            secondary_value = "Sin registro"
 
-        # ABC
+        history_items = [
+            ("Última RG", rg_value),
+            (display_rules.history_label, secondary_value),
+        ]
+
         if display_rules.show_abc:
             if history and history.last_abc_date:
-                body_lines.append(
-                    f"Última ABC: {fmt_date(history.last_abc_date)} "
-                    f"({fmt_km(history.last_abc_km_since)} km)"
+                abc_value = (
+                    f"{fmt_date(history.last_abc_date)} - "
+                    f"{fmt_km(history.last_abc_km_since)} km"
                 )
             else:
-                body_lines.append("Última ABC: Sin registro")
+                abc_value = "Sin registro"
+            history_items.append(("Última ABC", abc_value))
+
+        history_width = max(len(label) for label, _ in history_items)
+
+        def fmt_history(label: str, value: str) -> str:
+            return f"{label:<{history_width}} : {value}"
+
+        body_lines.extend(fmt_history(label, value) for label, value in history_items)
 
         if entry.observations:
             body_lines.append("")
-            body_lines.append("-" * 50)
+            body_lines.append(section_separator)
             body_lines.append("OBSERVACIONES")
-            body_lines.append("-" * 50)
+            body_lines.append(section_separator)
             body_lines.append(entry.observations)
 
         if sender_name:
             body_lines.append("")
             body_lines.append(f"Saludos, {sender_name}")
 
-        return subject, "\n".join(body_lines)
+        def esc(value: str) -> str:
+            return html.escape(value or "-")
+
+        header_title = f"MATERIAL RODANTE - INGRESO DE {unit_type_title.upper()}"
+
+        detail_rows = "".join(
+            '<tr><td style="font-weight:bold; font-family:Calibri, Arial, sans-serif; font-size:10pt; padding:1px 10px 1px 0; white-space:nowrap;">'
+            f'{esc(label)}</td><td style="font-family:Calibri, Arial, sans-serif; font-size:10pt; padding:1px 0;">{esc(value)}</td></tr>'
+            for label, value in detail_items
+        )
+
+        history_rows = "".join(
+            '<tr><td style="font-weight:bold; font-family:Calibri, Arial, sans-serif; font-size:10pt; padding:1px 10px 1px 0; white-space:nowrap;">'
+            f'{esc(label)}</td><td style="font-family:Calibri, Arial, sans-serif; font-size:10pt; padding:1px 0;">{esc(value)}</td></tr>'
+            for label, value in history_items
+        )
+
+        observations_html = ""
+        if entry.observations:
+            observations_html = (
+                '<hr style="border:0; border-top:1px solid #c9c9c9; margin:10px 0;">'
+                '<div style="font-weight:bold; color:#2e7d32; margin-bottom:4px;">'
+                "OBSERVACIONES</div>"
+                f'<div style="white-space:pre-wrap; line-height:1.2;">'
+                f"{esc(entry.observations)}</div>"
+            )
+
+        sender_html = ""
+        if sender_name:
+            sender_html = f"<p>Saludos, {esc(sender_name)}</p>"
+
+        body_html = "".join(
+            [
+                "<html><body>",
+                '<div style="font-family:Calibri, Arial, sans-serif; font-size:10pt; color:#111; line-height:1.2;">',
+                '<div style="font-weight:bold; color:#b00020; font-size:11pt;">',
+                esc(header_title),
+                "</div>",
+                '<hr style="border:0; border-top:2px solid #b00020; margin:4px 0 8px;">',
+                '<table style="border-collapse:collapse; font-family:Calibri, Arial, sans-serif; font-size:10pt;">',
+                detail_rows,
+                "</table>",
+                '<hr style="border:0; border-top:1px solid #c9c9c9; margin:10px 0;">',
+                '<div style="font-weight:bold; color:#0b5ed7; margin-bottom:4px; font-size:10.5pt;">',
+                "HISTORIAL DE MANTENIMIENTO",
+                "</div>",
+                '<table style="border-collapse:collapse; font-family:Calibri, Arial, sans-serif; font-size:10pt;">',
+                history_rows,
+                "</table>",
+                observations_html,
+                sender_html,
+                "</div>",
+                "</body></html>",
+            ]
+        )
+
+        return subject, "\n".join(body_lines), body_html
 
     @staticmethod
     def _months_between(start_date: date, end_date: date) -> int:
