@@ -593,8 +593,8 @@ class MaintenanceEntryUseCase:
             entry_datetime = timezone.make_aware(entry_datetime, local_tz)
 
         novedad_fecha_desde = None
-        if draft.novedad and draft.novedad.fecha_desde:
-            novedad_fecha_desde = draft.novedad.fecha_desde
+        if draft.novelty and draft.novelty.fecha_desde:
+            novedad_fecha_desde = draft.novelty.fecha_desde
 
         detail_items = [
             ("Unidad", unit_label),
