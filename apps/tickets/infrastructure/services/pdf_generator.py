@@ -63,7 +63,7 @@ class MaintenanceEntryPdfGenerator:
 
         # Logo TA (izquierda)
         logo_path = os.path.join(
-            settings.BASE_DIR, "static", "images", "ARS_MP_Logo.png"
+            settings.BASE_DIR, "static", "images", "Logo_TAO.png"
         )
         if os.path.exists(logo_path):
             with contextlib.suppress(Exception):
