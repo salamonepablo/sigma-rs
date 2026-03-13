@@ -306,12 +306,15 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
                 "No se encontraron destinatarios configurados para el lugar. "
                 "Revise la configuración de destinatarios.",
             )
-        elif result.outlook_status != "ok":
+        elif result.outlook_status == "error":
+            reason = result.outlook_reason or "error desconocido"
             messages.warning(
                 self.request,
-                "No se pudo abrir Outlook automáticamente. "
-                "Verifique la instalación local.",
+                f"No se pudo crear el borrador en Outlook: {reason}. "
+                "El PDF fue generado correctamente.",
             )
+        elif result.outlook_status == "skipped":
+            pass  # recipients resolved to empty list, already warned above
 
         return super().form_valid(form)
 

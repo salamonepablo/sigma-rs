@@ -278,7 +278,7 @@ class MaintenanceEntryUseCase:
                 outlook_status = "ok"
             except Exception as exc:  # pragma: no cover - integration error
                 outlook_status = "error"
-                outlook_reason = str(exc)
+                outlook_reason = exc.args[0] if exc.args else str(exc)
         else:
             outlook_reason = recipients.reason
 
