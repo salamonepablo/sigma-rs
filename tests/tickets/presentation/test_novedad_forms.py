@@ -65,7 +65,7 @@ class TestNovedadForm:
         instance = form.save()
         assert instance.maintenance_unit is None
         assert instance.legacy_unit_code == "X999"
-        assert instance.fecha_hasta == date.today()
+        assert instance.fecha_hasta is None
 
     def test_date_range_validation(self):
         """La fecha hasta no puede ser anterior a la desde."""
@@ -113,8 +113,8 @@ class TestNovedadForm:
 
         assert instance.is_legacy is False
 
-    def test_sets_fecha_hasta_when_missing(self):
-        """Si no informan fecha hasta se iguala a fecha desde."""
+    def test_allows_missing_fecha_hasta(self):
+        """Permite guardar sin fecha hasta cuando la unidad sigue detenida."""
         unit, intervencion, lugar = self._dependencies()
         today = date.today()
         data = self._base_data(unit, intervencion, lugar)
@@ -125,4 +125,4 @@ class TestNovedadForm:
 
         assert form.is_valid()
         instance = form.save()
-        assert instance.fecha_hasta == today
+        assert instance.fecha_hasta is None

@@ -158,10 +158,6 @@ class NovedadForm(forms.ModelForm):
 
         fecha_desde = cleaned_data.get("fecha_desde")
         fecha_hasta = cleaned_data.get("fecha_hasta")
-        if fecha_desde and not fecha_hasta:
-            cleaned_data["fecha_hasta"] = fecha_desde
-            fecha_hasta = fecha_desde
-
         if fecha_desde and fecha_hasta and fecha_hasta < fecha_desde:
             self.add_error(
                 "fecha_hasta",

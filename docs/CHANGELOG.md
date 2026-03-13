@@ -3,48 +3,23 @@
 Todas las modificaciones relevantes del proyecto deben registrarse aquí siguiendo el formato semántico.
 
 ## [Unreleased]
+
+## [v1.1.0] - 2026-03-13
 ### Added
 - Backfill migration for rolling stock category.
 - Kilometrage records stored in the database with incremental import command.
 - Category-specific URLs and navigation for locomotoras/coches motor vs coches remolcados.
+- Improved PDF and email output with historical data (RG, Numeral, ABC).
 
 ### Changed
 - Maintenance entry history labels now adapt to unit type and brand.
 - Maintenance entry kilometrage lookups now use the database.
+- Novedad fecha_hasta is no longer auto-filled; only closed interventions (with fecha_hasta) count as history.
+- PDF now includes logo TA and title by unit type; email body includes full unit details and history.
 
 ### Fixed
 - Maintenance entry draft now returns history summary to the template.
-### Added
-- Startup scripts for server deployment (`README_STARTUP.md`, `install_to_startup.bat`, `start_sigma_rs.bat`).
-- Login UI redesign with TA and ARS logos.
-- New `PersonalModel` (interviniente) and CSV import via `load_initial_data`.
-- New `affected_service` field (Yes/No) in ticket form.
-- New `resolution` field for tickets when service is affected.
-- Ticket list now shows affected service and allows marking as completed.
-- GitHub Actions CI workflow (ruff + tests).
-- Ruff configuration and pytest tooling.
-- CRUD completo de Novedades (formularios, vistas, templates y filtros).
-- Accesos desde el home a las novedades según tipo de unidad.
-- Listado de novedades limitado a los últimos 60 días con carga incremental y aviso de procesamiento.
-- Formularios de novedades con campos unificados (unidad/intervención/lugar) y autocompletado por código.
-- Nuevo tipo de intervención `NOV` y mejoras de UX: sin fecha estimada, fecha hasta automática, inputs en mayúsculas, exclusión de AL por defecto e interfaz de filtros compacta.
-- Overlay de carga con spinner al solicitar +30 días históricos en el listado de novedades.
-- Ingreso a Mantenimiento: modelo de ciclos, destinatarios por lugar, generación de PDF y flujo de Outlook.
-
-### Changed
-- Ticket numbers are auto-generated (YYYY-NNNN) and not user-editable.
-- Login URL moved to `/sigma/login/` and root redirects to `/sigma/`.
-- Supervisor input replaced by `Interviniente` FK selection.
-- Navbar updated to `| Material Rodante - Linea Roca |`.
-- Project structure documentation updated to reflect `apps/tickets/`.
-- Layout de filtros de novedades optimizado para mantener un único renglón y etiquetas abreviadas.
-
-### Fixed
-- Removed prototype app and legacy templates to avoid landing on old index.
-- Linting/formatting issues resolved with ruff.
-
-### Removed
-- Prototype `core/` app (models, views, templates, urls).
+- History now only considers closed interventions (fecha_hasta not null).
 
 ## [v1.0.0] - 2026-02-24
 ### Added

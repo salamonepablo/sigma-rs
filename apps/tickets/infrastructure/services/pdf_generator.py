@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
 
+from django.conf import settings
+from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
@@ -17,6 +21,9 @@ class MaintenanceEntryPdfData:
 
     entry_number: str
     unit_label: str
+    unit_type: str
+    brand_label: str
+    model_label: str
     user_label: str
     intervention_label: str
     entry_datetime: datetime
@@ -25,6 +32,14 @@ class MaintenanceEntryPdfData:
     trigger_label: str
     observations: str
     checklist_tasks: list[str]
+    # Historial
+    last_rg_date: str | None
+    last_rg_km: str | None
+    last_numeral_code: str | None
+    last_numeral_date: str | None
+    last_numeral_km: str | None
+    last_abc_date: str | None
+    last_abc_km: str | None
 
 
 class MaintenanceEntryPdfGenerator:
@@ -45,8 +60,36 @@ class MaintenanceEntryPdfGenerator:
         width, height = A4
 
         pdf.setTitle("Ingreso a Mantenimiento")
+
+        # Logo TA (izquierda)
+        logo_path = os.path.join(
+            settings.BASE_DIR, "static", "images", "ARS_MP_Logo.png"
+        )
+        if os.path.exists(logo_path):
+            with contextlib.suppress(Exception):
+                pdf.drawImage(
+                    logo_path,
+                    2 * cm,
+                    height - 2.5 * cm,
+                    width=3 * cm,
+                    height=1.5 * cm,
+                    mask="auto",
+                )
+
+        # Título
         pdf.setFont("Helvetica-Bold", 14)
-        pdf.drawString(2 * cm, height - 2 * cm, "Ingreso a Mantenimiento")
+        pdf.drawString(6 * cm, height - 1.5 * cm, "Material Rodante")
+
+        unit_type_title = self._get_unit_type_title(data.unit_type)
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(6 * cm, height - 2 * cm, unit_type_title)
+
+        # Unit number in blue next to title
+        if data.unit_label:
+            pdf.setFont("Helvetica-Bold", 12)
+            pdf.setFillColor(colors.blue)
+            pdf.drawString(14 * cm, height - 2 * cm, data.unit_label)
+            pdf.setFillColor(colors.black)
 
         pdf.setFont("Helvetica", 10)
         y = height - 3 * cm
@@ -100,7 +143,62 @@ class MaintenanceEntryPdfGenerator:
                 y = height - 2 * cm
                 pdf.setFont("Helvetica", 9)
 
+        # Segunda página: Historial
+        pdf.showPage()
+        y = height - 2 * cm
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(2 * cm, y, "Historial de Mantenimiento")
+        y -= 0.8 * cm
+
+        # RG
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(2 * cm, y, "Última RG:")
+        pdf.setFont("Helvetica", 10)
+        if data.last_rg_date:
+            pdf.drawString(6 * cm, y, f"{data.last_rg_date}")
+            if data.last_rg_km:
+                pdf.drawString(10 * cm, y, f"({data.last_rg_km} km)")
+        else:
+            pdf.drawString(6 * cm, y, "Sin registro")
+        y -= 0.6 * cm
+
+        # Numeral
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(2 * cm, y, "Última Intervención:")
+        pdf.setFont("Helvetica", 10)
+        if data.last_numeral_code:
+            pdf.drawString(
+                6 * cm, y, f"{data.last_numeral_code} ({data.last_numeral_date})"
+            )
+            if data.last_numeral_km:
+                pdf.drawString(11 * cm, y, f"({data.last_numeral_km} km)")
+        else:
+            pdf.drawString(6 * cm, y, "Sin registro")
+        y -= 0.6 * cm
+
+        # ABC
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(2 * cm, y, "Última ABC:")
+        pdf.setFont("Helvetica", 10)
+        if data.last_abc_date:
+            pdf.drawString(6 * cm, y, f"{data.last_abc_date}")
+            if data.last_abc_km:
+                pdf.drawString(10 * cm, y, f"({data.last_abc_km} km)")
+        else:
+            pdf.drawString(6 * cm, y, "Sin registro")
+
         pdf.showPage()
         pdf.save()
         buffer.seek(0)
         return buffer.read()
+
+    @staticmethod
+    def _get_unit_type_title(unit_type: str | None) -> str:
+        """Return the title for the unit type."""
+        if unit_type == "locomotora":
+            return "Ingreso de Locomotora"
+        if unit_type == "coche_remolcado":
+            return "Ingreso de Coche Remolcado"
+        if unit_type == "coche_motor":
+            return "Ingreso de Coche Motor"
+        return "Ingreso a Mantenimiento"

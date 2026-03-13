@@ -327,7 +327,9 @@ class MaintenanceEntryUseCase:
             return []
 
         items = (
-            NovedadModel.objects.filter(maintenance_unit=maintenance_unit)
+            NovedadModel.objects.filter(
+                maintenance_unit=maintenance_unit, fecha_hasta__isnull=False
+            )
             .select_related("intervencion")
             .order_by("-fecha_desde")
         )
@@ -471,9 +473,24 @@ class MaintenanceEntryUseCase:
         if entry.trigger_type == "time" and entry.trigger_value is not None:
             trigger_label = f"Período: {entry.trigger_value} meses"
 
+        # Format history dates and km with European separator
+        def fmt_km(val):
+            if val is None:
+                return None
+            return f"{val:,}".replace(",", ".")
+
+        def fmt_date(val):
+            if val is None:
+                return None
+            return val.strftime("%d/%m/%Y")
+
+        history = draft.history
         data = MaintenanceEntryPdfData(
             entry_number=entry_number,
             unit_label=unit_label,
+            unit_type=draft.unit_type or "",
+            brand_label=draft.brand_label,
+            model_label=draft.model_label,
             user_label=user_label or "-",
             intervention_label=intervention_label,
             entry_datetime=entry.entry_datetime,
@@ -482,6 +499,14 @@ class MaintenanceEntryUseCase:
             trigger_label=trigger_label,
             observations=entry.observations or "-",
             checklist_tasks=self._split_tasks(entry.checklist_tasks),
+            # Historial
+            last_rg_date=fmt_date(history.last_rg_date) if history else None,
+            last_rg_km=fmt_km(history.last_rg_km_since) if history else None,
+            last_numeral_code=history.last_numeral_code if history else None,
+            last_numeral_date=fmt_date(history.last_numeral_date) if history else None,
+            last_numeral_km=fmt_km(history.last_numeral_km_since) if history else None,
+            last_abc_date=fmt_date(history.last_abc_date) if history else None,
+            last_abc_km=fmt_km(history.last_abc_km_since) if history else None,
         )
 
         pdf_bytes = self._pdf_generator.generate(data)
@@ -500,27 +525,100 @@ class MaintenanceEntryUseCase:
             entry.selected_intervention.codigo if entry.selected_intervention else "-"
         )
         lugar_label = entry.lugar.descripcion if entry.lugar else "-"
+
+        # Get unit type for title
+        unit_type = draft.unit_type or ""
+        if unit_type == "locomotora":
+            unit_type_title = "Locomotora"
+        elif unit_type == "coche_remolcado":
+            unit_type_title = "Coche Remolcado"
+        elif unit_type == "coche_motor":
+            unit_type_title = "Coche Motor"
+        else:
+            unit_type_title = "Unidad"
+
         subject = f"Ingreso a mantenimiento - {unit_label} - {intervention_label}"
 
+        def fmt_km(val):
+            if val is None:
+                return "-"
+            return f"{val:,}".replace(",", ".")
+
+        def fmt_date(val):
+            if val is None:
+                return "-"
+            return val.strftime("%d/%m/%Y")
+
+        history = draft.history
+
         body_lines = [
-            "Ingreso a mantenimiento",
+            "=" * 50,
+            f"MATERIAL RODANTE - INGRESO DE {unit_type_title.upper()}",
+            "=" * 50,
+            "",
             f"Unidad: {unit_label}",
+            f"Marca: {draft.brand_label}",
+            f"Modelo: {draft.model_label}",
             f"Lugar: {lugar_label}",
             f"Intervención: {intervention_label}",
             f"Fecha ingreso: {entry.entry_datetime:%d/%m/%Y %H:%M}",
         ]
 
         if entry.trigger_type == "km" and entry.trigger_value is not None:
-            body_lines.append(f"KM: {entry.trigger_value}")
+            body_lines.append(f"KM: {fmt_km(entry.trigger_value)}")
         if entry.trigger_type == "time" and entry.trigger_value is not None:
             body_lines.append(f"Período: {entry.trigger_value} meses")
 
+        body_lines.append("")
+        body_lines.append("-" * 50)
+        body_lines.append("HISTORIAL DE MANTENIMIENTO")
+        body_lines.append("-" * 50)
+
+        # RG
+        if history and history.last_rg_date:
+            body_lines.append(
+                f"Última RG: {fmt_date(history.last_rg_date)} "
+                f"({fmt_km(history.last_rg_km_since)} km)"
+            )
+        else:
+            body_lines.append("Última RG: Sin registro")
+
+        # Numeral
+        if history and history.last_numeral_code:
+            body_lines.append(
+                f"Última {history.last_numeral_code}: "
+                f"{fmt_date(history.last_numeral_date)} "
+                f"({fmt_km(history.last_numeral_km_since)} km)"
+            )
+        elif history and history.last_rp_code:
+            body_lines.append(
+                f"Última {history.last_rp_code}: "
+                f"{fmt_date(history.last_rp_date)} "
+                f"({fmt_km(history.last_rp_km_since)} km)"
+            )
+        else:
+            body_lines.append("Última Intervención: Sin registro")
+
+        # ABC
+        if history and history.last_abc_date:
+            body_lines.append(
+                f"Última ABC: {fmt_date(history.last_abc_date)} "
+                f"({fmt_km(history.last_abc_km_since)} km)"
+            )
+        else:
+            body_lines.append("Última ABC: Sin registro")
+
         if entry.observations:
-            body_lines.append("Observaciones:")
+            body_lines.append("")
+            body_lines.append("-" * 50)
+            body_lines.append("OBSERVACIONES")
+            body_lines.append("-" * 50)
             body_lines.append(entry.observations)
 
         body_lines.append("")
+        body_lines.append("=" * 50)
         body_lines.append("Adjunto: Ingreso a mantenimiento (PDF)")
+        body_lines.append("=" * 50)
 
         return subject, "\n".join(body_lines)
 

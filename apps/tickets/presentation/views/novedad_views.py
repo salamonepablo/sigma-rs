@@ -429,16 +429,15 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
                 NovedadModel.objects.filter(
                     maintenance_unit=self.novedad.maintenance_unit,
                     intervencion__codigo__in=priority_codes,
+                    fecha_hasta__isnull=False,
                 )
                 .select_related("intervencion")
-                .order_by("-fecha_hasta", "-fecha_desde")
+                .order_by("-fecha_hasta")
                 .first()
             )
             if last_intervention and last_intervention.intervencion:
                 last_intervention_code = last_intervention.intervencion.codigo
-                last_intervention_date = (
-                    last_intervention.fecha_hasta or last_intervention.fecha_desde
-                )
+                last_intervention_date = last_intervention.fecha_hasta
                 if last_intervention_date:
                     last_intervention_km = repo.get_km_since(
                         self.novedad.maintenance_unit.number,
