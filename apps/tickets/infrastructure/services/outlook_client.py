@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 
 class OutlookDraftError(RuntimeError):
     """Raised when Outlook draft creation fails."""
@@ -33,11 +35,13 @@ class OutlookDraftClient:
         """
 
         try:
+            import pythoncom  # type: ignore
             import win32com.client  # type: ignore
         except Exception as exc:  # pragma: no cover - platform specific
             raise OutlookDraftError("Outlook integration not available") from exc
 
         try:
+            pythoncom.CoInitialize()
             outlook = win32com.client.Dispatch("Outlook.Application")
             message = outlook.CreateItem(0)
             message.To = ";".join(to_recipients)
@@ -54,3 +58,6 @@ class OutlookDraftClient:
         except Exception as exc:  # pragma: no cover - COM failure
             message = str(exc) or "Failed to create Outlook draft"
             raise OutlookDraftError(message) from exc
+        finally:
+            with contextlib.suppress(Exception):
+                pythoncom.CoUninitialize()

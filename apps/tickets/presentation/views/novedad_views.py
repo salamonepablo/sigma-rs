@@ -256,6 +256,8 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             return initial
         initial["lugar"] = self.novedad.lugar
         initial["observations"] = self.novedad.observaciones
+        if self.novedad.intervencion_id:
+            initial["selected_intervention"] = self.novedad.intervencion_id
         km_since_rg, days_since, intervention_type, intervention_date, km_since_last = (
             self._prefill_trigger_value()
         )

@@ -586,13 +586,15 @@ class MaintenanceEntryUseCase:
         )
 
         entry_datetime = entry.entry_datetime
+        local_tz = datetime.now().astimezone().tzinfo or timezone.get_current_timezone()
         if timezone.is_aware(entry_datetime):
-            entry_datetime = entry_datetime.astimezone()
+            entry_datetime = entry_datetime.astimezone(local_tz)
         else:
-            entry_datetime = timezone.make_aware(
-                entry_datetime,
-                timezone.get_current_timezone(),
-            )
+            entry_datetime = timezone.make_aware(entry_datetime, local_tz)
+
+        novedad_fecha_desde = None
+        if draft.novedad and draft.novedad.fecha_desde:
+            novedad_fecha_desde = draft.novedad.fecha_desde
 
         detail_items = [
             ("Unidad", unit_label),
@@ -600,7 +602,14 @@ class MaintenanceEntryUseCase:
             (model_detail_label, draft.model_label),
             ("Lugar", lugar_label),
             ("Intervención", intervention_label),
-            ("Fecha ingreso", entry_datetime.strftime("%d/%m/%Y %H:%M")),
+            (
+                "Fecha ingreso",
+                (
+                    novedad_fecha_desde.strftime("%d/%m/%Y")
+                    if novedad_fecha_desde
+                    else entry_datetime.strftime("%d/%m/%Y")
+                ),
+            ),
         ]
 
         if entry.trigger_type == "km" and entry.trigger_value is not None:
