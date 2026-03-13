@@ -72,9 +72,7 @@ class MaintenanceEntryPdfGenerator:
         pdf.setTitle("Ingreso a Mantenimiento")
 
         # Logo TA (izquierda)
-        logo_path = os.path.join(
-            settings.BASE_DIR, "static", "images", "Logo_TAO.png"
-        )
+        logo_path = os.path.join(settings.BASE_DIR, "static", "images", "Logo_TAO.png")
         if os.path.exists(logo_path):
             with contextlib.suppress(Exception):
                 image = ImageReader(logo_path)

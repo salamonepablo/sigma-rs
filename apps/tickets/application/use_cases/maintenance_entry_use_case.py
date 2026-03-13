@@ -579,7 +579,9 @@ class MaintenanceEntryUseCase:
             secondary_date = history.last_numeral_date if history else None
             secondary_km = history.last_numeral_km_since if history else None
 
-        model_detail_label = "Clase" if draft.unit_type == "coche_remolcado" else "Modelo"
+        model_detail_label = (
+            "Clase" if draft.unit_type == "coche_remolcado" else "Modelo"
+        )
 
         body_lines = [
             "=" * 50,
