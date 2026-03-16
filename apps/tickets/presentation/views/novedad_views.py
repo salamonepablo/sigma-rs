@@ -271,6 +271,9 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             initial["last_intervention_km"] = self._format_km(km_since_last)
         if days_since is not None:
             initial["last_intervention_days"] = days_since
+        draft = self._get_draft()
+        if draft and draft.pending_ticket_tasks and not initial.get("checklist_tasks"):
+            initial["checklist_tasks"] = "\n".join(draft.pending_ticket_tasks)
         return initial
 
     def form_valid(self, form):
@@ -331,6 +334,8 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
         return reverse_lazy("tickets:novedad_detail", kwargs={"pk": self.novedad.pk})
 
     def _get_draft(self):
+        if hasattr(self, "_draft_cache") and self._draft_cache is not None:
+            return self._draft_cache
         if not self.novedad:
             return None
         km_value, _, _, _, _ = self._prefill_trigger_value()
@@ -338,12 +343,13 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
         trigger_type = "km" if trigger_value is not None else None
         trigger_unit = "km" if trigger_value is not None else None
         use_case = MaintenanceEntryUseCase()
-        return use_case.prepare_draft(
+        self._draft_cache = use_case.prepare_draft(
             novedad_id=str(self.novedad.pk),
             trigger_value=trigger_value,
             trigger_type=trigger_type,
             trigger_unit=trigger_unit,
         )
+        return self._draft_cache
 
     def _prefill_trigger_value(self):
         if not self.novedad or not self.novedad.maintenance_unit:

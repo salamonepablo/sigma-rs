@@ -12,6 +12,7 @@ from apps.tickets.application.use_cases.maintenance_entry_use_case import (
 )
 from apps.tickets.models import (
     BrandModel,
+    GOPModel,
     IntervencionTipoModel,
     LocomotiveModel,
     LocomotiveModelModel,
@@ -20,6 +21,7 @@ from apps.tickets.models import (
     MaintenanceCycleModel,
     MaintenanceUnitModel,
     NovedadModel,
+    TicketModel,
 )
 
 
@@ -134,3 +136,71 @@ def test_create_entry_builds_outlook_draft(tmp_path, settings):
     assert result.entry.pdf_path is not None
     assert fake_outlook.calls
     assert fake_outlook.calls[0]["to"] == ["to@example.com"]
+
+
+@pytest.mark.django_db
+def test_prepare_draft_includes_pending_ticket_tasks():
+    unit = MaintenanceUnitModel.objects.create(
+        id=uuid.uuid4(), number="A910", unit_type="locomotora"
+    )
+    other_unit = MaintenanceUnitModel.objects.create(
+        id=uuid.uuid4(), number="A911", unit_type="locomotora"
+    )
+    gop = GOPModel.objects.create(id=uuid.uuid4(), name="GOP 1", code="GOP1")
+    lugar = LugarModel.objects.create(
+        id=uuid.uuid4(), codigo=99, descripcion="Deposito"
+    )
+    intervencion = IntervencionTipoModel.objects.create(
+        id=uuid.uuid4(), codigo="RG", descripcion="Revision General"
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        maintenance_unit=unit,
+        fecha_desde=datetime(2026, 3, 10).date(),
+        intervencion=intervencion,
+        lugar=lugar,
+        is_legacy=False,
+    )
+
+    pending_ticket = TicketModel.objects.create(
+        id=uuid.uuid4(),
+        ticket_number="2026-0001",
+        date=datetime(2026, 3, 8).date(),
+        maintenance_unit=unit,
+        gop=gop,
+        entry_type=TicketModel.EntryType.IMMEDIATE,
+        status=TicketModel.Status.PENDING,
+        reported_failure="Falla motor",
+    )
+    TicketModel.objects.create(
+        id=uuid.uuid4(),
+        ticket_number="2026-0002",
+        date=datetime(2026, 3, 7).date(),
+        maintenance_unit=unit,
+        gop=gop,
+        entry_type=TicketModel.EntryType.IMMEDIATE,
+        status=TicketModel.Status.COMPLETED,
+        reported_failure="Falla resuelta",
+    )
+    TicketModel.objects.create(
+        id=uuid.uuid4(),
+        ticket_number="2026-0003",
+        date=datetime(2026, 3, 9).date(),
+        maintenance_unit=other_unit,
+        gop=gop,
+        entry_type=TicketModel.EntryType.IMMEDIATE,
+        status=TicketModel.Status.PENDING,
+        reported_failure="Otra falla",
+    )
+
+    use_case = MaintenanceEntryUseCase()
+
+    draft = use_case.prepare_draft(
+        novedad_id=str(novedad.pk),
+        trigger_value=None,
+        trigger_type=None,
+        trigger_unit=None,
+    )
+
+    expected = f"Ticket {pending_ticket.ticket_number} - Falla motor"
+    assert draft.pending_ticket_tasks == [expected]

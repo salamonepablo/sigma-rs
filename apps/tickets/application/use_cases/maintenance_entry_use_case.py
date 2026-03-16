@@ -31,6 +31,7 @@ from apps.tickets.infrastructure.models import (
     MaintenanceEntryModel,
     MaintenanceUnitModel,
     NovedadModel,
+    TicketModel,
 )
 from apps.tickets.infrastructure.services.kilometrage_repository import (
     KilometrageRepository,
@@ -58,6 +59,7 @@ class MaintenanceEntryDraft:
     trigger_unit: str | None
     suggestion: InterventionSuggestion
     history: UnitMaintenanceHistory
+    pending_ticket_tasks: list[str]
 
 
 @dataclass(frozen=True)
@@ -175,6 +177,8 @@ class MaintenanceEntryUseCase:
             current_km_value=trigger_value if trigger_type == "km" else None,
         )
 
+        pending_ticket_tasks = self._load_pending_ticket_tasks(maintenance_unit)
+
         return MaintenanceEntryDraft(
             novelty=novedad,
             maintenance_unit=maintenance_unit,
@@ -188,6 +192,7 @@ class MaintenanceEntryUseCase:
             trigger_unit=trigger_unit,
             suggestion=suggestion,
             history=history_summary,
+            pending_ticket_tasks=pending_ticket_tasks,
         )
 
     def create_entry(
@@ -350,6 +355,26 @@ class MaintenanceEntryUseCase:
                     )
                 )
         return history
+
+    def _load_pending_ticket_tasks(
+        self, maintenance_unit: MaintenanceUnitModel | None
+    ) -> list[str]:
+        if not maintenance_unit:
+            return []
+
+        tickets = TicketModel.objects.filter(
+            maintenance_unit=maintenance_unit,
+            status=TicketModel.Status.PENDING,
+        ).order_by("date", "created_at")
+
+        return [self._format_ticket_task(ticket) for ticket in tickets]
+
+    @staticmethod
+    def _format_ticket_task(ticket: TicketModel) -> str:
+        failure_text = " ".join((ticket.reported_failure or "").splitlines()).strip()
+        if failure_text:
+            return f"Ticket {ticket.ticket_number} - {failure_text}"
+        return f"Ticket {ticket.ticket_number}"
 
     def _enrich_suggestion_with_history(
         self,
