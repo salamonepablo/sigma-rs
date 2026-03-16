@@ -2,6 +2,36 @@
 
 > AI coding agent instructions. Respond in  **Spanish**. Code, docstrings, and technical docs in **English**.
 
+## AI Orchestration Entry Points
+
+- Main project contract: `AGENTS.md` (this file)
+- Orchestrator guide: `AGENT.md`
+- Claude CLI bridge: `CLAUDE.md`
+- Skills registry: `.agent/skills/SKILLS.md`
+
+## Engineering Principles (Mandatory)
+
+### CLEAN Architecture
+
+- Keep domain logic isolated from frameworks and infrastructure details.
+- Follow dependency rule: outer layers depend on inner layers, never the reverse.
+- Use application/use-case layer for orchestration and business workflows.
+
+### SOLID
+
+- **S**: One reason to change per module/class/function.
+- **O**: Extend behavior through composition/policies instead of risky condition sprawl.
+- **L**: Respect contracts when replacing implementations.
+- **I**: Keep interfaces narrow and purpose-driven.
+- **D**: Depend on abstractions in domain/application boundaries.
+
+### TDD
+
+- Prefer **Red → Green → Refactor** for non-trivial changes.
+- Write/adjust failing tests first when possible.
+- Every bug fix should include a regression test.
+- Run at minimum: `python manage.py check`, `ruff check .`, `pytest -q`.
+
 ## Quick Start
 
 ```powershell
