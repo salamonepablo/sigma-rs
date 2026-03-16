@@ -1,3 +1,8 @@
+---
+id: django-usecase-flow
+name: Django Usecase Flow
+---
+
 # Skill: django-usecase-flow
 
 ## Intent

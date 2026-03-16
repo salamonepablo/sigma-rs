@@ -1,3 +1,8 @@
+---
+id: solid-refactor
+name: SOLID Refactor
+---
+
 # Skill: solid-refactor
 
 ## Intent

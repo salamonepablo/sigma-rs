@@ -1,3 +1,8 @@
+---
+id: clean-arch-guard
+name: Clean Architecture Guard
+---
+
 # Skill: clean-arch-guard
 
 ## Intent
@@ -28,3 +33,4 @@ Protect CLEAN Architecture boundaries and dependency direction.
 
 - Layer responsibilities are clear.
 - No architecture regression introduced.
+

@@ -1,3 +1,8 @@
+---
+id: tdd-pytest-cycle
+name: TDD Pytest Cycle
+---
+
 # Skill: tdd-pytest-cycle
 
 ## Intent
