@@ -13,6 +13,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
 
 from apps.tickets.domain.services.maintenance_labels import (
@@ -153,14 +154,35 @@ class MaintenanceEntryPdfGenerator:
         pdf.drawString(2 * cm, y, "Checklist de tareas")
         y -= 0.6 * cm
 
-        pdf.setFont("Helvetica", 9)
+        font_name = "Helvetica"
+        font_size = 9
+        pdf.setFont(font_name, font_size)
         tasks = data.checklist_tasks or []
         if not tasks:
             tasks = ["(Sin tareas definidas)"]
+        _, descent = pdfmetrics.getAscentDescent(font_name, font_size)
+        checkbox_size = 0.35 * cm
+        checkbox_gap = 0.6 * cm
+        label_gap = 0.15 * cm
+        task_gap = 0.4 * cm
+        line_height = 0.6 * cm
         for idx, task in enumerate(tasks, start=1):
-            line = f"{idx}. [ ] R  [ ] P  {task}"
-            pdf.drawString(2 * cm, y, line)
-            y -= 0.5 * cm
+            start_x = 2 * cm
+            index_text = f"{idx}."
+            pdf.drawString(start_x, y, index_text)
+            index_width = pdf.stringWidth(index_text, font_name, font_size)
+            cursor_x = start_x + index_width + 0.2 * cm
+            box_y = y + descent
+            pdf.rect(cursor_x, box_y, checkbox_size, checkbox_size)
+            cursor_x += checkbox_size + label_gap
+            pdf.drawString(cursor_x, y, "R")
+            cursor_x += pdf.stringWidth("R", font_name, font_size) + checkbox_gap
+            pdf.rect(cursor_x, box_y, checkbox_size, checkbox_size)
+            cursor_x += checkbox_size + label_gap
+            pdf.drawString(cursor_x, y, "P")
+            cursor_x += pdf.stringWidth("P", font_name, font_size) + task_gap
+            pdf.drawString(cursor_x, y, task)
+            y -= line_height
             if y < 3 * cm:
                 pdf.showPage()
                 y = height - 2 * cm
@@ -180,10 +202,10 @@ class MaintenanceEntryPdfGenerator:
                 y = height - 2 * cm
                 pdf.setFont("Helvetica", 9)
 
-        if y < 5 * cm:
+        if y < 3.6 * cm:
             pdf.showPage()
             y = height - 2 * cm
-        signature_y = 4.5 * cm
+        signature_y = 3 * cm
         pdf.setFont("Helvetica-Bold", 9)
         pdf.drawString(
             2 * cm,
