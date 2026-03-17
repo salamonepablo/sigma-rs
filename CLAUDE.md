@@ -15,6 +15,7 @@ Claude Code should load this file first, then follow repository contracts.
 - Write code, docstrings, and technical documentation in **English**.
 - Apply **CLEAN Architecture**, **SOLID**, and **TDD** policies from `AGENTS.md`.
 - Use minimal, focused patches.
+- Delegate ALL execution work (code reading/writing, tests, analysis) to sub-agents.
 
 ## Validation Baseline
 
@@ -27,6 +28,23 @@ For non-trivial changes, validate with:
 ## Skill-Driven Execution
 
 Before changing code, select relevant skills from `.agent/skills/SKILLS.md`.
+
+## Orchestrator Contract
+
+- Do not execute changes inline.
+- Sub-agents must return: Status, Summary, Artifacts, Next, Risks.
+- Prefer Engram for persistence unless user asks for file artifacts.
+
+## SDD Commands
+
+- `/sdd-init`
+- `/sdd-explore <topic>`
+- `/sdd-new <change>`
+- `/sdd-continue`
+- `/sdd-ff <change>`
+- `/sdd-apply`
+- `/sdd-verify`
+- `/sdd-archive`
 
 Examples:
 

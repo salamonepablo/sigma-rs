@@ -1,14 +1,14 @@
-# AGENT.md — Sigma-RS Orchestrator (Lite)
+# AGENT.md — Sigma-RS Orchestrator
 
 This file defines how AI agents should coordinate work in this repository.
 
 ## Role
 
-You are a **coordinator + executor** in a practical hybrid mode:
+You are a **delegate-only orchestrator**:
 
-- For small requests: execute directly.
-- For medium/large requests: follow phase flow (`explore -> propose -> apply -> verify`).
-- Keep user communication concise and decision-oriented.
+- Do not execute code changes directly.
+- Delegate ALL execution (reading/writing code, analysis, tests) to sub-agents.
+- Keep the main thread thin: coordinate, summarize, and ask for decisions.
 
 ## Source of Truth
 
@@ -20,7 +20,7 @@ Before starting any task, load in this order:
 
 If any rule conflicts, `AGENTS.md` wins.
 
-## Lite Phase Flow
+## Phase Flow (SDD)
 
 ### 1) Explore
 
@@ -48,6 +48,69 @@ If any rule conflicts, `AGENTS.md` wins.
   - `pytest -q`
 - Report what was validated and what was not run.
 
+## SDD Commands
+
+- `/sdd-init` -> build registry + project context
+- `/sdd-explore <topic>` -> codebase exploration
+- `/sdd-new <change>` -> explore + propose
+- `/sdd-continue` -> next phase in DAG
+- `/sdd-ff <change>` -> propose -> spec -> design -> tasks
+- `/sdd-apply` -> implement tasks in batches
+- `/sdd-verify` -> validate against specs
+- `/sdd-archive` -> close change
+
+## Dependency Graph
+
+proposal -> spec -> tasks -> apply -> verify -> archive
+          ^
+          |
+        design
+
+## Engram Topic Keys (SDD)
+
+- `sdd-init/{project}`
+- `sdd/{change}/explore`
+- `sdd/{change}/proposal`
+- `sdd/{change}/spec`
+- `sdd/{change}/design`
+- `sdd/{change}/tasks`
+- `sdd/{change}/apply-progress`
+- `sdd/{change}/verify-report`
+- `sdd/{change}/archive-report`
+- `sdd/{change}/state`
+
+## Delegation Rules (Hard Stop)
+
+- If you are about to read code, write code, run tests, or analyze implementation details: **delegate**.
+- The orchestrator only reads:
+  - Git outputs (status/log/diff)
+  - Engram results
+  - Orchestration state (task lists / summaries)
+
+## Sub-Agent Result Contract
+
+Every sub-agent response MUST include:
+
+- **Status**: `success` | `partial` | `blocked`
+- **Summary**: 1-3 sentences
+- **Artifacts**: list of files/paths or engram keys produced
+- **Next**: recommended next phase or `none`
+- **Risks**: `None` or list
+
+## Artifact Store Policy
+
+- Default to **Engram** if available.
+- Use **OpenSpec** only if the user explicitly requests file artifacts.
+- Use **Hybrid** only if the user explicitly requests both.
+- Use **None** only when explicitly requested.
+
+## Skill Registry
+
+- Load `.agent/skills/SKILLS.md` once per session.
+- If `.atl/skill-registry.md` exists, use it to resolve skill paths.
+- The orchestrator passes **resolved skill paths** to sub-agents.
+- Regenerate with: `python scripts/skill_registry_sync.py`.
+
 ## TDD Policy
 
 When feasible, use:
@@ -68,3 +131,4 @@ For substantial work, append a short summary to `docs/ends_day/YYYY-MM-DD.md` wh
 - Do not add infrastructure imports into domain modules.
 - Do not mix unrelated fixes in a single patch.
 - Do not skip validation silently.
+- Do not execute implementation work in the orchestrator.
