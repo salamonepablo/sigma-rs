@@ -158,7 +158,7 @@ class MaintenanceEntryPdfGenerator:
         if not tasks:
             tasks = ["(Sin tareas definidas)"]
         for idx, task in enumerate(tasks, start=1):
-            line = f"{idx}. [ ] {task}"
+            line = f"{idx}. [ ] R  [ ] P  {task}"
             pdf.drawString(2 * cm, y, line)
             y -= 0.5 * cm
             if y < 3 * cm:
@@ -179,6 +179,20 @@ class MaintenanceEntryPdfGenerator:
                 pdf.showPage()
                 y = height - 2 * cm
                 pdf.setFont("Helvetica", 9)
+
+        if y < 5 * cm:
+            pdf.showPage()
+            y = height - 2 * cm
+        signature_y = 4.5 * cm
+        pdf.setFont("Helvetica-Bold", 9)
+        pdf.drawString(
+            2 * cm,
+            signature_y + 0.4 * cm,
+            "Firma / Aclaración / Leg.",
+        )
+        pdf.line(2 * cm, signature_y, width - 2 * cm, signature_y)
+        pdf.setFont("Helvetica", 8)
+        pdf.drawString(2 * cm, 2 * cm, "Referencias: R = Realizado | P = Pendiente")
 
         pdf.save()
         buffer.seek(0)
