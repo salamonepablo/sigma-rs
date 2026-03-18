@@ -33,10 +33,12 @@ from apps.tickets.infrastructure.models import (
     NovedadModel,
     TicketModel,
 )
+from apps.tickets.infrastructure.services.ingreso_email_dispatch_repo import (
+    IngresoEmailDispatchRepository,
+)
 from apps.tickets.infrastructure.services.kilometrage_repository import (
     KilometrageRepository,
 )
-from apps.tickets.infrastructure.services.outlook_client import OutlookDraftClient
 from apps.tickets.infrastructure.services.pdf_generator import (
     MaintenanceEntryPdfData,
     MaintenanceEntryPdfGenerator,
@@ -82,13 +84,13 @@ class MaintenanceEntryUseCase:
         suggestion_service: InterventionSuggestionService | None = None,
         recipient_resolver: RecipientResolver | None = None,
         pdf_generator: MaintenanceEntryPdfGenerator | None = None,
-        outlook_client: OutlookDraftClient | None = None,
+        dispatch_repo: IngresoEmailDispatchRepository | None = None,
         kilometrage_repo: KilometrageRepository | None = None,
     ) -> None:
         self._suggestion_service = suggestion_service or InterventionSuggestionService()
         self._recipient_resolver = recipient_resolver or RecipientResolver()
         self._pdf_generator = pdf_generator or MaintenanceEntryPdfGenerator()
-        self._outlook_client = outlook_client or OutlookDraftClient()
+        self._dispatch_repo = dispatch_repo or IngresoEmailDispatchRepository()
         self._kilometrage_repo = kilometrage_repo or KilometrageRepository()
 
     def prepare_draft(
@@ -208,7 +210,7 @@ class MaintenanceEntryUseCase:
         observations: str | None,
         user,
     ) -> MaintenanceEntryResult:
-        """Create a maintenance entry, PDF, and Outlook draft.
+        """Create a maintenance entry, PDF, and email dispatch record.
 
         Args:
             novedad_id: Novedad identifier.
@@ -273,17 +275,16 @@ class MaintenanceEntryUseCase:
         if recipients.status == "ok":
             subject, body, body_html = self._build_email_content(entry, draft)
             try:
-                self._outlook_client.create_draft(
+                self._dispatch_repo.create_pending(
+                    entry=entry,
                     to_recipients=recipients.to,
                     cc_recipients=recipients.cc,
                     subject=subject,
                     body=body,
                     body_html=body_html,
-                    attachment_path=pdf_path,
-                    sender_email=getattr(user, "email", None),
                 )
-                outlook_status = "ok"
-            except Exception as exc:  # pragma: no cover - integration error
+                outlook_status = "pending"
+            except Exception as exc:  # pragma: no cover - persistence error
                 outlook_status = "error"
                 outlook_reason = exc.args[0] if exc.args else str(exc)
         else:
@@ -571,7 +572,8 @@ class MaintenanceEntryUseCase:
         else:
             unit_type_title = "Unidad"
 
-        subject = f"Ingreso a mantenimiento - {unit_label} - {intervention_label}"
+        entry_identifier = str(entry.id)[:8]
+        subject = f"Ingreso {entry_identifier} - {unit_label} - {intervention_label}"
 
         def fmt_km(val):
             if val is None:

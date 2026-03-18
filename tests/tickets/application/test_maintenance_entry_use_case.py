@@ -19,43 +19,15 @@ from apps.tickets.models import (
     LugarEmailRecipientModel,
     LugarModel,
     MaintenanceCycleModel,
+    MaintenanceEntryEmailDispatchModel,
     MaintenanceUnitModel,
     NovedadModel,
     TicketModel,
 )
 
 
-class FakeOutlookClient:
-    """Fake Outlook client for tests."""
-
-    def __init__(self):
-        self.calls = []
-
-    def create_draft(
-        self,
-        to_recipients,
-        cc_recipients,
-        subject,
-        body,
-        body_html,
-        attachment_path,
-        sender_email,
-    ):
-        self.calls.append(
-            {
-                "to": to_recipients,
-                "cc": cc_recipients,
-                "subject": subject,
-                "body": body,
-                "body_html": body_html,
-                "attachment_path": attachment_path,
-                "sender_email": sender_email,
-            }
-        )
-
-
 @pytest.mark.django_db
-def test_create_entry_builds_outlook_draft(tmp_path, settings):
+def test_create_entry_creates_email_dispatch(tmp_path, settings):
     settings.BASE_DIR = tmp_path
 
     brand, _ = BrandModel.objects.get_or_create(
@@ -115,8 +87,7 @@ def test_create_entry_builds_outlook_draft(tmp_path, settings):
         username="tester", email="tester@trenesargentinos.gob.ar", password="test"
     )
 
-    fake_outlook = FakeOutlookClient()
-    use_case = MaintenanceEntryUseCase(outlook_client=fake_outlook)
+    use_case = MaintenanceEntryUseCase()
 
     entry_datetime = timezone.make_aware(datetime(2026, 3, 6, 10, 30))
 
@@ -134,8 +105,10 @@ def test_create_entry_builds_outlook_draft(tmp_path, settings):
     )
 
     assert result.entry.pdf_path is not None
-    assert fake_outlook.calls
-    assert fake_outlook.calls[0]["to"] == ["to@example.com"]
+    dispatch = MaintenanceEntryEmailDispatchModel.objects.get(entry=result.entry)
+    assert dispatch.status == MaintenanceEntryEmailDispatchModel.Status.PENDING
+    assert dispatch.to_recipients == ["to@example.com"]
+    assert str(result.entry.id)[:8] in dispatch.subject
 
 
 @pytest.mark.django_db

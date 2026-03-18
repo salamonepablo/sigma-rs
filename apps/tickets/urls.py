@@ -19,6 +19,11 @@ from apps.tickets.presentation.views import (
     TicketStatusUpdateView,
     TicketUpdateView,
 )
+from apps.tickets.presentation.views.ingreso_email_api import (
+    ingreso_email_pdf,
+    ingreso_email_pending,
+    ingreso_email_result,
+)
 
 app_name = "tickets"
 
@@ -123,5 +128,21 @@ urlpatterns = [
         TicketCreateView.as_view(),
         name="ticket_create_ccrr",
         kwargs={"category": "ccrr"},
+    ),
+    # Tray app email dispatch
+    path(
+        "api/ingresos/email/pending/",
+        ingreso_email_pending,
+        name="ingreso_email_pending",
+    ),
+    path(
+        "api/ingresos/email/result/",
+        ingreso_email_result,
+        name="ingreso_email_result",
+    ),
+    path(
+        "api/ingresos/email/pdf/",
+        ingreso_email_pdf,
+        name="ingreso_email_pdf",
     ),
 ]

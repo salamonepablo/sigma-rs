@@ -5,6 +5,9 @@ from apps.tickets.infrastructure.models.kilometrage import KilometrageRecordMode
 from apps.tickets.infrastructure.models.mail_recipient import LugarEmailRecipientModel
 from apps.tickets.infrastructure.models.maintenance_cycle import MaintenanceCycleModel
 from apps.tickets.infrastructure.models.maintenance_entry import MaintenanceEntryModel
+from apps.tickets.infrastructure.models.maintenance_entry_email_dispatch import (
+    MaintenanceEntryEmailDispatchModel,
+)
 from apps.tickets.infrastructure.models.maintenance_unit import (
     LocomotiveModel,
     MaintenanceUnitModel,
@@ -48,6 +51,7 @@ __all__ = [
     # Maintenance cycles and entries
     "MaintenanceCycleModel",
     "MaintenanceEntryModel",
+    "MaintenanceEntryEmailDispatchModel",
     # Kilometrage
     "KilometrageRecordModel",
     # Mail recipients

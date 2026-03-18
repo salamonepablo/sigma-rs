@@ -85,3 +85,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/sigma/login/"
 LOGIN_REDIRECT_URL = "/sigma/"
 LOGOUT_REDIRECT_URL = "/sigma/login/"
+
+# Tray app integration
+INGRESO_TRAY_TOKEN = os.getenv("INGRESO_TRAY_TOKEN", "")
+INGRESO_EMAIL_SIGNING_SECRET = os.getenv("INGRESO_EMAIL_SIGNING_SECRET", "")

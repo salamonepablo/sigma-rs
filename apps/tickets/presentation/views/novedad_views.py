@@ -315,11 +315,14 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             reason = result.outlook_reason or "error desconocido"
             messages.warning(
                 self.request,
-                f"No se pudo crear el borrador en Outlook: {reason}. "
+                f"No se pudo encolar el envio de correo: {reason}. "
                 "El PDF fue generado correctamente.",
             )
-        elif result.outlook_status == "skipped":
-            pass  # recipients resolved to empty list, already warned above
+        elif result.outlook_status == "pending":
+            messages.info(
+                self.request,
+                "El correo quedo pendiente para envio desde Outlook local.",
+            )
 
         return super().form_valid(form)
 
