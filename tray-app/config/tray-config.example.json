@@ -1,0 +1,5 @@
+{
+  "sigma_base_url": "http://localhost:8000/sigma",
+  "ingreso_tray_token": "REPLACE_WITH_TOKEN",
+  "poll_interval_seconds": 15
+}

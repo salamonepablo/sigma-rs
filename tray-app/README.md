@@ -12,11 +12,22 @@ using the local Outlook profile on the Windows PC.
 
 ## Configuration
 
-Set the following environment variables:
+Preferred: create `%APPDATA%\SigmaRS\tray-config.json`:
 
-- `SIGMA_BASE_URL` (e.g. `http://localhost:8000/sigma`)
-- `INGRESO_TRAY_TOKEN` (must match server `INGRESO_TRAY_TOKEN`)
-- `POLL_INTERVAL_SECONDS` (optional, default 15)
+```json
+{
+  "sigma_base_url": "http://localhost:8000/sigma",
+  "ingreso_tray_token": "YOUR_TOKEN",
+  "poll_interval_seconds": 15
+}
+```
+
+Optional overrides via environment variables:
+
+- `SIGMA_BASE_URL`
+- `INGRESO_TRAY_TOKEN`
+- `POLL_INTERVAL_SECONDS`
+- `TRAY_CONFIG_PATH` (custom path to tray-config.json)
 
 ## Run
 
@@ -24,9 +35,29 @@ Set the following environment variables:
 python tray-app/src/poller.py
 ```
 
+## Packaging
+
+Install PyInstaller:
+
+```bash
+pip install pyinstaller
+```
+
+Build executable:
+
+```powershell
+./tray-app/packaging/build.ps1 -OneFile
+```
+
+Create installer (requires Inno Setup):
+
+```powershell
+iscc tray-app/packaging/installer.iss
+```
+
 The poller will:
 
 1. Fetch pending ingreso payloads.
 2. Download the PDF attachment.
-3. Send the email via Outlook COM.
+3. Open an Outlook draft (user clicks Send).
 4. Post the result back to the server.

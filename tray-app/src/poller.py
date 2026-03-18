@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 import requests
+from config_loader import load_config
 from outlook_sender import OutlookSender
 from result_poster import ResultPoster
 
@@ -76,9 +77,17 @@ class IngresoEmailPoller:
 
 
 def main() -> None:
-    base_url = os.getenv("SIGMA_BASE_URL", "http://localhost:8000/sigma")
-    tray_token = os.getenv("INGRESO_TRAY_TOKEN", "")
-    poll_interval = int(os.getenv("POLL_INTERVAL_SECONDS", "15"))
+    config = load_config()
+    base_url = (
+        os.getenv("SIGMA_BASE_URL")
+        or config.sigma_base_url
+        or "http://localhost:8000/sigma"
+    )
+    tray_token = os.getenv("INGRESO_TRAY_TOKEN") or config.ingreso_tray_token or ""
+    poll_interval_value = (
+        os.getenv("POLL_INTERVAL_SECONDS") or config.poll_interval_seconds or "15"
+    )
+    poll_interval = int(poll_interval_value)
     if not tray_token:
         raise RuntimeError("INGRESO_TRAY_TOKEN is required")
 

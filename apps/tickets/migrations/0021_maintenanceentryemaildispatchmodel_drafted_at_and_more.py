@@ -4,20 +4,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0020_rename_maintenanc_status_7a5e1c_idx_maintenance_status_e4eb71_idx_and_more'),
+        (
+            "tickets",
+            "0020_rename_maintenanc_status_7a5e1c_idx_maintenance_status_e4eb71_idx_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='maintenanceentryemaildispatchmodel',
-            name='drafted_at',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Fecha de borrador'),
+            model_name="maintenanceentryemaildispatchmodel",
+            name="drafted_at",
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="Fecha de borrador"
+            ),
         ),
         migrations.AlterField(
-            model_name='maintenanceentryemaildispatchmodel',
-            name='status',
-            field=models.CharField(choices=[('pending', 'Pending'), ('drafted', 'Drafted'), ('sent', 'Sent'), ('failed', 'Failed')], default='pending', max_length=20, verbose_name='Estado'),
+            model_name="maintenanceentryemaildispatchmodel",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("pending", "Pending"),
+                    ("drafted", "Drafted"),
+                    ("sent", "Sent"),
+                    ("failed", "Failed"),
+                ],
+                default="pending",
+                max_length=20,
+                verbose_name="Estado",
+            ),
         ),
     ]
