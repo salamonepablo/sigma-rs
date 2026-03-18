@@ -118,6 +118,13 @@ Each push/PR runs:
 - Ticket numbers are auto-generated (YYYY-NNNN).
 - Login lives at `/sigma/login/` and redirects to `/sigma/`.
 
+## Tray App
+
+Local Outlook draft automation is handled by the tray app. See:
+
+- `docs/TRAY_APP_INSTALL.md`
+- `docs/TRAY_APP_INSTALL_ES.md`
+
 ## Security
 
 Do not commit sensitive files (`.env`, database files, credentials).
