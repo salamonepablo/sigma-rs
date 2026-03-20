@@ -973,7 +973,7 @@ class Command(BaseCommand):
         """Import detenciones CCRR from DetencionesCCRR.txt."""
         import sys
 
-        file_path = path / "DetencionesCCRR.txt"
+        file_path = path / "Detenciones_CCRR.txt"
         if not file_path.exists():
             self.stdout.write(self.style.ERROR(f"File not found: {file_path}"))
             return
