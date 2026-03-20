@@ -125,6 +125,10 @@ Local Outlook draft automation is handled by the tray app. See:
 - `docs/TRAY_APP_INSTALL.md`
 - `docs/TRAY_APP_INSTALL_ES.md`
 
+## Agent Instructions
+
+Agent guidance lives in `docs/agents/` (see `docs/agents/AGENTS.md`).
+
 ## Security
 
 Do not commit sensitive files (`.env`, database files, credentials).

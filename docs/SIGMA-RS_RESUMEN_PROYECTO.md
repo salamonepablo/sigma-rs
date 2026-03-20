@@ -45,9 +45,10 @@ sigma-rs/
 ├── db/               # Base de datos SQLite
 ├── static/           # Archivos estáticos
 ├── .gitignore
-├── arrancar.bat      # Script para levantar servidor (no funciona por políticas)
-├── crear_usuarios_prueba.py
-├── instalar.bat      # Script de instalación (no funciona por políticas)
+├── scripts/
+│   ├── arrancar.bat            # Script para levantar servidor (no funciona por políticas)
+│   ├── crear_usuarios_prueba.py
+│   └── instalar.bat            # Script de instalación (no funciona por políticas)
 ├── manage.py
 ├── README.md
 └── requirements.txt

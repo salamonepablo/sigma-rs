@@ -7,7 +7,7 @@ Load relevant skills **before implementation**.
 1. Identify task type.
 2. Load one or more matching skills.
 3. Apply checklists and done criteria.
-4. Keep changes aligned with `AGENTS.md`.
+4. Keep changes aligned with `docs/agents/AGENTS.md`.
 
 ## Skills
 
