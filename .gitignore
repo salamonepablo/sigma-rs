@@ -9,3 +9,4 @@ context/
 generated/
 nul
 secrets/
+servidor_auto.ps1
