@@ -19,7 +19,7 @@ class Command(BaseCommand):
 
     DEFAULT_PATH = Path("context/db-legacy")
     FILE_SPECS = [
-        ("KilometrajeLocs.txt", "Locs"),
+        ("Kilometraje_Locs.txt", "Locs"),
         ("Kilometraje_CCRR.txt", "Coche"),
     ]
     BATCH_SIZE = 1000
