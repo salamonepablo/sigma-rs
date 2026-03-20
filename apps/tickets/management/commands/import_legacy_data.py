@@ -874,13 +874,13 @@ class Command(BaseCommand):
                     sys.stdout.flush()
 
                 try:
-                    locs = row["Locs"].strip()
-                    fecha_desde_str = row["Fecha_desde"].strip()
-                    fecha_hasta_str = row.get("Fecha_hasta", "").strip()
-                    intervencion_codigo = row["Intervencion"].strip()
-                    lugar_codigo_str = row.get("Lugar", "").strip()
-                    observaciones = row.get("Observaciones", "").strip() or None
-                    fecha_est_str = row.get("Fecha_est", "").strip()
+                    locs = (row.get("Locs") or "").strip()
+                    fecha_desde_str = (row.get("Fecha_desde") or "").strip()
+                    fecha_hasta_str = (row.get("Fecha_hasta") or "").strip()
+                    intervencion_codigo = (row.get("Intervencion") or "").strip()
+                    lugar_codigo_str = (row.get("Lugar") or "").strip()
+                    observaciones = (row.get("Observaciones") or "").strip() or None
+                    fecha_est_str = (row.get("Fecha_est") or "").strip()
 
                     # Parse dates
                     fecha_desde = self._parse_date(fecha_desde_str)
@@ -1040,13 +1040,13 @@ class Command(BaseCommand):
                     sys.stdout.flush()
 
                 try:
-                    coche = row["Coche"].strip()
-                    fecha_desde_str = row["Fecha_desde"].strip()
-                    fecha_hasta_str = row.get("Fecha_hasta", "").strip()
-                    intervencion_codigo = row["Intervencion"].strip()
-                    lugar_codigo_str = row.get("Lugar", "").strip()
-                    observaciones = row.get("Observaciones", "").strip() or None
-                    fecha_est_str = row.get("Fecha_est", "").strip()
+                    coche = (row.get("Coche") or "").strip()
+                    fecha_desde_str = (row.get("Fecha_desde") or "").strip()
+                    fecha_hasta_str = (row.get("Fecha_hasta") or "").strip()
+                    intervencion_codigo = (row.get("Intervencion") or "").strip()
+                    lugar_codigo_str = (row.get("Lugar") or "").strip()
+                    observaciones = (row.get("Observaciones") or "").strip() or None
+                    fecha_est_str = (row.get("Fecha_est") or "").strip()
 
                     # Parse dates
                     fecha_desde = self._parse_date(fecha_desde_str)
