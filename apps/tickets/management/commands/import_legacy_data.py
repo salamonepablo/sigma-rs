@@ -804,23 +804,57 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Created model: {name}")
 
     def import_detenciones(self, path: Path, dry_run: bool = False):
-        """Import detenciones from Detenciones.txt."""
-        file_path = path / "Detenciones.txt"
+        """Import novedades from Detenciones_Locs.txt."""
+        import sys
+
+        file_path = path / "Detenciones_Locs.txt"
         if not file_path.exists():
             self.stdout.write(self.style.ERROR(f"File not found: {file_path}"))
             return
 
-        self.stdout.write(f"Importing detenciones from {file_path}...")
+        self.stdout.write(f"Importing novedades Locs from {file_path}...")
+
+        # Count total lines for progress
+        with open(file_path, "r", encoding="latin-1") as f:
+            total_lines = sum(1 for _ in f) - 1  # -1 for header
+        self.stdout.write(f"Total records to process: {total_lines}")
 
         # Build lookup dicts for faster access
+        self.stdout.write("Building lookup dictionaries...")
         lugares_by_codigo = {lugar.codigo: lugar for lugar in LugarModel.objects.all()}
         units_by_number = {u.number: u for u in MaintenanceUnitModel.objects.all()}
         intervenciones_by_codigo = {
             i.codigo: i for i in IntervencionTipoModel.objects.all()
         }
+        self.stdout.write(
+            f"  Lugares: {len(lugares_by_codigo)}, Units: {len(units_by_number)}, "
+            f"Intervenciones: {len(intervenciones_by_codigo)}"
+        )
+
+        # Build set of existing records for duplicate detection
+        # Key: (unit_number, fecha_desde, intervencion_codigo, lugar_codigo)
+        self.stdout.write("Loading existing records for duplicate detection...")
+        existing_records = set()
+        for nov in NovedadModel.objects.filter(is_legacy=True).values(
+            "maintenance_unit__number",
+            "legacy_unit_code",
+            "fecha_desde",
+            "intervencion__codigo",
+            "legacy_intervencion_codigo",
+            "lugar__codigo",
+            "legacy_lugar_codigo",
+        ):
+            unit_num = nov["maintenance_unit__number"] or nov["legacy_unit_code"]
+            interv = nov["intervencion__codigo"] or nov["legacy_intervencion_codigo"]
+            lugar = nov["lugar__codigo"] or nov["legacy_lugar_codigo"]
+            key = (unit_num, str(nov["fecha_desde"]), interv, str(lugar))
+            existing_records.add(key)
+        self.stdout.write(f"  Loaded {len(existing_records)} existing records")
 
         created = 0
         skipped = 0
+        duplicates = 0
+        processed = 0
         batch = []
         batch_size = 1000
 
@@ -828,6 +862,17 @@ class Command(BaseCommand):
             reader = csv.DictReader(f)
 
             for row in reader:
+                processed += 1
+
+                # Progress indicator every 5000 records
+                if processed % 5000 == 0:
+                    pct = (processed / total_lines) * 100
+                    self.stdout.write(
+                        f"  Progress: {processed}/{total_lines} ({pct:.1f}%) - "
+                        f"created: {created}, skipped: {skipped}, duplicates: {duplicates}"
+                    )
+                    sys.stdout.flush()
+
                 try:
                     locs = row["Locs"].strip()
                     fecha_desde_str = row["Fecha_desde"].strip()
@@ -841,6 +886,17 @@ class Command(BaseCommand):
                     fecha_desde = self._parse_date(fecha_desde_str)
                     if not fecha_desde:
                         skipped += 1
+                        continue
+
+                    # Check for duplicate
+                    dup_key = (
+                        locs,
+                        str(fecha_desde),
+                        intervencion_codigo,
+                        lugar_codigo_str,
+                    )
+                    if dup_key in existing_records:
+                        duplicates += 1
                         continue
 
                     fecha_hasta = (
@@ -875,7 +931,7 @@ class Command(BaseCommand):
                         created += 1
                         continue
 
-                    novedad = NovedadModel(
+                    novelty = NovedadModel(
                         id=uuid.uuid4(),
                         maintenance_unit=maintenance_unit,
                         legacy_unit_code=locs if not maintenance_unit else None,
@@ -889,7 +945,7 @@ class Command(BaseCommand):
                         observaciones=observaciones,
                         is_legacy=True,
                     )
-                    batch.append(novedad)
+                    batch.append(novelty)
                     created += 1
 
                     # Bulk insert in batches
@@ -907,7 +963,10 @@ class Command(BaseCommand):
             NovedadModel.objects.bulk_create(batch)
 
         self.stdout.write(
-            self.style.SUCCESS(f"Detenciones: {created} created, {skipped} skipped")
+            self.style.SUCCESS(
+                f"Detenciones: {created} created, {duplicates} duplicates skipped, "
+                f"{skipped} invalid/skipped"
+            )
         )
 
     def import_detenciones_ccrr(self, path: Path, dry_run: bool = False):
