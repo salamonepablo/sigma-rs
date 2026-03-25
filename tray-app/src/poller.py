@@ -73,6 +73,9 @@ class IngresoEmailPoller:
     def run(self) -> None:
         while True:
             self.poll_once()
+            # After processing, poll again immediately in case a new dispatch was created
+            # This helps the "active" tray claim new dispatches faster
+            self.poll_once()
             time.sleep(self._poll_interval)
 
 
