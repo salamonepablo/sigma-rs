@@ -69,7 +69,12 @@ if (!(Test-Path $startupDir)) {
 }
 
 $batPath = Join-Path $startupDir "SigmaRSIngresoTray.bat"
-$batContent = "@echo off`nset NO_PROXY=$ServerIp,localhost,127.0.0.1`n`"$targetExe`""
+$batLines = @(
+    "@echo off",
+    "set NO_PROXY=$ServerIp,localhost,127.0.0.1",
+    """$targetExe"""
+)
+$batContent = $batLines -join "`n"
 Set-Content -Path $batPath -Value $batContent -Encoding Ascii
 
 if (!$TrayToken) {
