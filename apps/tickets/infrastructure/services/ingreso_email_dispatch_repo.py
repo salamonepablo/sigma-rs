@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.utils import timezone
 
 from apps.tickets.infrastructure.models import MaintenanceEntryEmailDispatchModel
@@ -34,9 +36,19 @@ class IngresoEmailDispatchRepository:
         )
 
     def get_next_pending(self) -> MaintenanceEntryEmailDispatchModel | None:
-        """Return the oldest pending dispatch if any."""
+        """Return the oldest pending dispatch if any. Marks as CLAIMED to prevent duplicate processing."""
 
-        return (
+        # First, release stale CLAIMED dispatches (older than 5 minutes) back to PENDING
+        stale_timeout = timezone.now() - timedelta(minutes=5)
+        MaintenanceEntryEmailDispatchModel.objects.filter(
+            status=MaintenanceEntryEmailDispatchModel.Status.CLAIMED,
+            claimed_at__lt=stale_timeout,
+        ).update(
+            status=MaintenanceEntryEmailDispatchModel.Status.PENDING, claimed_at=None
+        )
+
+        # Get the oldest pending dispatch
+        dispatch = (
             MaintenanceEntryEmailDispatchModel.objects.filter(
                 status=MaintenanceEntryEmailDispatchModel.Status.PENDING
             )
@@ -44,6 +56,14 @@ class IngresoEmailDispatchRepository:
             .select_related("entry", "entry__novedad")
             .first()
         )
+
+        # Mark as CLAIMED to prevent other trays from picking it up
+        if dispatch:
+            dispatch.status = MaintenanceEntryEmailDispatchModel.Status.CLAIMED
+            dispatch.claimed_at = timezone.now()
+            dispatch.save(update_fields=["status", "claimed_at", "updated_at"])
+
+        return dispatch
 
     def mark_sent(
         self, dispatch: MaintenanceEntryEmailDispatchModel, windows_username: str

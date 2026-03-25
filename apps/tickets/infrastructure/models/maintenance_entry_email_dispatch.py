@@ -13,6 +13,7 @@ class MaintenanceEntryEmailDispatchModel(BaseModel):
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
+        CLAIMED = "claimed", "Claimed"
         DRAFTED = "drafted", "Drafted"
         SENT = "sent", "Sent"
         FAILED = "failed", "Failed"
@@ -53,6 +54,11 @@ class MaintenanceEntryEmailDispatchModel(BaseModel):
         blank=True,
         null=True,
         verbose_name="Fecha de borrador",
+    )
+    claimed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de reclamacion",
     )
     to_recipients = models.JSONField(
         default=list,
