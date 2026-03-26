@@ -209,6 +209,7 @@ class MaintenanceEntryUseCase:
         checklist_tasks: str | None,
         observations: str | None,
         user,
+        terminal_id: str | None = None,
     ) -> MaintenanceEntryResult:
         """Create a maintenance entry, PDF, and email dispatch record.
 
@@ -223,6 +224,7 @@ class MaintenanceEntryUseCase:
             checklist_tasks: Task list text.
             observations: Observations text.
             user: Django user executing the action.
+            terminal_id: Terminal ID that originated the dispatch (for routing).
 
         Returns:
             MaintenanceEntryResult with processing status.
@@ -282,6 +284,7 @@ class MaintenanceEntryUseCase:
                     subject=subject,
                     body=body,
                     body_html=body_html,
+                    origin_terminal_id=terminal_id,
                 )
                 outlook_status = "pending"
             except Exception as exc:  # pragma: no cover - persistence error

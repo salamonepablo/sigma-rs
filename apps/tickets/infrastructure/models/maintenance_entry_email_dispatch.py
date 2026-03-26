@@ -82,6 +82,18 @@ class MaintenanceEntryEmailDispatchModel(BaseModel):
         null=True,
         verbose_name="Cuerpo HTML",
     )
+    terminal_id = models.CharField(
+        max_length=36,
+        blank=True,
+        null=True,
+        verbose_name="ID de terminal",
+    )
+    origin_terminal_id = models.CharField(
+        max_length=36,
+        blank=True,
+        null=True,
+        verbose_name="Terminal de origen",
+    )
 
     class Meta:
         db_table = "maintenance_entry_email_dispatch"

@@ -28,6 +28,7 @@ from apps.tickets.infrastructure.models.reference import (
     TrainNumberModel,
 )
 from apps.tickets.infrastructure.models.ticket import TicketModel
+from apps.tickets.infrastructure.models.tray_terminal import TrayTerminalModel
 
 __all__ = [
     # Base
@@ -60,4 +61,6 @@ __all__ = [
     "TicketModel",
     # Novedad
     "NovedadModel",
+    # Tray terminal
+    "TrayTerminalModel",
 ]

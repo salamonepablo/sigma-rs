@@ -24,6 +24,12 @@ from apps.tickets.presentation.views.ingreso_email_api import (
     ingreso_email_pending,
     ingreso_email_result,
 )
+from apps.tickets.presentation.views.tray_api import (
+    tray_heartbeat,
+    tray_list_online,
+    tray_register,
+    tray_status,
+)
 
 app_name = "tickets"
 
@@ -144,5 +150,26 @@ urlpatterns = [
         "api/ingresos/email/pdf/",
         ingreso_email_pdf,
         name="ingreso_email_pdf",
+    ),
+    # Tray terminal management
+    path(
+        "api/tray/register/",
+        tray_register,
+        name="tray_register",
+    ),
+    path(
+        "api/tray/heartbeat/",
+        tray_heartbeat,
+        name="tray_heartbeat",
+    ),
+    path(
+        "api/tray/status/",
+        tray_status,
+        name="tray_status",
+    ),
+    path(
+        "api/tray/online/",
+        tray_list_online,
+        name="tray_list_online",
     ),
 ]

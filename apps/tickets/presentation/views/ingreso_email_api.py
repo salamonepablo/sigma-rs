@@ -60,7 +60,7 @@ def _build_payload(
 @csrf_exempt
 @require_GET
 def ingreso_email_pending(request):
-    """Return the next pending ingreso email payload."""
+    """Return the next pending ingreso email payload for the requesting terminal."""
 
     auth_error = _require_tray_token(request)
     if auth_error:
@@ -70,8 +70,11 @@ def ingreso_email_pending(request):
     if secret_error:
         return secret_error
 
+    # Get terminal_id from header (optional)
+    terminal_id = request.headers.get("X-TERMINAL-ID") or request.GET.get("terminal_id")
+
     repo = IngresoEmailDispatchRepository()
-    dispatch = repo.get_next_pending()
+    dispatch = repo.get_next_pending(terminal_id=terminal_id)
     if not dispatch:
         return HttpResponse(status=204)
 

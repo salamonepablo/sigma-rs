@@ -281,6 +281,9 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             messages.error(self.request, "No se pudo crear el ingreso.")
             return self.form_invalid(form)
 
+        # Get terminal_id from header (if provided by frontend/tray bridge)
+        terminal_id = self.request.headers.get("X-TERMINAL-ID")
+
         use_case = MaintenanceEntryUseCase()
         result = use_case.create_entry(
             novedad_id=str(self.novedad.pk),
@@ -299,6 +302,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             checklist_tasks=form.cleaned_data.get("checklist_tasks"),
             observations=form.cleaned_data.get("observations"),
             user=self.request.user,
+            terminal_id=terminal_id,
         )
 
         messages.success(

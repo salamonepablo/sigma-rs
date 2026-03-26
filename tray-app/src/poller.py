@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 import requests
-from config_loader import load_config
+from config_loader import get_or_create_terminal_id, load_config
 from outlook_sender import OutlookSender
 from result_poster import ResultPoster
 
@@ -21,11 +21,52 @@ class IngresoEmailPoller:
         self._poll_interval = poll_interval
         self._outlook = OutlookSender()
         self._poster = ResultPoster(self._base_url, self._tray_token)
+        self._terminal_id = get_or_create_terminal_id()
+
+    def _get_headers(self) -> dict:
+        """Get headers including terminal_id."""
+        return {
+            "X-TRAY-TOKEN": self._tray_token,
+            "X-TERMINAL-ID": self._terminal_id,
+        }
+
+    def register_with_server(self) -> None:
+        """Register this terminal with the server."""
+        import getpass
+
+        try:
+            response = requests.post(
+                f"{self._base_url}/api/tray/register/",
+                json={
+                    "terminal_id": self._terminal_id,
+                    "windows_username": getpass.getuser(),
+                    "hostname": os.getenv("COMPUTERNAME", ""),
+                },
+                headers={"X-TRAY-TOKEN": self._tray_token},
+                timeout=10,
+            )
+            response.raise_for_status()
+            print(f"Terminal {self._terminal_id} registered successfully")
+        except requests.RequestException as exc:
+            print(f"Failed to register terminal: {exc}")
+
+    def send_heartbeat(self) -> None:
+        """Send heartbeat to server to mark terminal as online."""
+        try:
+            response = requests.post(
+                f"{self._base_url}/api/tray/heartbeat/",
+                json={"terminal_id": self._terminal_id},
+                headers={"X-TRAY-TOKEN": self._tray_token},
+                timeout=10,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            print(f"Heartbeat failed: {exc}")
 
     def poll_once(self) -> None:
         response = requests.get(
             f"{self._base_url}/api/ingresos/email/pending/",
-            headers={"X-TRAY-TOKEN": self._tray_token},
+            headers=self._get_headers(),
             timeout=10,
         )
         if response.status_code == 204:
@@ -50,12 +91,14 @@ class IngresoEmailPoller:
                 dispatch_id=payload["dispatch_id"],
                 status="drafted",
                 error=None,
+                terminal_id=self._terminal_id,
             )
         except Exception as exc:
             self._poster.post_result(
                 dispatch_id=payload["dispatch_id"],
                 status="failed",
                 error=str(exc) or "Outlook error",
+                terminal_id=self._terminal_id,
             )
 
     def _download_pdf(self, pdf_url: str, signature: str) -> Path:
@@ -63,7 +106,7 @@ class IngresoEmailPoller:
         response = requests.get(
             pdf_url,
             params={"signature": signature},
-            headers={"X-TRAY-TOKEN": self._tray_token},
+            headers=self._get_headers(),
             timeout=15,
         )
         response.raise_for_status()
@@ -71,11 +114,26 @@ class IngresoEmailPoller:
         return target
 
     def run(self) -> None:
+        # Register with server on startup
+        self.register_with_server()
+
+        # Send initial heartbeat
+        self.send_heartbeat()
+
+        heartbeat_interval = 30  # Send heartbeat every 30 seconds
+        last_heartbeat = time.time()
+
         while True:
             self.poll_once()
             # After processing, poll again immediately in case a new dispatch was created
             # This helps the "active" tray claim new dispatches faster
             self.poll_once()
+
+            # Send heartbeat periodically
+            if time.time() - last_heartbeat >= heartbeat_interval:
+                self.send_heartbeat()
+                last_heartbeat = time.time()
+
             time.sleep(self._poll_interval)
 
 
