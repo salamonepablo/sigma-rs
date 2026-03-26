@@ -12,6 +12,7 @@ from apps.tickets.presentation.views import (
     NovedadDetailView,
     NovedadListView,
     NovedadUpdateView,
+    ResetIngresoView,
     TicketCreateView,
     TicketDeleteView,
     TicketDetailView,
@@ -84,6 +85,11 @@ urlpatterns = [
         "novedad/<uuid:pk>/delete/",
         NovedadDeleteView.as_view(),
         name="novedad_delete",
+    ),
+    path(
+        "novedad/<uuid:pk>/reset-ingreso/",
+        ResetIngresoView.as_view(),
+        name="novedad_reset_ingreso",
     ),
     # Novedad CRUD - Separated by category
     path(

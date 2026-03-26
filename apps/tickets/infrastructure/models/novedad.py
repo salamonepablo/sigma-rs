@@ -99,6 +99,11 @@ class NovedadModel(models.Model):
         verbose_name="Registro Legacy",
         help_text="Indica si fue importado de la base legacy",
     )
+    ingreso_generado = models.BooleanField(
+        default=False,
+        verbose_name="Ingreso Generado",
+        help_text="Indica si ya se generó el ingreso para esta novedad",
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Fecha de creación",

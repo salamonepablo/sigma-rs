@@ -281,12 +281,21 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             messages.error(self.request, "No se pudo crear el ingreso.")
             return self.form_invalid(form)
 
+        # Check if ingreso already generated
+        if self.novedad.ingreso_generado:
+            messages.error(
+                self.request,
+                "Ya se generó un ingreso para esta novedad. "
+                "Si necesitas regenerarlo, contacta al administrador.",
+            )
+            return self.form_invalid(form)
+
         # Get terminal_id from header (if provided by frontend/tray bridge)
         terminal_id = self.request.headers.get("X-TERMINAL-ID")
 
         use_case = MaintenanceEntryUseCase()
         result = use_case.create_entry(
-            novedad_id=str(self.novedad.pk),
+            novelty_id=str(self.novedad.pk),
             entry_datetime=form.cleaned_data["entry_datetime"],
             trigger_type=form.resolved_trigger_type,
             trigger_value=form.resolved_trigger_value,

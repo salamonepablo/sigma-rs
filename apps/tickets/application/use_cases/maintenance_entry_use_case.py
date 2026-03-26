@@ -261,6 +261,10 @@ class MaintenanceEntryUseCase:
             created_by=user if user and user.is_authenticated else None,
         )
 
+        # Mark novelty as having ingreso generated
+        draft.novelty.ingreso_generado = True
+        draft.novelty.save(update_fields=["ingreso_generado", "updated_at"])
+
         pdf_path = self._generate_pdf(entry, draft, user)
         entry.pdf_path = pdf_path
         entry.save(update_fields=["pdf_path", "updated_at"])
