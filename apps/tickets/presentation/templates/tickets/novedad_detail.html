@@ -12,20 +12,18 @@
         {% else %}
         <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver al listado</a>
         {% endif %}
-        {% if noveda
+        {% if noveda.ingreso_generado %}
         <span class="btn btn-success disabled">✅ Ingreso Generado</span>
-        <form method="post" action="{% url 'tickets:novedad_reset_ingreso' novelty.pk %}" class="d-inline">
+        <form method="post" action="{% url 'tickets:novedad_reset_ingreso' noveda.pk %}" class="d-inline">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-warning" title="Permitir regenerar">🔄 Regenerar</button>
         </form>
         {% else %}
-        <a href="{% url 'tickets:maintenance_entry_create' novelty.pk %}" class="btn btn-success">Ingreso a Mantenimiento</a>
+        <a href="{% url 'tickets:maintenance_entry_create' noveda.pk %}" class="btn btn-success">Ingreso a Mantenimiento</a>
         {% endif %}
-        <a href="{% url 'tickets:novedad_update' novelty.pk %}" class="btn btn-primary">Editar</a>
-        <a href="{% url 'tickets:novedad_delete' novelty.pk %}" class="btn btn-danger">Eliminar</a>
+        <a href="{% url 'tickets:novedad_update' noveda.pk %}" class="btn btn-primary">Editar</a>
+        <a href="{% url 'tickets:novedad_delete' noveda.pk %}" class="btn btn-danger">Eliminar</a>
     </div>
-</div>
-</div>
 </div>
 
 <div class="row g-3">
@@ -35,30 +33,30 @@
             <div class="card-body">
                 <p class="mb-1"><strong>Unidad:</strong>
                     {% if novedad.maintenance_unit %}
-                        {{ novedad.maintenance_unit.number }}
-                    {% elif novedad.legacy_unit_code %}
-                        {{ novedad.legacy_unit_code }}
+                        {{ noveda.maintenance_unit.number }}
+                    {% elif noveda.legacy_unit_code %}
+                        {{ noveda.legacy_unit_code }}
                     {% else %}-{% endif %}
                 </p>
-                {% if novedad.legacy_unit_code and novedad.maintenance_unit %}
-                <p class="text-muted small mb-2">Código legacy: {{ novedad.legacy_unit_code }}</p>
+                {% if noveda.legacy_unit_code and noveda.maintenance_unit %}
+                <p class="text-muted small mb-2">Código legacy: {{ noveda.legacy_unit_code }}</p>
                 {% endif %}
                 <p class="mb-1"><strong>Intervención:</strong>
-                    {% if novedad.intervencion %}
-                    {{ novedad.intervencion.codigo }} - {{ novedad.intervencion.descripcion }}
+                    {% if noveda.intervencion %}
+                    {{ noveda.intervencion.codigo }} - {{ noveda.intervencion.descripcion }}
                     {% else %}
-                    {{ novedad.legacy_intervencion_codigo|default:"-" }}
+                    {{ noveda.legacy_intervencion_codigo|default:"-" }}
                     {% endif %}
                 </p>
                 <p class="mb-1"><strong>Lugar:</strong>
-                    {% if novedad.lugar %}
-                        {{ novedad.lugar.descripcion }} ({{ novedad.lugar.codigo }})
+                    {% if noveda.lugar %}
+                        {{ noveda.lugar.descripcion }} ({{ noveda.lugar.codigo }})
                     {% else %}
-                        {{ novedad.legacy_lugar_codigo|default:"-" }}
+                        {{ noveda.legacy_lugar_codigo|default:"-" }}
                     {% endif %}
                 </p>
                 <p class="mb-0"><strong>Origen:</strong>
-                    {% if novedad.is_legacy %}
+                    {% if noveda.is_legacy %}
                     Importado de base legacy
                     {% else %}
                     Carga manual en SIGMA-RS
@@ -73,12 +71,12 @@
             <div class="card-body">
                 <p><strong>Fecha desde:</strong> {{ noveda.fecha_desde|date:"d/m/Y" }}</p>
                 <p><strong>Fecha hasta:</strong>
-                    {% if novelty.fecha_hasta %}
+                    {% if noveda.fecha_hasta %}
                     {{ noveda.fecha_hasta|date:"d/m/Y" }}
                     {% else %}-{% endif %}
                 </p>
                 <p><strong>Ingreso:</strong>
-                    {% if noveda
+                    {% if noveda.ingreso_generado %}
                     <span class="badge bg-success">Generado</span>
                     {% else %}
                     <span class="badge bg-secondary">Pendiente</span>
@@ -89,14 +87,12 @@
             </div>
         </div>
     </div>
-        </div>
-    </div>
     <div class="col-12">
         <div class="card shadow-sm">
             <div class="card-header bg-light py-2">Observaciones</div>
             <div class="card-body">
-                {% if novedad.observaciones %}
-                <pre class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;">{{ novedad.observaciones }}</pre>
+                {% if noveda.observaciones %}
+                <pre class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;">{{ noveda.observaciones }}</pre>
                 {% else %}
                 <span class="text-muted">Sin observaciones registradas.</span>
                 {% endif %}
