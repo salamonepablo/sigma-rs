@@ -295,7 +295,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
 
         use_case = MaintenanceEntryUseCase()
         result = use_case.create_entry(
-            noveda_id=str(self.novedad.pk),
+            novedad_id=str(self.novedad.pk),
             entry_datetime=form.cleaned_data["entry_datetime"],
             trigger_type=form.resolved_trigger_type,
             trigger_value=form.resolved_trigger_value,
