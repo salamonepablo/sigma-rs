@@ -4,15 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0023_add_terminal_routing'),
+        ("tickets", "0023_add_terminal_routing"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='novedadmodel',
-            name='ingreso_generado',
-            field=models.BooleanField(default=False, help_text='Indica si ya se generó el ingreso para esta novedad', verbose_name='Ingreso Generado'),
+            model_name="novedadmodel",
+            name="ingreso_generado",
+            field=models.BooleanField(
+                default=False,
+                help_text="Indica si ya se generó el ingreso para esta novedad",
+                verbose_name="Ingreso Generado",
+            ),
         ),
     ]

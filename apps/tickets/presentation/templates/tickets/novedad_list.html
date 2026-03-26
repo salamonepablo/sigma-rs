@@ -215,20 +215,20 @@
                     </td>
                     <td>
                         <div class="d-flex gap-1">
-                            {% if novelty.ingreso_generado %}
+                            {% if novedad.ingreso_generado %}
                             <span class="btn btn-sm btn-success" title="Ingreso generado">✅</span>
                             {% else %}
-                            <a href="{% url 'tickets:maintenance_entry_create' novelty.pk %}" class="btn btn-sm btn-outline-success" title="Generar Ingreso">⚙️</a>
+                            <a href="{% url 'tickets:maintenance_entry_create' novedad.pk %}" class="btn btn-sm btn-outline-success" title="Generar Ingreso">⚙️</a>
                             {% endif %}
-                            <a href="{% url 'tickets:novedad_detail' novelty.pk %}" class="btn btn-sm btn-outline-info" title="Ver">👁</a>
-                            <a href="{% url 'tickets:novedad_update' novelty.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
-                            <a href="{% url 'tickets:novedad_delete' novelty.pk %}" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</a>
+                            <a href="{% url 'tickets:novedad_detail' novedad.pk %}" class="btn btn-sm btn-outline-info" title="Ver">👁</a>
+                            <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
+                            <a href="{% url 'tickets:novedad_delete' novedad.pk %}" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</a>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="8" class="text-center text-muted py-4">
                         No hay novedades para los filtros seleccionados.
                     </td>
                 </tr>
