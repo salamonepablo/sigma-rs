@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Novedad {{ novelty.pk|slice:":8" }}...</h4>
+    <h4 class="mb-0">Novedad {{ novedad.pk|slice:":8" }}...</h4>
     <div class="d-flex gap-2">
         {% if category == 'traccion' %}
         <a href="{% url 'tickets:novedad_list_locomotoras' %}" class="btn btn-outline-secondary">← Volver al listado</a>
@@ -12,7 +12,7 @@
         {% else %}
         <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver al listado</a>
         {% endif %}
-        {% if novelty.ingreso_generado %}
+        {% if noveda
         <span class="btn btn-success disabled">✅ Ingreso Generado</span>
         <form method="post" action="{% url 'tickets:novedad_reset_ingreso' novelty.pk %}" class="d-inline">
             {% csrf_token %}
@@ -71,21 +71,21 @@
         <div class="card shadow-sm h-100">
             <div class="card-header bg-primary text-white py-2">Fechas y estado</div>
             <div class="card-body">
-                <p><strong>Fecha desde:</strong> {{ novelty.fecha_desde|date:"d/m/Y" }}</p>
+                <p><strong>Fecha desde:</strong> {{ noveda.fecha_desde|date:"d/m/Y" }}</p>
                 <p><strong>Fecha hasta:</strong>
                     {% if novelty.fecha_hasta %}
-                    {{ novelty.fecha_hasta|date:"d/m/Y" }}
+                    {{ noveda.fecha_hasta|date:"d/m/Y" }}
                     {% else %}-{% endif %}
                 </p>
                 <p><strong>Ingreso:</strong>
-                    {% if novelty.ingreso_generado %}
+                    {% if noveda
                     <span class="badge bg-success">Generado</span>
                     {% else %}
                     <span class="badge bg-secondary">Pendiente</span>
                     {% endif %}
                 </p>
-                <p><strong>Creado:</strong> {{ novelty.created_at|date:"d/m/Y H:i" }}</p>
-                <p class="mb-0"><strong>Actualizado:</strong> {{ novelty.updated_at|date:"d/m/Y H:i" }}</p>
+                <p><strong>Creado:</strong> {{ noveda.created_at|date:"d/m/Y H:i" }}</p>
+                <p class="mb-0"><strong>Actualizado:</strong> {{ noveda.updated_at|date:"d/m/Y H:i" }}</p>
             </div>
         </div>
     </div>
