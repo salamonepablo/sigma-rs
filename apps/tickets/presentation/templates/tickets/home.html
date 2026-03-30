@@ -142,13 +142,15 @@
             </div>
             <div class="card-body">
                 <p class="text-muted small text-center mb-3">Registro de intervenciones y detenciones</p>
+                
                 <!-- Card de Novedades -->
                 <div class="row g-3 mb-3">
-                    <div class="col-md-4">
+                    <!-- Locomotoras -->
+                    <div class="col-4">
                         <div class="card h-100 border-0 unit-card bg-light">
-                            <div class="card-body text-center p-3">
+                            <div class="card-body text-center p-2">
                                 <h6 class="card-title mb-2 text-info">Locomotoras y CM</h6>
-                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                <div class="d-flex justify-content-center gap-1 mb-2">
                                     <div class="brand-icon" title="General Motors">
                                         <img src="{% static 'images/IcoGM.png' %}" alt="GM" class="img-fluid">
                                         <small class="d-block text-muted">GM</small>
@@ -158,7 +160,7 @@
                                         <small class="d-block text-muted">CKD</small>
                                     </div>
                                 </div>
-                                <div class="d-flex gap-2 justify-content-center">
+                                <div class="d-flex gap-1 justify-content-center">
                                     <a href="{% url 'tickets:novedad_list_locomotoras' %}" class="btn btn-info btn-sm">
                                         Ver 
                                     </a>
@@ -169,11 +171,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    
+                    <!-- Coches Remolcados -->
+                    <div class="col-4">
                         <div class="card h-100 border-0 unit-card bg-light">
-                            <div class="card-body text-center p-3">
+                            <div class="card-body text-center p-2">
                                 <h6 class="card-title mb-2 text-success">Coches Remolcados</h6>
-                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                <div class="d-flex justify-content-center gap-1 mb-2">
                                     <div class="brand-icon" title="Materfer">
                                         <img src="{% static 'images/IcoMTF.png' %}" alt="MTF" class="img-fluid">
                                         <small class="d-block text-muted">MTF</small>
@@ -194,11 +198,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    
+                    <!-- Vagones -->                    
+                    <div class="col-4">
                         <div class="card h-100 border-0 unit-card bg-light">
-                            <div class="card-body text-center p-3">
+                            <div class="card-body text-center p-2">
                                 <h6 class="card-title mb-2 text-warning">Vagones</h6>
-                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                <div class="d-flex justify-content-center gap-1 mb-2">
                                     <div class="brand-icon" title="Vagones de Carga">
                                         <img src="{% static 'images/IcoWagon.png' %}" alt="Vagones" class="img-fluid">
                                         <small class="d-block text-muted">Carga</small>
