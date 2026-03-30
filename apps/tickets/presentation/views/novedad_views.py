@@ -62,9 +62,7 @@ class NovedadListView(LoginRequiredMixin, ListView):
 
         category = self.kwargs.get("category")
         if category:
-            queryset = queryset.filter(
-                maintenance_unit__rolling_stock_category=category
-            )
+            queryset = self._filter_by_category(queryset, category)
 
         self.range_days = self._determine_range_days()
         today = timezone.now().date()
@@ -159,7 +157,35 @@ class NovedadListView(LoginRequiredMixin, ListView):
                     MaintenanceUnitModel.UnitType.MOTORCOACH,
                 ]
             )
+        if unit_type == MaintenanceUnitModel.UnitType.WAGON:
+            return queryset.filter(maintenance_unit__unit_type=unit_type)
         return queryset.filter(maintenance_unit__unit_type=unit_type)
+
+    def _filter_by_category(self, queryset, category: str):
+        unit_type_map = {
+            "traccion": [
+                MaintenanceUnitModel.UnitType.LOCOMOTIVE,
+                MaintenanceUnitModel.UnitType.MOTORCOACH,
+            ],
+            "ccrr": [MaintenanceUnitModel.UnitType.RAILCAR],
+            "carga": [MaintenanceUnitModel.UnitType.WAGON],
+        }
+        unit_types = unit_type_map.get(category)
+        if not unit_types:
+            return queryset.filter(maintenance_unit__rolling_stock_category=category)
+
+        legacy_units = MaintenanceUnitModel.objects.filter(
+            unit_type__in=unit_types
+        ).values_list("number", flat=True)
+
+        return queryset.filter(
+            Q(maintenance_unit__rolling_stock_category=category)
+            | Q(maintenance_unit__unit_type__in=unit_types)
+            | Q(
+                maintenance_unit__isnull=True,
+                legacy_unit_code__in=legacy_units,
+            )
+        )
 
     def _unit_type_display(self) -> str:
         unit_type = self.kwargs.get("unit_type")
@@ -168,12 +194,16 @@ class NovedadListView(LoginRequiredMixin, ListView):
             return "Locomotoras y Coches Motor"
         if category == "ccrr":
             return "Coches Remolcados"
+        if category == "carga":
+            return "Vagones"
         if unit_type == MaintenanceUnitModel.UnitType.LOCOMOTIVE:
             return "Locomotoras / Coches Motor"
         if unit_type == MaintenanceUnitModel.UnitType.RAILCAR:
             return "Coches Remolcados"
         if unit_type == MaintenanceUnitModel.UnitType.MOTORCOACH:
             return "Coches Motor"
+        if unit_type == MaintenanceUnitModel.UnitType.WAGON:
+            return "Vagones"
         return "Todas las Unidades"
 
     def _determine_range_days(self) -> int:
@@ -542,6 +572,8 @@ class NovedadCreateView(NovedadReferenceMixin, LoginRequiredMixin, CreateView):
             kwargs["unit_type"] = "locomotora"
         elif category == "ccrr":
             kwargs["unit_type"] = "coche_remolcado"
+        elif category == "carga":
+            kwargs["unit_type"] = "vagon"
         return kwargs
 
     def form_valid(self, form):
@@ -564,6 +596,8 @@ class NovedadCreateView(NovedadReferenceMixin, LoginRequiredMixin, CreateView):
             return reverse_lazy("tickets:novedad_list_locomotoras")
         elif category == "ccrr":
             return reverse_lazy("tickets:novedad_list_ccrr")
+        elif category == "carga":
+            return reverse_lazy("tickets:novedad_list_vagones")
         if unit_type:
             return reverse_lazy(
                 "tickets:novedad_list_by_type", kwargs={"unit_type": unit_type}
@@ -622,4 +656,6 @@ class NovedadDeleteView(LoginRequiredMixin, DeleteView):
             return reverse_lazy("tickets:novedad_list_locomotoras")
         if category == "ccrr":
             return reverse_lazy("tickets:novedad_list_ccrr")
+        if category == "carga":
+            return reverse_lazy("tickets:novedad_list_vagones")
         return reverse_lazy("tickets:novedad_list")

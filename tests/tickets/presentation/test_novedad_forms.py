@@ -126,3 +126,20 @@ class TestNovedadForm:
         assert form.is_valid()
         instance = form.save()
         assert instance.fecha_hasta is None
+
+    def test_filters_units_for_wagon_type(self):
+        """El formulario filtra unidades solo de vagones."""
+        unit_wagon = MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="V500",
+            unit_type=MaintenanceUnitModel.UnitType.WAGON,
+        )
+        MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="A500",
+            unit_type=MaintenanceUnitModel.UnitType.LOCOMOTIVE,
+        )
+
+        form = NovedadForm(unit_type=MaintenanceUnitModel.UnitType.WAGON)
+
+        assert list(form.fields["maintenance_unit"].queryset) == [unit_wagon]

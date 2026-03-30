@@ -22,6 +22,8 @@ from apps.tickets.models import (
     RailcarModel,
     TicketModel,
     TrainNumberModel,
+    WagonModel,
+    WagonTypeModel,
 )
 
 # =============================================================================
@@ -217,6 +219,35 @@ class MotorcoachAdmin(admin.ModelAdmin):
     list_display = ["number", "brand", "configuration", "car_count", "is_active"]
     list_filter = ["brand", "configuration", "maintenance_unit__is_active"]
     search_fields = ["maintenance_unit__number"]
+    ordering = ["maintenance_unit__number"]
+
+    def number(self, obj):
+        return obj.maintenance_unit.number
+
+    def is_active(self, obj):
+        return obj.maintenance_unit.is_active
+
+    number.short_description = "Número"
+    is_active.boolean = True
+
+
+@admin.register(WagonTypeModel)
+class WagonTypeAdmin(admin.ModelAdmin):
+    """Admin for WagonType model."""
+
+    list_display = ["code", "name", "is_active"]
+    list_filter = ["is_active"]
+    search_fields = ["code", "name"]
+    ordering = ["code"]
+
+
+@admin.register(WagonModel)
+class WagonAdmin(admin.ModelAdmin):
+    """Admin for Wagon model."""
+
+    list_display = ["number", "brand", "wagon_type", "legacy_class", "is_active"]
+    list_filter = ["brand", "wagon_type", "maintenance_unit__is_active"]
+    search_fields = ["maintenance_unit__number", "legacy_class"]
     ordering = ["maintenance_unit__number"]
 
     def number(self, obj):

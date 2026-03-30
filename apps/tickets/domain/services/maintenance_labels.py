@@ -82,6 +82,14 @@ def resolve_maintenance_display_rules(
             show_abc=True,
         )
 
+    if unit_type == "vagon":
+        return MaintenanceDisplayRules(
+            history_label="Última Revisión (AL/REV/A/B)",
+            km_label="KM Revisión:",
+            use_rp_history=False,
+            show_abc=False,
+        )
+
     return MaintenanceDisplayRules(
         history_label="Última Intervención",
         km_label="KM Intervención:",

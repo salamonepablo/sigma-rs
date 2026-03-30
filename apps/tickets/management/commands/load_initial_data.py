@@ -22,6 +22,7 @@ from apps.tickets.infrastructure.models import (
     PersonalModel,
     RailcarClassModel,
     RailcarModel,
+    WagonTypeModel,
 )
 
 
@@ -38,6 +39,7 @@ class Command(BaseCommand):
         self._load_brands()
         self._load_locomotive_models()
         self._load_railcar_classes()
+        self._load_wagon_types()
         self._load_gops()
         self._load_failure_types()
         self._load_personal()
@@ -62,6 +64,11 @@ class Command(BaseCommand):
                 "full_name": "Material Ferroviario S.A.",
             },
             {"code": "NOHAB", "name": "Nohab", "full_name": "Nydqvist & Holm AB"},
+            {
+                "code": "Carga",
+                "name": "Carga",
+                "full_name": "Vagones de Carga",
+            },
         ]
 
         for brand_data in brands:
@@ -126,6 +133,30 @@ class Command(BaseCommand):
             )
             status = "created" if created else "exists"
             self.stdout.write(f"  Railcar class {railcar_class.name}: {status}")
+
+    def _load_wagon_types(self):
+        """Load wagon type specifications."""
+        wagon_types = [
+            {"code": "BK", "name": "BK"},
+            {"code": "HOPPER", "name": "Hopper"},
+            {"code": "CHATA", "name": "Chata"},
+            {"code": "CUBIERTO", "name": "Cubierto"},
+            {"code": "PLATAFORMA", "name": "Plataforma"},
+            {"code": "AUTOMOVILERA", "name": "Automovilera"},
+            {"code": "TANQUE", "name": "Tanque"},
+            {"code": "VAGON", "name": "Vagon"},
+        ]
+
+        for type_data in wagon_types:
+            wagon_type, created = WagonTypeModel.objects.get_or_create(
+                code=type_data["code"],
+                defaults={
+                    "id": uuid.uuid4(),
+                    "name": type_data["name"],
+                },
+            )
+            status = "created" if created else "exists"
+            self.stdout.write(f"  Wagon type {wagon_type.name}: {status}")
 
     def _load_gops(self):
         """Load operational guards (GOPs)."""

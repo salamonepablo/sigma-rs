@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from apps.tickets.infrastructure.models import GOPModel, MaintenanceUnitModel
+from apps.tickets.models import PersonalModel
 from apps.tickets.presentation.forms import TicketForm
 
 
@@ -63,3 +64,33 @@ class TestTicketForm:
         form = TicketForm()
 
         assert form.fields["work_order_number"].initial == "S/OT"
+
+    def test_filters_units_and_intervinientes_for_wagons(self):
+        """Las opciones de vagones e intervinientes usan sector vagon."""
+        unit_wagon = MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="V400",
+            unit_type=MaintenanceUnitModel.UnitType.WAGON,
+        )
+        MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="A400",
+            unit_type=MaintenanceUnitModel.UnitType.LOCOMOTIVE,
+        )
+        person_wagon = PersonalModel.objects.create(
+            id=uuid4(),
+            legajo_sap="100",
+            full_name="Juan Vagon",
+            sector=PersonalModel.Sector.VAGONES,
+        )
+        PersonalModel.objects.create(
+            id=uuid4(),
+            legajo_sap="200",
+            full_name="Ana Loco",
+            sector=PersonalModel.Sector.LOCOMOTORAS,
+        )
+
+        form = TicketForm(unit_type=MaintenanceUnitModel.UnitType.WAGON)
+
+        assert list(form.fields["maintenance_unit"].queryset) == [unit_wagon]
+        assert list(form.fields["interviniente"].queryset) == [person_wagon]

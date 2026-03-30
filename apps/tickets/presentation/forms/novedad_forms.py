@@ -148,6 +148,8 @@ class NovedadForm(forms.ModelForm):
                     MaintenanceUnitModel.UnitType.MOTORCOACH,
                 ]
             )
+        if unit_type == MaintenanceUnitModel.UnitType.WAGON:
+            return queryset.filter(unit_type=unit_type)
         return queryset.filter(unit_type=unit_type)
 
     def clean(self):
@@ -242,7 +244,7 @@ class NovedadForm(forms.ModelForm):
 
 
 class NovedadFilterForm(forms.Form):
-    """Form used to filter novedad listings."""
+    """Form used to filter novelty listings."""
 
     UNIT_CHOICES = [
         ("", "Todas las unidades"),
@@ -252,6 +254,7 @@ class NovedadFilterForm(forms.Form):
         ),
         (MaintenanceUnitModel.UnitType.RAILCAR, "Coches Remolcados"),
         (MaintenanceUnitModel.UnitType.MOTORCOACH, "Coches Motor"),
+        (MaintenanceUnitModel.UnitType.WAGON, "Vagones"),
     ]
 
     unit_type = forms.ChoiceField(

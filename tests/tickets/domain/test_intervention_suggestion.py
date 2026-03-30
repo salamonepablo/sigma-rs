@@ -4,6 +4,7 @@ from datetime import date
 
 from apps.tickets.domain.services.intervention_suggestion import (
     InterventionHistoryItem,
+    InterventionPriorityResolver,
     InterventionSuggestionService,
     MaintenanceCycle,
 )
@@ -58,3 +59,14 @@ class TestInterventionSuggestionService:
         assert suggestion.suggested_code == "ABC"
         assert suggestion.last_intervention_code == "ABC"
         assert suggestion.status == "ok"
+
+    def test_wagon_priority_list_uses_al_rev_a_b_order(self):
+        resolver = InterventionPriorityResolver()
+
+        priorities = resolver.resolve(
+            unit_type="vagon",
+            brand_code="Carga",
+            model_code=None,
+        )
+
+        assert priorities == ["AL", "REV", "A", "B"]

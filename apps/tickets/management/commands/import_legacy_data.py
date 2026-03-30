@@ -3,11 +3,13 @@
 Imports data from CSV/TXT files exported from baseLocs.mdb:
 - Lugares.txt -> LugarModel
 - Locomotoras.txt -> MaintenanceUnitModel + LocomotiveModel
+- Vagones.txt -> MaintenanceUnitModel + WagonModel
 - Detenciones.txt -> NovedadModel
 
 Usage:
     python manage.py import_legacy_data --lugares
     python manage.py import_legacy_data --locomotoras
+    python manage.py import_legacy_data --vagones
     python manage.py import_legacy_data --detenciones
     python manage.py import_legacy_data --all
 """
@@ -30,6 +32,8 @@ from apps.tickets.models import (
     NovedadModel,
     RailcarClassModel,
     RailcarModel,
+    WagonModel,
+    WagonTypeModel,
 )
 
 
@@ -113,16 +117,31 @@ class Command(BaseCommand):
         # Automovilera
         "Automovilera": {"brand": "Automovilera", "class": "Automovilera"},
         # Vagones de carga (freight wagons)
-        "Chata": {"brand": "Carga", "class": "Chata"},
-        "Hopper": {"brand": "Carga", "class": "Hopper"},
-        "BK": {"brand": "Carga", "class": "BK"},
-        "Cubierto": {"brand": "Carga", "class": "Cubierto"},
-        "Tanque": {"brand": "Carga", "class": "Tanque"},
-        "Tanque?": {"brand": "Carga", "class": "Tanque"},
-        "Plataforma": {"brand": "Carga", "class": "Plataforma"},
-        "Tolva": {"brand": "Carga", "class": "Tolva"},
-        "Vagon": {"brand": "Carga", "class": "Vagon"},
+        "Chata": None,
+        "Hopper": None,
+        "BK": None,
+        "Cubierto": None,
+        "Tanque": None,
+        "Tanque?": None,
+        "Plataforma": None,
+        "Tolva": None,
+        "Vagon": None,
         "": None,
+    }
+
+    WAGON_CLASS_MAPPING = {
+        "bk": "BK",
+        "hopper": "HOPPER",
+        "tolva (hopper)": "HOPPER",
+        "tolva": "HOPPER",
+        "chata": "CHATA",
+        "cubierto": "CUBIERTO",
+        "plataforma": "PLATAFORMA",
+        "automovilera": "AUTOMOVILERA",
+        "tanque": "TANQUE",
+        "tanque?": "TANQUE",
+        "vagon": "VAGON",
+        "": "VAGON",
     }
 
     def add_arguments(self, parser):
@@ -159,6 +178,11 @@ class Command(BaseCommand):
             help="Import Coches.txt (coches remolcados)",
         )
         parser.add_argument(
+            "--vagones",
+            action="store_true",
+            help="Import Iniciales/Vagones.txt",
+        )
+        parser.add_argument(
             "--intervenciones-ccrr",
             action="store_true",
             help="Import IntervencionesCCRR.txt",
@@ -171,7 +195,9 @@ class Command(BaseCommand):
         parser.add_argument(
             "--all",
             action="store_true",
-            help="Import all files (lugares, locomotoras, coches, detenciones)",
+            help=(
+                "Import all files (lugares, locomotoras, coches, vagones, detenciones)"
+            ),
         )
         parser.add_argument(
             "--all-ccrr",
@@ -214,6 +240,9 @@ class Command(BaseCommand):
         if import_all or import_all_ccrr or options["coches"]:
             self.import_coches(path, dry_run)
 
+        if import_all or options["vagones"]:
+            self.import_vagones(path, dry_run)
+
         if import_all or options["detenciones"]:
             self.import_detenciones(path, dry_run)
 
@@ -229,6 +258,7 @@ class Command(BaseCommand):
                 options["intervenciones_ccrr"],
                 options["locomotoras"],
                 options["coches"],
+                options["vagones"],
                 options["detenciones"],
                 options["detenciones_ccrr"],
             ]
@@ -236,8 +266,8 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.WARNING(
                     "No import option specified. Use --lugares, --intervenciones, "
-                    "--locomotoras, --detenciones, --coches, --intervenciones-ccrr, "
-                    "--detenciones-ccrr, --all, or --all-ccrr"
+                    "--locomotoras, --detenciones, --coches, --vagones, "
+                    "--intervenciones-ccrr, --detenciones-ccrr, --all, or --all-ccrr"
                 )
             )
 
@@ -637,6 +667,125 @@ class Command(BaseCommand):
             )
         )
 
+    def import_vagones(self, path: Path, dry_run: bool = False):
+        """Import wagons from Iniciales/Vagones.txt."""
+        file_path = path / "Iniciales" / "Vagones.txt"
+        if not file_path.exists():
+            self.stdout.write(self.style.ERROR(f"File not found: {file_path}"))
+            return
+
+        self.stdout.write(f"Importing vagones from {file_path}...")
+
+        self._ensure_wagon_reference_data()
+
+        brand = BrandModel.objects.filter(code__iexact="Carga").first()
+        if not brand:
+            self.stdout.write(self.style.ERROR("Brand not found: Carga"))
+            return
+
+        wagon_types_by_code = {w.code: w for w in WagonTypeModel.objects.all()}
+
+        created = 0
+        skipped_existing = 0
+        skipped_error = 0
+
+        with open(file_path, "r", encoding="latin-1") as f:
+            reader = csv.DictReader(f)
+
+            for row in reader:
+                try:
+                    coche = (row.get("Coche") or "").strip()
+                    legacy_class = (row.get("Clase") or "").strip()
+
+                    if not coche:
+                        skipped_error += 1
+                        continue
+
+                    if MaintenanceUnitModel.objects.filter(number=coche).exists():
+                        skipped_existing += 1
+                        continue
+
+                    wagon_type_code = self._map_wagon_type_code(legacy_class)
+                    wagon_type = wagon_types_by_code.get(wagon_type_code)
+                    if not wagon_type:
+                        fallback = wagon_types_by_code.get("VAGON")
+                        if fallback:
+                            wagon_type = fallback
+                        else:
+                            self.stdout.write(
+                                self.style.WARNING(
+                                    f"  Wagon type not found: {wagon_type_code} for {coche}"
+                                )
+                            )
+                            skipped_error += 1
+                            continue
+
+                    if dry_run:
+                        created += 1
+                        continue
+
+                    with transaction.atomic():
+                        mu = MaintenanceUnitModel.objects.create(
+                            id=uuid.uuid4(),
+                            number=coche,
+                            unit_type=MaintenanceUnitModel.UnitType.WAGON,
+                            rolling_stock_category=MaintenanceUnitModel.Category.CARGO,
+                            is_active=True,
+                        )
+                        WagonModel.objects.create(
+                            maintenance_unit=mu,
+                            brand=brand,
+                            wagon_type=wagon_type,
+                            legacy_class=legacy_class or None,
+                        )
+                        created += 1
+
+                except (ValueError, KeyError) as e:
+                    self.stdout.write(
+                        self.style.WARNING(f"  Error processing row: {e}")
+                    )
+                    skipped_error += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Vagones: {created} created, {skipped_existing} already exist, "
+                f"{skipped_error} errors"
+            )
+        )
+
+    def _map_wagon_type_code(self, legacy_class: str) -> str:
+        """Map legacy wagon class to WagonType code."""
+        normalized = legacy_class.strip().lower()
+        return self.WAGON_CLASS_MAPPING.get(normalized, "VAGON")
+
+    def _ensure_wagon_reference_data(self):
+        """Ensure brand and wagon types exist for wagons."""
+        brand, created = BrandModel.objects.get_or_create(
+            code="Carga",
+            defaults={"name": "Carga", "full_name": "Vagones de Carga"},
+        )
+        if created:
+            self.stdout.write("  Created brand: Carga")
+
+        wagon_types = [
+            ("BK", "BK"),
+            ("HOPPER", "Hopper"),
+            ("CHATA", "Chata"),
+            ("CUBIERTO", "Cubierto"),
+            ("PLATAFORMA", "Plataforma"),
+            ("AUTOMOVILERA", "Automovilera"),
+            ("TANQUE", "Tanque"),
+            ("VAGON", "Vagon"),
+        ]
+
+        for code, name in wagon_types:
+            wagon_type, was_created = WagonTypeModel.objects.get_or_create(
+                code=code,
+                defaults={"name": name},
+            )
+            if was_created:
+                self.stdout.write(f"  Created wagon type: {wagon_type.name}")
+
     def _ensure_railcar_brands_and_classes(self):
         """Ensure all required brands and railcar classes exist for coches."""
         # Brands to create for coches
@@ -649,7 +798,6 @@ class Command(BaseCommand):
             ("Werkspoor", "Werkspoor"),
             ("Hitachi", "Hitachi"),
             ("Automovilera", "Automovilera"),
-            ("Carga", "Vagones de Carga"),
         ]
 
         for code, full_name in brands_to_create:
@@ -669,7 +817,6 @@ class Command(BaseCommand):
         werkspoor = BrandModel.objects.get(code="Werkspoor")
         hitachi = BrandModel.objects.get(code="Hitachi")
         automovilera = BrandModel.objects.get(code="Automovilera")
-        carga = BrandModel.objects.get(code="Carga")
 
         # Railcar classes to create
         classes_to_create = [
@@ -712,15 +859,6 @@ class Command(BaseCommand):
             ("OA", "Coche OA", hitachi),
             # Automovilera
             ("Automovilera", "Automovilera generico", automovilera),
-            # Vagones de carga (freight wagons)
-            ("Chata", "Vagon Chata", carga),
-            ("Hopper", "Vagon Hopper", carga),
-            ("BK", "Vagon BK", carga),
-            ("Cubierto", "Vagon Cubierto", carga),
-            ("Tanque", "Vagon Tanque", carga),
-            ("Plataforma", "Vagon Plataforma", carga),
-            ("Tolva", "Vagon Tolva", carga),
-            ("Vagon", "Vagon Generico", carga),
         ]
 
         # Also add Sorefame CT and P classes

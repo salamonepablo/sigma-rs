@@ -4,7 +4,18 @@ from uuid import uuid4
 
 import pytest
 
+from apps.tickets.application.use_cases.maintenance_entry_use_case import (
+    MaintenanceEntryUseCase,
+)
 from apps.tickets.domain.entities.maintenance_unit import MaintenanceUnit
+from apps.tickets.domain.services.maintenance_labels import (
+    resolve_maintenance_display_rules,
+)
+from apps.tickets.models import (
+    BrandModel,
+    MaintenanceCycleModel,
+    MaintenanceUnitModel,
+)
 
 
 # Subclase concreta para testing - NO usar @dataclass para heredar __eq__ y __hash__
@@ -93,3 +104,77 @@ class TestMaintenanceUnit:
         # Si tienen mismo ID, deberían poder estar en un set como uno solo
         units_set = {unit1, unit2}
         assert len(units_set) == 1
+
+
+class TestWagonMaintenanceRules:
+    """Pruebas de reglas de mantenimiento para vagones."""
+
+    def test_wagon_display_rules_are_specific(self):
+        rules = resolve_maintenance_display_rules(
+            unit_type="vagon",
+            brand_code="Carga",
+        )
+
+        assert rules.history_label == "Última Revisión (AL/REV/A/B)"
+        assert rules.km_label == "KM Revisión:"
+        assert rules.use_rp_history is False
+        assert rules.show_abc is False
+
+
+@pytest.mark.django_db
+def test_wagon_cycles_include_al_rev_a_b_only():
+    brand_carga, _ = BrandModel.objects.get_or_create(
+        code="Carga",
+        defaults={
+            "id": uuid4(),
+            "name": "Carga",
+            "full_name": "Carga",
+        },
+    )
+    brand_gm, _ = BrandModel.objects.get_or_create(
+        code="GM",
+        defaults={
+            "id": uuid4(),
+            "name": "GM",
+            "full_name": "General Motors",
+        },
+    )
+    unit = MaintenanceUnitModel.objects.create(
+        id=uuid4(),
+        number="V001",
+        unit_type=MaintenanceUnitModel.UnitType.WAGON,
+        rolling_stock_category=MaintenanceUnitModel.Category.CARGO,
+    )
+    trigger_values = [1000, 2000, 3000, 4000]
+    for code, value in zip(["AL", "REV", "A", "B"], trigger_values, strict=True):
+        MaintenanceCycleModel.objects.create(
+            id=uuid4(),
+            rolling_stock_type=MaintenanceUnitModel.UnitType.WAGON,
+            brand=brand_carga,
+            model=None,
+            intervention_code=code,
+            intervention_name=f"Revision {code}",
+            trigger_type="km",
+            trigger_value=value,
+            trigger_unit="km",
+            is_active=True,
+        )
+
+    MaintenanceCycleModel.objects.create(
+        id=uuid4(),
+        rolling_stock_type=MaintenanceUnitModel.UnitType.LOCOMOTIVE,
+        brand=brand_gm,
+        model=None,
+        intervention_code="ABC",
+        intervention_name="Revision ABC",
+        trigger_type="km",
+        trigger_value=9999,
+        trigger_unit="km",
+        is_active=True,
+    )
+
+    use_case = MaintenanceEntryUseCase()
+
+    cycles = use_case._load_cycles(unit, brand_code="Carga", model_code=None)
+
+    assert {cycle.intervention_code for cycle in cycles} == {"AL", "REV", "A", "B"}

@@ -17,6 +17,7 @@ from apps.tickets.domain.entities.railcar_class import RailcarClass
 # Main entity
 from apps.tickets.domain.entities.ticket import Ticket
 from apps.tickets.domain.entities.train_number import TrainNumber
+from apps.tickets.domain.entities.wagon import Wagon
 
 __all__ = [
     # Maintenance units
@@ -24,6 +25,7 @@ __all__ = [
     "Locomotive",
     "Motorcoach",
     "Railcar",
+    "Wagon",
     # Reference data
     "AffectedSystem",
     "Brand",

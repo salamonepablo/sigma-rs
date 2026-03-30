@@ -116,6 +116,19 @@ urlpatterns = [
         name="novedad_create_ccrr",
         kwargs={"category": "ccrr"},
     ),
+    # Novedad CRUD - Wagons (carga)
+    path(
+        "vagones/novedades/",
+        NovedadListView.as_view(),
+        name="novedad_list_vagones",
+        kwargs={"category": "carga"},
+    ),
+    path(
+        "vagones/novedades/create/",
+        NovedadCreateView.as_view(),
+        name="novedad_create_vagones",
+        kwargs={"category": "carga"},
+    ),
     # Tickets - Separated by category
     path(
         "locomotoras/tickets/",
@@ -140,6 +153,19 @@ urlpatterns = [
         TicketCreateView.as_view(),
         name="ticket_create_ccrr",
         kwargs={"category": "ccrr"},
+    ),
+    # Tickets - Wagons (carga)
+    path(
+        "vagones/tickets/",
+        TicketListView.as_view(),
+        name="ticket_list_vagones",
+        kwargs={"category": "carga"},
+    ),
+    path(
+        "vagones/tickets/create/",
+        TicketCreateView.as_view(),
+        name="ticket_create_vagones",
+        kwargs={"category": "carga"},
     ),
     # Tray app email dispatch
     path(

@@ -87,6 +87,10 @@
         <a href="{% url 'tickets:novedad_create_ccrr' %}" class="btn btn-primary">
             + Nueva novedad
         </a>
+        {% elif category == 'carga' %}
+        <a href="{% url 'tickets:novedad_create_vagones' %}" class="btn btn-primary">
+            + Nueva novedad
+        </a>
         {% elif unit_type %}
         <a href="{% url 'tickets:novedad_create_by_type' unit_type=unit_type %}" class="btn btn-primary">
             + Nueva novedad

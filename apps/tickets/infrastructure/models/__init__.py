@@ -13,6 +13,7 @@ from apps.tickets.infrastructure.models.maintenance_unit import (
     MaintenanceUnitModel,
     MotorcoachModel,
     RailcarModel,
+    WagonModel,
 )
 from apps.tickets.infrastructure.models.novedad import NovedadModel
 from apps.tickets.infrastructure.models.reference import (
@@ -26,6 +27,7 @@ from apps.tickets.infrastructure.models.reference import (
     PersonalModel,
     RailcarClassModel,
     TrainNumberModel,
+    WagonTypeModel,
 )
 from apps.tickets.infrastructure.models.ticket import TicketModel
 from apps.tickets.infrastructure.models.tray_terminal import TrayTerminalModel
@@ -43,12 +45,14 @@ __all__ = [
     "LugarModel",
     "PersonalModel",
     "RailcarClassModel",
+    "WagonTypeModel",
     "TrainNumberModel",
     # Maintenance units
     "LocomotiveModel",
     "MaintenanceUnitModel",
     "MotorcoachModel",
     "RailcarModel",
+    "WagonModel",
     # Maintenance cycles and entries
     "MaintenanceCycleModel",
     "MaintenanceEntryModel",

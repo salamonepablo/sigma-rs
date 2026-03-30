@@ -109,6 +109,12 @@ class InterventionPriorityResolver:
         "SEM",
         "MEN",
     ]
+    WAGON = [
+        "AL",
+        "REV",
+        "A",
+        "B",
+    ]
 
     def resolve(
         self,
@@ -149,6 +155,9 @@ class InterventionPriorityResolver:
             if normalized_brand in {"NOHAB"}:
                 return self.NOHAB_MOTORCOACH
             return self.NOHAB_MOTORCOACH
+
+        if unit_type == "vagon":
+            return self.WAGON
 
         return []
 

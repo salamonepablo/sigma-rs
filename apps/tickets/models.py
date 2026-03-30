@@ -27,6 +27,8 @@ from apps.tickets.infrastructure.models import (
     RailcarModel,
     TicketModel,
     TrainNumberModel,
+    WagonModel,
+    WagonTypeModel,
 )
 
 __all__ = [
@@ -50,6 +52,8 @@ __all__ = [
     "PersonalModel",
     "RailcarClassModel",
     "RailcarModel",
+    "WagonModel",
+    "WagonTypeModel",
     "TicketModel",
     "TrainNumberModel",
 ]

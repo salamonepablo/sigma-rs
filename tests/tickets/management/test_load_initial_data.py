@@ -3,10 +3,12 @@
 import pytest
 
 from apps.tickets.infrastructure.models import (
+    BrandModel,
     GOPModel,
     LocomotiveModel,
     MaintenanceUnitModel,
     PersonalModel,
+    WagonTypeModel,
 )
 from apps.tickets.management.commands.load_initial_data import Command
 
@@ -34,6 +36,8 @@ def test_load_initial_data_creates_personal_and_units(tmp_path, monkeypatch):
     Command().handle()
 
     assert GOPModel.objects.exists()
+    assert BrandModel.objects.filter(code="Carga").exists()
+    assert WagonTypeModel.objects.filter(code="HOPPER").exists()
     assert PersonalModel.objects.count() == 1
     assert MaintenanceUnitModel.objects.count() == 1
     assert LocomotiveModel.objects.count() == 1

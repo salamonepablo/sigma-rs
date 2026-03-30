@@ -138,12 +138,16 @@ class TicketListView(LoginRequiredMixin, ListView):
             return "Locomotoras y Coches Motor"
         elif category == "ccrr":
             return "Coches Remolcados"
+        elif category == "carga":
+            return "Vagones"
         elif unit_type == "locomotora":
             return "Locomotoras"
         elif unit_type == "coche_remolcado":
             return "Coches Remolcados"
         elif unit_type == "coche_motor":
             return "Coches Motor"
+        elif unit_type == "vagon":
+            return "Vagones"
         return "Todas las Unidades"
 
 
@@ -192,6 +196,8 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
             kwargs["unit_type"] = "locomotora"
         elif category == "ccrr":
             kwargs["unit_type"] = "coche_remolcado"
+        elif category == "carga":
+            kwargs["unit_type"] = "vagon"
         return kwargs
 
     def get_initial(self):
@@ -227,6 +233,8 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
             return reverse_lazy("tickets:ticket_list_locomotoras")
         elif category == "ccrr":
             return reverse_lazy("tickets:ticket_list_ccrr")
+        elif category == "carga":
+            return reverse_lazy("tickets:ticket_list_vagones")
         if unit_type:
             return reverse_lazy(
                 "tickets:ticket_list_by_type", kwargs={"unit_type": unit_type}
@@ -294,6 +302,8 @@ class TicketDeleteView(LoginRequiredMixin, DeleteView):
             return reverse_lazy("tickets:ticket_list_locomotoras")
         if category == "ccrr":
             return reverse_lazy("tickets:ticket_list_ccrr")
+        if category == "carga":
+            return reverse_lazy("tickets:ticket_list_vagones")
         return reverse_lazy("tickets:ticket_list")
 
 

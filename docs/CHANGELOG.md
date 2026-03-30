@@ -4,6 +4,9 @@ Todas las modificaciones relevantes del proyecto deben registrarse aquí siguien
 
 ## [Unreleased]
 
+### Added
+- Wagon parity for tickets/news, legacy import, and UI routes.
+
 ## [v1.1.0] - 2026-03-13
 ### Added
 - Backfill migration for rolling stock category.

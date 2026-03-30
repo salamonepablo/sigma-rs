@@ -122,6 +122,8 @@ class MaintenanceEntryUseCase:
                 "maintenance_unit__railcar__brand",
                 "maintenance_unit__railcar__railcar_class",
                 "maintenance_unit__motorcoach__brand",
+                "maintenance_unit__wagon__brand",
+                "maintenance_unit__wagon__wagon_type",
                 "lugar",
             )
             .filter(pk=novedad_id)
@@ -796,7 +798,7 @@ class MaintenanceEntryUseCase:
     @staticmethod
     def _unit_brand_model(maintenance_unit: MaintenanceUnitModel | None):
         if not maintenance_unit:
-            return "-", "-", None, None
+            return "-", "-", None, None, None
 
         if hasattr(maintenance_unit, "locomotive"):
             brand = maintenance_unit.locomotive.brand
@@ -827,6 +829,17 @@ class MaintenanceEntryUseCase:
                 maintenance_unit.motorcoach.configuration,
                 brand.code,
                 None,
+                maintenance_unit.unit_type,
+            )
+
+        if hasattr(maintenance_unit, "wagon"):
+            brand = maintenance_unit.wagon.brand
+            wagon_type = maintenance_unit.wagon.wagon_type
+            return (
+                brand.name,
+                wagon_type.name,
+                brand.code,
+                wagon_type.code,
                 maintenance_unit.unit_type,
             )
 

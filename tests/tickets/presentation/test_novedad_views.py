@@ -128,3 +128,65 @@ class TestNovedadViews:
         )
         page_with_al = response_with_al.context["page_obj"]
         assert page_with_al.paginator.count == 2
+
+    def test_list_vagones_includes_legacy_history(self, client):
+        """La lista de vagones muestra novedades legacy y manuales."""
+        user = self._user()
+        unit_wagon = MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="V600",
+            unit_type=MaintenanceUnitModel.UnitType.WAGON,
+            rolling_stock_category=MaintenanceUnitModel.Category.CARGO,
+        )
+        unit_rail = MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="U600",
+            unit_type=MaintenanceUnitModel.UnitType.RAILCAR,
+            rolling_stock_category=MaintenanceUnitModel.Category.RAILCAR,
+        )
+        intervencion = IntervencionTipoModel.objects.create(
+            codigo="RA",
+            descripcion="Revisión",
+        )
+        lugar = LugarModel.objects.create(codigo=21, descripcion="Taller Junin")
+        today = date.today()
+        NovedadModel.objects.create(
+            maintenance_unit=unit_wagon,
+            fecha_desde=today,
+            intervencion=intervencion,
+            lugar=lugar,
+            is_legacy=True,
+        )
+        NovedadModel.objects.create(
+            maintenance_unit=unit_wagon,
+            fecha_desde=today,
+            intervencion=intervencion,
+            lugar=lugar,
+            is_legacy=False,
+        )
+        NovedadModel.objects.create(
+            maintenance_unit=None,
+            legacy_unit_code=unit_wagon.number,
+            fecha_desde=today,
+            intervencion=intervencion,
+            lugar=lugar,
+            is_legacy=True,
+        )
+        NovedadModel.objects.create(
+            maintenance_unit=unit_rail,
+            fecha_desde=today,
+            intervencion=intervencion,
+            lugar=lugar,
+            is_legacy=False,
+        )
+        client.force_login(user)
+
+        response = client.get(reverse("tickets:novedad_list_vagones"))
+
+        assert response.status_code == 200
+        page = response.context["page_obj"]
+        assert page.paginator.count == 3
+        assert any(item.is_legacy for item in page.object_list)
+        assert all(
+            item.maintenance_unit in [unit_wagon, None] for item in page.object_list
+        )

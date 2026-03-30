@@ -8,6 +8,8 @@
     <a href="{% url 'tickets:novedad_list_locomotoras' %}" class="btn btn-outline-secondary">← Volver</a>
     {% elif category == 'ccrr' %}
     <a href="{% url 'tickets:novedad_list_ccrr' %}" class="btn btn-outline-secondary">← Volver</a>
+    {% elif category == 'carga' %}
+    <a href="{% url 'tickets:novedad_list_vagones' %}" class="btn btn-outline-secondary">← Volver</a>
     {% elif unit_type %}
     <a href="{% url 'tickets:novedad_list_by_type' unit_type=unit_type %}" class="btn btn-outline-secondary">← Volver</a>
     {% else %}

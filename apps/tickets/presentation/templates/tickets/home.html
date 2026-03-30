@@ -16,7 +16,7 @@
                 <!-- Cards de selección de tipo de unidad -->
                 <div class="row g-3 mb-3">
                     <!-- Locomotoras -->
-                    <div class="col-6">
+                    <div class="col-4">
                         <div class="card h-100 border-0 unit-card bg-light">
                             <div class="card-body text-center p-2">
                                 <h6 class="card-title mb-2 text-primary">Locomotoras y Coches Motor</h6>
@@ -45,7 +45,7 @@
                     </div>
 
                     <!-- Coches Remolcados -->
-                    <div class="col-6">
+                    <div class="col-4">
                         <div class="card h-100 border-0 unit-card bg-light">
                             <div class="card-body text-center p-2">
                                 <h6 class="card-title mb-2 text-success">Coches Remolcados</h6>
@@ -66,6 +66,31 @@
                                     </a>
                                     <a href="{% url 'tickets:ticket_create_ccrr' %}" 
                                        class="btn btn-outline-success btn-sm">
+                                        + Nuevo
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vagones -->
+                    <div class="col-4">
+                        <div class="card h-100 border-0 unit-card bg-light">
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title mb-2 text-warning">Vagones</h6>
+                                <div class="d-flex justify-content-center gap-1 mb-2">
+                                    <div class="brand-icon" title="Vagones de Carga">
+                                        <img src="/Statics/Images/IcoWagon.png" alt="Vagones" class="img-fluid">
+                                        <small class="d-block text-muted">Carga</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <a href="{% url 'tickets:ticket_list_vagones' %}" 
+                                       class="btn btn-warning btn-sm">
+                                        Ver
+                                    </a>
+                                    <a href="{% url 'tickets:ticket_create_vagones' %}" 
+                                       class="btn btn-outline-warning btn-sm">
                                         + Nuevo
                                     </a>
                                 </div>
@@ -120,7 +145,7 @@
                 
                 <!-- Card de Novedades -->
                 <div class="row g-3 mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="card h-100 border-0 unit-card bg-light">
                             <div class="card-body text-center p-3">
                                 <h6 class="card-title mb-2 text-info">Locomotoras y Coches Motor</h6>
@@ -145,7 +170,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="card h-100 border-0 unit-card bg-light">
                             <div class="card-body text-center p-3">
                                 <h6 class="card-title mb-2 text-success">Coches Remolcados</h6>
@@ -164,6 +189,27 @@
                                         Ver Novedades
                                     </a>
                                     <a href="{% url 'tickets:novedad_create_ccrr' %}" class="btn btn-outline-success btn-sm">
+                                        + Nueva
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 unit-card bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="card-title mb-2 text-warning">Vagones</h6>
+                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                    <div class="brand-icon" title="Vagones de Carga">
+                                        <img src="/Statics/Images/IcoWagon.png" alt="Vagones" class="img-fluid">
+                                        <small class="d-block text-muted">Carga</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="{% url 'tickets:novedad_list_vagones' %}" class="btn btn-warning btn-sm">
+                                        Ver Novedades
+                                    </a>
+                                    <a href="{% url 'tickets:novedad_create_vagones' %}" class="btn btn-outline-warning btn-sm">
                                         + Nueva
                                     </a>
                                 </div>

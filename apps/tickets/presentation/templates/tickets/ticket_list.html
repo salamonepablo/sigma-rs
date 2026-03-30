@@ -49,6 +49,10 @@
         <a href="{% url 'tickets:ticket_create_ccrr' %}" class="btn btn-primary">
             + Nuevo Ticket
         </a>
+        {% elif category == 'carga' %}
+        <a href="{% url 'tickets:ticket_create_vagones' %}" class="btn btn-primary">
+            + Nuevo Ticket
+        </a>
         {% elif unit_type %}
         <a href="{% url 'tickets:ticket_create_by_type' unit_type=unit_type %}" class="btn btn-primary">
             + Nuevo Ticket

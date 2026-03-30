@@ -10,6 +10,7 @@ from apps.tickets.infrastructure.models.reference import (
     BrandModel,
     LocomotiveModelModel,
     RailcarClassModel,
+    WagonTypeModel,
 )
 
 
@@ -24,10 +25,12 @@ class MaintenanceUnitModel(models.Model):
         LOCOMOTIVE = "locomotora", "Locomotora"
         RAILCAR = "coche_remolcado", "Coche Remolcado"
         MOTORCOACH = "coche_motor", "Coche Motor"
+        WAGON = "vagon", "Vagón"
 
     class Category(models.TextChoices):
         TRACTION = "traccion", "Tracción (Locomotoras + Coches Motor)"
         RAILCAR = "ccrr", "Coches Remolcados"
+        CARGO = "carga", "Carga (Vagones)"
 
     id = models.UUIDField(
         primary_key=True,
@@ -49,7 +52,7 @@ class MaintenanceUnitModel(models.Model):
         max_length=10,
         choices=Category.choices,
         verbose_name="Categoría",
-        help_text="Tracción (locomotoras + coches motor) o Coches Remolcados",
+        help_text=("Tracción (locomotoras + coches motor), Coches Remolcados o Carga"),
         null=True,
         blank=True,
     )
@@ -154,6 +157,55 @@ class RailcarModel(models.Model):
 
     def __str__(self) -> str:
         return f"Coche {self.maintenance_unit.number}"
+
+    @property
+    def number(self) -> str:
+        """Return the unit number."""
+        return self.maintenance_unit.number
+
+    @property
+    def is_active(self) -> bool:
+        """Return whether the unit is active."""
+        return self.maintenance_unit.is_active
+
+
+class WagonModel(models.Model):
+    """Wagon (Vagón) maintenance unit."""
+
+    maintenance_unit = models.OneToOneField(
+        MaintenanceUnitModel,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name="wagon",
+        verbose_name="Unidad de mantenimiento",
+    )
+    brand = models.ForeignKey(
+        BrandModel,
+        on_delete=models.PROTECT,
+        related_name="wagons",
+        verbose_name="Marca",
+    )
+    wagon_type = models.ForeignKey(
+        WagonTypeModel,
+        on_delete=models.PROTECT,
+        related_name="wagons",
+        verbose_name="Tipo",
+    )
+    legacy_class = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Clase legacy",
+        help_text="Clase original importada desde legacy",
+    )
+
+    class Meta:
+        db_table = "wagon"
+        verbose_name = "Vagón"
+        verbose_name_plural = "Vagones"
+
+    def __str__(self) -> str:
+        return f"Vagón {self.maintenance_unit.number}"
 
     @property
     def number(self) -> str:

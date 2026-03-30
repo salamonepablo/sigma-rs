@@ -9,6 +9,8 @@
         <a href="{% url 'tickets:novedad_list_locomotoras' %}" class="btn btn-outline-secondary">← Volver al listado</a>
         {% elif category == 'ccrr' %}
         <a href="{% url 'tickets:novedad_list_ccrr' %}" class="btn btn-outline-secondary">← Volver al listado</a>
+        {% elif category == 'carga' %}
+        <a href="{% url 'tickets:novedad_list_vagones' %}" class="btn btn-outline-secondary">← Volver al listado</a>
         {% else %}
         <a href="{% url 'tickets:novedad_list' %}" class="btn btn-outline-secondary">← Volver al listado</a>
         {% endif %}

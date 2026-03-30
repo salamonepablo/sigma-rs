@@ -23,6 +23,8 @@ from apps.tickets.models import (
     MaintenanceUnitModel,
     NovedadModel,
     TicketModel,
+    WagonModel,
+    WagonTypeModel,
 )
 
 
@@ -177,3 +179,64 @@ def test_prepare_draft_includes_pending_ticket_tasks():
 
     expected = f"Ticket {pending_ticket.ticket_number} - Falla motor"
     assert draft.pending_ticket_tasks == [expected]
+
+
+@pytest.mark.django_db
+def test_prepare_draft_resolves_wagon_brand_model_and_cycles():
+    brand = BrandModel.objects.create(
+        id=uuid.uuid4(), code="Carga", name="Carga", full_name="Carga"
+    )
+    wagon_type = WagonTypeModel.objects.create(
+        id=uuid.uuid4(), code="VAGON", name="Vagón"
+    )
+    unit = MaintenanceUnitModel.objects.create(
+        id=uuid.uuid4(),
+        number="V123",
+        unit_type=MaintenanceUnitModel.UnitType.WAGON,
+        rolling_stock_category=MaintenanceUnitModel.Category.CARGO,
+    )
+    WagonModel.objects.create(
+        maintenance_unit=unit,
+        brand=brand,
+        wagon_type=wagon_type,
+    )
+    intervencion = IntervencionTipoModel.objects.create(
+        id=uuid.uuid4(), codigo="AL", descripcion="Alineación"
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        maintenance_unit=unit,
+        fecha_desde=datetime(2026, 3, 12).date(),
+        intervencion=intervencion,
+        is_legacy=False,
+    )
+
+    for code, value in zip(
+        ["AL", "REV", "A", "B"], [1000, 2000, 3000, 4000], strict=True
+    ):
+        MaintenanceCycleModel.objects.create(
+            id=uuid.uuid4(),
+            rolling_stock_type=MaintenanceUnitModel.UnitType.WAGON,
+            brand=brand,
+            model=None,
+            intervention_code=code,
+            intervention_name=f"Revision {code}",
+            trigger_type="km",
+            trigger_value=value,
+            trigger_unit="km",
+            is_active=True,
+        )
+
+    use_case = MaintenanceEntryUseCase()
+
+    draft = use_case.prepare_draft(
+        novedad_id=str(novedad.pk),
+        trigger_value=2500,
+        trigger_type="km",
+        trigger_unit="km",
+    )
+
+    assert draft.unit_type == MaintenanceUnitModel.UnitType.WAGON
+    assert draft.brand_label == brand.name
+    assert draft.model_label == wagon_type.name
+    assert draft.suggestion.suggested_code == "REV"

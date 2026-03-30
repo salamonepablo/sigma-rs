@@ -173,6 +173,54 @@ class RailcarClassModel(models.Model):
         return self.code
 
 
+class WagonTypeModel(models.Model):
+    """Wagon type taxonomy for freight rolling stock."""
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        verbose_name="ID",
+    )
+    code = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Código",
+        help_text="Código único del tipo (ej: BK, Hopper)",
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Nombre",
+        help_text="Nombre descriptivo del tipo",
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Descripción",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activo",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de creación",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Fecha de actualización",
+    )
+
+    class Meta:
+        db_table = "wagon_type"
+        verbose_name = "Tipo de vagón"
+        verbose_name_plural = "Tipos de vagón"
+        ordering = ["code"]
+
+    def __str__(self) -> str:
+        return self.code
+
+
 class FailureTypeModel(models.Model):
     """Failure type category.
 
@@ -345,6 +393,7 @@ class PersonalModel(models.Model):
     class Sector(models.TextChoices):
         LOCOMOTORAS = "locomotora", "Locomotoras"
         COCHES_REMOLCADOS = "coche_remolcado", "Coches Remolcados"
+        VAGONES = "vagon", "Vagones"
 
     id = models.UUIDField(
         primary_key=True,
@@ -371,7 +420,7 @@ class PersonalModel(models.Model):
         max_length=20,
         choices=Sector.choices,
         verbose_name="Sector",
-        help_text="Locomotoras o Coches Remolcados",
+        help_text="Locomotoras, Coches Remolcados o Vagones",
     )
     sector_simaf = models.CharField(
         max_length=100,

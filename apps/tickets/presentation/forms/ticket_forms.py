@@ -130,9 +130,15 @@ class TicketForm(forms.ModelForm):
                 unit_type__in=unit_types, is_active=True
             )
             # Filter intervinientes by sector matching unit_type
-            self.fields["interviniente"].queryset = PersonalModel.objects.filter(
-                sector=unit_type, is_active=True
-            ).order_by("full_name")
+            # Wagons use "vagon" sector
+            if unit_type == "vagon":
+                self.fields["interviniente"].queryset = PersonalModel.objects.filter(
+                    sector="vagon", is_active=True
+                ).order_by("full_name")
+            else:
+                self.fields["interviniente"].queryset = PersonalModel.objects.filter(
+                    sector=unit_type, is_active=True
+                ).order_by("full_name")
         else:
             self.fields[
                 "maintenance_unit"
