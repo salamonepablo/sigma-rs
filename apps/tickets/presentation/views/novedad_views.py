@@ -191,7 +191,7 @@ class NovedadListView(LoginRequiredMixin, ListView):
         unit_type = self.kwargs.get("unit_type")
         category = self.kwargs.get("category")
         if category == "traccion":
-            return "Locomotoras y Coches Motor"
+            return "Locomotoras y CM"
         if category == "ccrr":
             return "Coches Remolcados"
         if category == "carga":

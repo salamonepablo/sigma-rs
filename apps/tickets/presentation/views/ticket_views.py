@@ -135,7 +135,7 @@ class TicketListView(LoginRequiredMixin, ListView):
         unit_type = self.kwargs.get("unit_type")
         category = self.kwargs.get("category")
         if category == "traccion":
-            return "Locomotoras y Coches Motor"
+            return "Locomotoras y CM"
         elif category == "ccrr":
             return "Coches Remolcados"
         elif category == "carga":
