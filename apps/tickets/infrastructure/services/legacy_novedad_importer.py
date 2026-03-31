@@ -32,6 +32,7 @@ class LegacyNovedadImporter:
     """Import detenciones from legacy TXT exports."""
 
     DEFAULT_PATH = Path("context/db-legacy")
+    DELIMITER = ";"
     BATCH_SIZE = 1000
 
     def import_detenciones(
@@ -114,7 +115,7 @@ class LegacyNovedadImporter:
         batch: list[NovedadModel] = []
 
         with open(file_path, "r", encoding="latin-1") as handle:
-            reader = csv.DictReader(handle)
+            reader = csv.DictReader(handle, delimiter=self.DELIMITER)
             for row in reader:
                 processed += 1
                 parsed = self._parse_row(row, unit_field)

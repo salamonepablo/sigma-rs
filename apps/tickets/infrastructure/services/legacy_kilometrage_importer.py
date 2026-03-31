@@ -16,6 +16,7 @@ class LegacyKilometrageImporter:
     """Import kilometrage records from legacy TXT exports."""
 
     DEFAULT_PATH = Path("context/db-legacy")
+    DELIMITER = ";"
     FILE_SPECS = [
         ("Kilometraje_Locs.txt", "Locs"),
         ("Kilometraje_CCRR.txt", "Coche"),
@@ -95,7 +96,7 @@ class LegacyKilometrageImporter:
         batch = []
 
         with open(file_path, encoding="latin-1") as handle:
-            reader = csv.DictReader(handle)
+            reader = csv.DictReader(handle, delimiter=self.DELIMITER)
             for row in reader:
                 processed += 1
                 unit_number = (row.get(unit_field) or "").strip().upper()
@@ -109,6 +110,8 @@ class LegacyKilometrageImporter:
                     continue
 
                 raw_km = (row.get("Kms_diario") or "").strip()
+                if raw_km:
+                    raw_km = raw_km.replace(",", ".")
                 try:
                     km_value = int(float(raw_km))
                 except ValueError:
