@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+from decimal import Decimal
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -96,7 +97,7 @@ class MaintenanceEntryUseCase:
     def prepare_draft(
         self,
         novedad_id: str,
-        trigger_value: int | None,
+        trigger_value: Decimal | int | None,
         trigger_type: str | None,
         trigger_unit: str | None,
         entry_date: date | None = None,
@@ -401,11 +402,12 @@ class MaintenanceEntryUseCase:
         period_since = suggestion.period_since_last
 
         if trigger_type == "km" and trigger_value is not None:
+            trigger_km = self._coerce_decimal(trigger_value)
             last_km = self._kilometrage_repo.get_km_at_or_before(
                 maintenance_unit.number, suggestion.last_intervention_date
             )
-            if last_km is not None:
-                km_since = max(trigger_value - last_km, 0)
+            if last_km is not None and trigger_km is not None:
+                km_since = max(trigger_km - last_km, Decimal("0"))
 
         if trigger_type == "time" and trigger_value is not None:
             period_since = self._months_between(
@@ -427,7 +429,7 @@ class MaintenanceEntryUseCase:
         self,
         history: UnitMaintenanceHistory,
         maintenance_unit: MaintenanceUnitModel | None,
-        current_km_value: int | None,
+        current_km_value: Decimal | None,
     ) -> UnitMaintenanceHistory:
         if not maintenance_unit or current_km_value is None:
             return history
@@ -469,6 +471,12 @@ class MaintenanceEntryUseCase:
             last_abc_date=history.last_abc_date,
             last_abc_km_since=last_abc_km_since,
         )
+
+    @staticmethod
+    def _coerce_decimal(value: Decimal | int) -> Decimal:
+        if isinstance(value, Decimal):
+            return value
+        return Decimal(value)
 
     def _resolve_recipients(self, lugar_id: str | None, unit_type: str | None):
         if not unit_type:

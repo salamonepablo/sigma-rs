@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.db.models import Max
@@ -113,8 +114,8 @@ class LegacyKilometrageImporter:
                 if raw_km:
                     raw_km = raw_km.replace(",", ".")
                 try:
-                    km_value = int(float(raw_km))
-                except ValueError:
+                    km_value = Decimal(raw_km)
+                except (InvalidOperation, ValueError):
                     invalid += 1
                     continue
 

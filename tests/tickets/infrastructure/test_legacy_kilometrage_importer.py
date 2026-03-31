@@ -1,6 +1,7 @@
 """Pruebas para el importador de kilometraje legacy."""
 
 from datetime import date
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -26,11 +27,13 @@ def test_import_kilometrage_skips_old(tmp_path):
         maintenance_unit=unit,
         unit_number="A100",
         record_date=date(2024, 1, 1),
-        km_value=100,
+        km_value=Decimal("100"),
         source="legacy_csv",
     )
 
-    content = "Locs,Fecha,Kms_diario\n" "A100,01/01/2024,120\n" "A100,02/01/2024,150\n"
+    content = (
+        "Locs;Fecha;Kms_diario\n" "A100;01/01/2024;120,5\n" "A100;02/01/2024;150\n"
+    )
     (base_path / "Kilometraje_Locs.txt").write_text(content, encoding="latin-1")
 
     importer = LegacyKilometrageImporter()
@@ -58,11 +61,11 @@ def test_import_kilometrage_no_cuenta_duplicados(tmp_path):
         maintenance_unit=unit,
         unit_number="A101",
         record_date=date(2024, 1, 1),
-        km_value=100,
+        km_value=Decimal("100"),
         source="legacy_csv",
     )
 
-    content = "Locs,Fecha,Kms_diario\n" "A101,01/01/2024,120\n"
+    content = "Locs;Fecha;Kms_diario\n" "A101;01/01/2024;120,0\n"
     (base_path / "Kilometraje_Locs.txt").write_text(content, encoding="latin-1")
 
     importer = LegacyKilometrageImporter()
@@ -90,11 +93,13 @@ def test_import_kilometrage_cuenta_solo_nuevos_con_duplicados(tmp_path):
         maintenance_unit=unit,
         unit_number="A102",
         record_date=date(2024, 1, 1),
-        km_value=100,
+        km_value=Decimal("100"),
         source="legacy_csv",
     )
 
-    content = "Locs,Fecha,Kms_diario\n" "A102,01/01/2024,120\n" "A102,02/01/2024,150\n"
+    content = (
+        "Locs;Fecha;Kms_diario\n" "A102;01/01/2024;120\n" "A102;02/01/2024;150,2\n"
+    )
     (base_path / "Kilometraje_Locs.txt").write_text(content, encoding="latin-1")
 
     importer = LegacyKilometrageImporter()

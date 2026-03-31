@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 
@@ -14,7 +15,7 @@ class KilometrageRecord:
 
     unit_number: str
     record_date: date
-    km_value: int
+    km_value: Decimal
 
 
 class LegacyKilometrageRepository:
@@ -24,7 +25,9 @@ class LegacyKilometrageRepository:
         self._base_path = base_path or Path("context/db-legacy")
         self._cache: dict[str, list[KilometrageRecord]] = {}
 
-    def get_km_at_or_before(self, unit_number: str, target_date: date) -> int | None:
+    def get_km_at_or_before(
+        self, unit_number: str, target_date: date
+    ) -> Decimal | None:
         """Return kilometer value at or before a given date.
 
         Args:
@@ -42,7 +45,7 @@ class LegacyKilometrageRepository:
         filtered.sort(key=lambda r: r.record_date)
         return filtered[-1].km_value
 
-    def get_km_since(self, unit_number: str, from_date: date) -> int | None:
+    def get_km_since(self, unit_number: str, from_date: date) -> Decimal | None:
         """Return total kilometers since a given date.
 
         Sums all km values from the first record on or after from_date
@@ -61,10 +64,10 @@ class LegacyKilometrageRepository:
         if not filtered:
             return None
         filtered.sort(key=lambda r: r.record_date)
-        total_km = sum(r.km_value for r in filtered)
+        total_km = sum((r.km_value for r in filtered), Decimal("0"))
         return total_km
 
-    def get_latest_km(self, unit_number: str) -> int | None:
+    def get_latest_km(self, unit_number: str) -> Decimal | None:
         """Return latest kilometer value for a unit."""
 
         records = self._get_records(unit_number)
@@ -96,19 +99,21 @@ class LegacyKilometrageRepository:
     ) -> list[KilometrageRecord]:
         records: list[KilometrageRecord] = []
         with open(file_path, encoding="latin-1") as handle:
-            reader = csv.DictReader(handle)
+            reader = csv.DictReader(handle, delimiter=";")
             for row in reader:
                 raw_unit = (row.get(unit_field) or "").strip().upper()
                 if raw_unit != unit_key:
                     continue
                 raw_date = (row.get("Fecha") or "").strip()
                 raw_km = (row.get("Kms_diario") or "").strip()
+                if raw_km:
+                    raw_km = raw_km.replace(",", ".")
                 parsed_date = self._parse_date(raw_date)
                 if not parsed_date:
                     continue
                 try:
-                    km_value = int(float(raw_km))
-                except ValueError:
+                    km_value = Decimal(raw_km)
+                except (InvalidOperation, ValueError):
                     continue
                 records.append(
                     KilometrageRecord(

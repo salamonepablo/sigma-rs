@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
 from django import forms
 from django.utils import timezone
 
@@ -141,10 +143,11 @@ class MaintenanceEntryForm(forms.Form):
 
         km_value = None
         if km_raw:
-            km_value = str(km_raw).replace(".", "").replace(",", "").strip()
-            if km_value.isdigit():
-                km_value = int(km_value)
-            else:
+            normalized = str(km_raw).strip()
+            normalized = normalized.replace(".", "").replace(",", ".")
+            try:
+                km_value = Decimal(normalized)
+            except (InvalidOperation, ValueError):
                 self.add_error("trigger_km", "Kilometraje inválido.")
                 return cleaned_data
 
@@ -178,7 +181,7 @@ class MaintenanceEntryForm(forms.Form):
         return self._resolved_trigger_type
 
     @property
-    def resolved_trigger_value(self) -> int | None:
+    def resolved_trigger_value(self) -> Decimal | int | None:
         return self._resolved_trigger_value
 
     @property

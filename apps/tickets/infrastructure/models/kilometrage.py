@@ -24,7 +24,9 @@ class KilometrageRecordModel(BaseModel):
     record_date = models.DateField(
         verbose_name="Fecha",
     )
-    km_value = models.PositiveIntegerField(
+    km_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
         verbose_name="Kilometraje",
     )
     source = models.CharField(

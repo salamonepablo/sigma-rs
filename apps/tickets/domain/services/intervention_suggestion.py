@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from datetime import date
 from typing import Iterable
 
@@ -32,15 +33,15 @@ class UnitMaintenanceHistory:
     """Summary of unit's maintenance history for display."""
 
     last_rg_date: date | None
-    last_rg_km_since: int | None
+    last_rg_km_since: Decimal | None
     last_numeral_code: str | None
     last_numeral_date: date | None
-    last_numeral_km_since: int | None
+    last_numeral_km_since: Decimal | None
     last_rp_code: str | None
     last_rp_date: date | None
-    last_rp_km_since: int | None
+    last_rp_km_since: Decimal | None
     last_abc_date: date | None
-    last_abc_km_since: int | None
+    last_abc_km_since: Decimal | None
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,7 @@ class InterventionSuggestion:
     suggested_name: str | None
     last_intervention_code: str | None
     last_intervention_date: date | None
-    km_since_last: int | None
+    km_since_last: Decimal | None
     period_since_last: int | None
 
 
@@ -175,10 +176,10 @@ class InterventionSuggestionService:
         model_code: str | None,
         cycles: Iterable[MaintenanceCycle],
         trigger_type: str | None,
-        trigger_value: int | None,
+        trigger_value: Decimal | int | None,
         history: Iterable[InterventionHistoryItem],
-        last_km_value: int | None = None,
-        current_km_value: int | None = None,
+        last_km_value: Decimal | None = None,
+        current_km_value: Decimal | None = None,
         last_period_value: int | None = None,
         current_period_value: int | None = None,
     ) -> InterventionSuggestion:
@@ -266,10 +267,10 @@ class InterventionSuggestionService:
                 last_intervention = item
                 break
 
-        km_since = None
+        km_since: Decimal | None = None
         period_since = None
         if last_km_value is not None and current_km_value is not None:
-            km_since = max(current_km_value - last_km_value, 0)
+            km_since = max(current_km_value - last_km_value, Decimal("0"))
         if last_period_value is not None and current_period_value is not None:
             period_since = max(current_period_value - last_period_value, 0)
 
@@ -294,7 +295,7 @@ class InterventionSuggestionService:
         brand_code: str | None,
         model_code: str | None,
         history: Iterable[InterventionHistoryItem],
-        current_km_value: int | None = None,
+        current_km_value: Decimal | None = None,
         current_period_value: int | None = None,
         entry_date: date | None = None,
     ) -> UnitMaintenanceHistory:
