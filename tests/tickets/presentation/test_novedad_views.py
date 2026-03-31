@@ -1,12 +1,18 @@
 """Pruebas de vistas para novedades."""
 
 from datetime import date
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.urls import reverse
 
+from apps.tickets.application.use_cases.legacy_sync_use_case import (
+    LegacySyncResult,
+    SyncStats,
+)
 from apps.tickets.infrastructure.models import (
     IntervencionTipoModel,
     LugarModel,
@@ -190,3 +196,48 @@ class TestNovedadViews:
         assert all(
             item.maintenance_unit in [unit_wagon, None] for item in page.object_list
         )
+
+    def test_sync_view_redirects_with_labeled_counts(self, client):
+        """La sincronizacion redirige y muestra conteos etiquetados."""
+        user = self._user()
+        client.force_login(user)
+
+        result = LegacySyncResult(
+            novedades=SyncStats(
+                processed=10, inserted=3, skipped_old=0, duplicates=1, invalid=0
+            ),
+            kilometrage=SyncStats(
+                processed=6, inserted=4, skipped_old=2, duplicates=0, invalid=0
+            ),
+            duration_seconds=0.5,
+        )
+
+        with patch(
+            "apps.tickets.presentation.views.novedad_views.LegacySyncUseCase.run",
+            return_value=result,
+        ):
+            response = client.post(reverse("tickets:novedad_sync"))
+
+        assert response.status_code == 302
+        messages_list = [
+            str(message) for message in get_messages(response.wsgi_request)
+        ]
+        assert any("Novedades:" in message for message in messages_list)
+        assert any("Kilometraje:" in message for message in messages_list)
+
+    def test_sync_button_is_single_across_unit_types(self, client):
+        """El control de sync aparece una vez en cada vista por tipo."""
+        user = self._user()
+        client.force_login(user)
+
+        urls = [
+            reverse("tickets:novedad_list_locomotoras"),
+            reverse("tickets:novedad_list_ccrr"),
+            reverse("tickets:novedad_list_vagones"),
+        ]
+
+        for url in urls:
+            response = client.get(url)
+            assert response.status_code == 200
+            content = response.content.decode("utf-8")
+            assert content.count('data-sync-control="legacy-sync"') == 1

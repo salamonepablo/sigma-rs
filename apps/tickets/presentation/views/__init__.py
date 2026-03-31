@@ -8,10 +8,12 @@ from apps.tickets.presentation.views.novedad_views import (
     NovedadDeleteView,
     NovedadDetailView,
     NovedadListView,
+    NovedadSyncView,
     NovedadUpdateView,
 )
 from apps.tickets.presentation.views.ticket_views import (
     HomeView,
+    LegacySyncView,
     TicketCreateView,
     TicketDeleteView,
     TicketDetailView,
@@ -22,6 +24,7 @@ from apps.tickets.presentation.views.ticket_views import (
 
 __all__ = [
     "HomeView",
+    "LegacySyncView",
     "LoginView",
     "LogoutView",
     "TicketCreateView",
@@ -36,5 +39,6 @@ __all__ = [
     "MaintenanceEntryCreateView",
     "NovedadUpdateView",
     "NovedadDeleteView",
+    "NovedadSyncView",
     "ResetIngresoView",
 ]

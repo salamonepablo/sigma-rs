@@ -8,8 +8,10 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
-from django.urls import reverse_lazy
+from django.shortcuts import redirect
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.views import View
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -19,6 +21,7 @@ from django.views.generic import (
     UpdateView,
 )
 
+from apps.tickets.application.use_cases.legacy_sync_use_case import LegacySyncUseCase
 from apps.tickets.application.use_cases.maintenance_entry_use_case import (
     MaintenanceEntryUseCase,
 )
@@ -223,6 +226,34 @@ class NovedadListView(LoginRequiredMixin, ListView):
         mutable.pop("page", None)
         mutable["range_days"] = str(next_range)
         return f"?{urlencode(mutable)}"
+
+
+class NovedadSyncView(LoginRequiredMixin, View):
+    """Trigger synchronous sync for novedades and kilometrage."""
+
+    def post(self, request, *args, **kwargs):
+        next_url = (
+            request.POST.get("next")
+            or request.META.get("HTTP_REFERER")
+            or reverse("tickets:novedad_list")
+        )
+        use_case = LegacySyncUseCase()
+
+        try:
+            result = use_case.run()
+            message = (
+                "Sincronizacion completada. "
+                f"Novedades: {result.novedades.inserted} · "
+                f"Kilometraje: {result.kilometrage.inserted}"
+            )
+            messages.success(request, message)
+        except Exception as exc:
+            messages.error(
+                request,
+                "No se pudo sincronizar novedades y kilometraje. " f"Detalle: {exc}",
+            )
+
+        return redirect(next_url)
 
 
 class NovedadDetailView(LoginRequiredMixin, DetailView):

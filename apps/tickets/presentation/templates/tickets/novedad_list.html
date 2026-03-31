@@ -74,6 +74,13 @@
         <a href="{% url 'tickets:home' %}" class="btn btn-outline-secondary">
             ← Inicio
         </a>
+        <form method="post" action="{% url 'tickets:novedad_sync' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn btn-outline-primary" data-sync-control="legacy-sync">
+                Sincronizar
+            </button>
+        </form>
         {% if more_history_query %}
         <a href="{{ more_history_query }}" class="btn btn-outline-warning" data-action="load-more-history">
             +30 días históricos

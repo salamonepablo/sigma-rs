@@ -1,13 +1,15 @@
 """Views for Ticket CRUD operations."""
 
+import logging
 import uuid
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views import View
 from django.views.generic import (
@@ -19,6 +21,7 @@ from django.views.generic import (
     UpdateView,
 )
 
+from apps.tickets.application.use_cases.legacy_sync_use_case import LegacySyncUseCase
 from apps.tickets.models import (
     FailureTypeModel,
     NovedadModel,
@@ -26,6 +29,8 @@ from apps.tickets.models import (
     TrainNumberModel,
 )
 from apps.tickets.presentation.forms import TicketFilterForm, TicketForm
+
+logger = logging.getLogger(__name__)
 
 
 class HomeView(LoginRequiredMixin, TemplateView):
@@ -55,7 +60,87 @@ class HomeView(LoginRequiredMixin, TemplateView):
         ).count()
         context["novedades_total"] = NovedadModel.objects.count()
 
+        sync_status = self.request.session.pop("legacy_sync_status", None)
+        if sync_status:
+            context["legacy_sync_status"] = sync_status
+            context["legacy_sync_message"] = self.request.session.pop(
+                "legacy_sync_message", ""
+            )
+            context["legacy_sync_counts"] = self.request.session.pop(
+                "legacy_sync_counts", {}
+            )
+            context["legacy_sync_timestamp"] = self.request.session.pop(
+                "legacy_sync_timestamp", ""
+            )
+
         return context
+
+
+class LegacySyncView(LoginRequiredMixin, View):
+    """Trigger synchronous sync for novedades and kilometrage."""
+
+    def post(self, request, *args, **kwargs):
+        next_url = request.POST.get("next") or reverse("tickets:home")
+        use_case = LegacySyncUseCase()
+
+        try:
+            result = use_case.run()
+            payload = {
+                "status": "success",
+                "novedades": self._stats_payload(result.novedades),
+                "kilometrage": self._stats_payload(result.kilometrage),
+                "duration_seconds": result.duration_seconds,
+            }
+
+            if self._wants_json(request):
+                return JsonResponse(payload)
+
+            self._store_success(request, payload)
+            return redirect(next_url)
+
+        except Exception as exc:
+            logger.exception("Legacy sync failed")
+            if self._wants_json(request):
+                return JsonResponse({"status": "error", "error": str(exc)}, status=500)
+
+            self._store_error(request, str(exc))
+            return redirect(next_url)
+
+    @staticmethod
+    def _wants_json(request) -> bool:
+        accept = request.headers.get("Accept", "")
+        return (
+            "application/json" in accept
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        )
+
+    @staticmethod
+    def _stats_payload(stats) -> dict[str, int]:
+        return {
+            "processed": stats.processed,
+            "inserted": stats.inserted,
+            "skipped_old": stats.skipped_old,
+            "duplicates": stats.duplicates,
+            "invalid": stats.invalid,
+        }
+
+    @staticmethod
+    def _store_success(request, payload: dict) -> None:
+        request.session["legacy_sync_status"] = "success"
+        request.session["legacy_sync_message"] = "Sincronización completada."
+        request.session["legacy_sync_counts"] = {
+            "novedades": payload["novedades"],
+            "kilometrage": payload["kilometrage"],
+        }
+        request.session["legacy_sync_timestamp"] = timezone.now().isoformat()
+
+    @staticmethod
+    def _store_error(request, error_message: str) -> None:
+        request.session["legacy_sync_status"] = "error"
+        request.session["legacy_sync_message"] = (
+            "No se pudo sincronizar novedades y kilometraje. "
+            f"Detalle: {error_message}"
+        )
 
 
 class TicketListView(LoginRequiredMixin, ListView):

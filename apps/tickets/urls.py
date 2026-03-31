@@ -4,6 +4,7 @@ from django.urls import path
 
 from apps.tickets.presentation.views import (
     HomeView,
+    LegacySyncView,
     LoginView,
     LogoutView,
     MaintenanceEntryCreateView,
@@ -11,6 +12,7 @@ from apps.tickets.presentation.views import (
     NovedadDeleteView,
     NovedadDetailView,
     NovedadListView,
+    NovedadSyncView,
     NovedadUpdateView,
     ResetIngresoView,
     TicketCreateView,
@@ -40,6 +42,7 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     # Home
     path("", HomeView.as_view(), name="home"),
+    path("sync/legacy/", LegacySyncView.as_view(), name="legacy_sync"),
     # Ticket CRUD
     path("tickets/", TicketListView.as_view(), name="ticket_list"),
     path(
@@ -63,6 +66,7 @@ urlpatterns = [
     ),
     # Novedad CRUD - General
     path("novedades/", NovedadListView.as_view(), name="novedad_list"),
+    path("novedades/sync/", NovedadSyncView.as_view(), name="novedad_sync"),
     path("novedades/create/", NovedadCreateView.as_view(), name="novedad_create"),
     path(
         "novedades/<str:unit_type>/create/",
