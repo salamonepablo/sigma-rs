@@ -12,6 +12,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: cambiar en producción
 SECRET_KEY = "proto-mr-dev-key-cambiar-en-produccion"
 
+LEGACY_DATA_PATH="G:\Material Rodante\IFM\DOCUMENT\db-access"
+
 DEBUG = True
 
 # Permite acceso desde cualquier PC de la red
