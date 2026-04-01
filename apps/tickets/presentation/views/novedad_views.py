@@ -250,7 +250,7 @@ class NovedadSyncView(LoginRequiredMixin, View):
         except Exception as exc:
             messages.error(
                 request,
-                "No se pudo sincronizar novedades y kilometraje. " f"Detalle: {exc}",
+                f"No se pudo sincronizar novedades y kilometraje. Detalle: {exc}",
             )
 
         return redirect(next_url)

@@ -31,9 +31,7 @@ def test_import_kilometrage_skips_old(tmp_path):
         source="legacy_csv",
     )
 
-    content = (
-        "Locs;Fecha;Kms_diario\n" "A100;01/01/2024;120,5\n" "A100;02/01/2024;150\n"
-    )
+    content = "Locs;Fecha;Kms_diario\nA100;01/01/2024;120,5\nA100;02/01/2024;150\n"
     (base_path / "Kilometraje_Locs.txt").write_text(content, encoding="latin-1")
 
     importer = LegacyKilometrageImporter()
@@ -65,7 +63,7 @@ def test_import_kilometrage_no_cuenta_duplicados(tmp_path):
         source="legacy_csv",
     )
 
-    content = "Locs;Fecha;Kms_diario\n" "A101;01/01/2024;120,0\n"
+    content = "Locs;Fecha;Kms_diario\nA101;01/01/2024;120,0\n"
     (base_path / "Kilometraje_Locs.txt").write_text(content, encoding="latin-1")
 
     importer = LegacyKilometrageImporter()
@@ -97,9 +95,7 @@ def test_import_kilometrage_cuenta_solo_nuevos_con_duplicados(tmp_path):
         source="legacy_csv",
     )
 
-    content = (
-        "Locs;Fecha;Kms_diario\n" "A102;01/01/2024;120\n" "A102;02/01/2024;150,2\n"
-    )
+    content = "Locs;Fecha;Kms_diario\nA102;01/01/2024;120\nA102;02/01/2024;150,2\n"
     (base_path / "Kilometraje_Locs.txt").write_text(content, encoding="latin-1")
 
     importer = LegacyKilometrageImporter()

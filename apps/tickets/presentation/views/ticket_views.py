@@ -138,8 +138,7 @@ class LegacySyncView(LoginRequiredMixin, View):
     def _store_error(request, error_message: str) -> None:
         request.session["legacy_sync_status"] = "error"
         request.session["legacy_sync_message"] = (
-            "No se pudo sincronizar novedades y kilometraje. "
-            f"Detalle: {error_message}"
+            f"No se pudo sincronizar novedades y kilometraje. Detalle: {error_message}"
         )
 
 
