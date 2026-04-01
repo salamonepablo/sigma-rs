@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import html
-from decimal import Decimal
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings

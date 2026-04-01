@@ -31,10 +31,10 @@ def test_import_detenciones_counts(tmp_path):
     LugarModel.objects.create(codigo=10, descripcion="Taller")
 
     content = (
-        "Locs,Fecha_desde,Fecha_hasta,Intervencion,Lugar,Observaciones,Fecha_est\n"
-        "A100,01/01/2024,,RA,10,Obs,\n"
-        "A100,01/01/2024,,RA,10,Obs,\n"
-        "A100,,01/02/2024,RA,10,,\n"
+        "Locs;Fecha_desde;Fecha_hasta;Intervencion;Lugar;Observaciones;Fecha_est\n"
+        "A100;01/01/2024;;RA;10;Obs;\n"
+        "A100;01/01/2024;;RA;10;Obs;\n"
+        "A100;;01/02/2024;RA;10;;\n"
     )
     (base_path / "Detenciones_Locs.txt").write_text(content, encoding="latin-1")
 
@@ -63,8 +63,8 @@ def test_import_detenciones_ccrr_counts(tmp_path):
     LugarModel.objects.create(codigo=20, descripcion="Taller CCRR")
 
     content = (
-        "Coche,Fecha_desde,Fecha_hasta,Intervencion,Lugar,Observaciones,Fecha_est\n"
-        "U200,05/01/2024,,AL,20,,\n"
+        "Coche;Fecha_desde;Fecha_hasta;Intervencion;Lugar;Observaciones;Fecha_est\n"
+        "U200;05/01/2024;;AL;20;;\n"
     )
     (base_path / "Detenciones_CCRR.txt").write_text(content, encoding="latin-1")
 
@@ -105,8 +105,8 @@ def test_import_detenciones_dedup_con_fecha_hasta(tmp_path):
     )
 
     content = (
-        "Locs,Fecha_desde,Fecha_hasta,Intervencion,Lugar,Observaciones,Fecha_est\n"
-        "A200,01/01/2024,10/01/2024,IN,30,,\n"
+        "Locs;Fecha_desde;Fecha_hasta;Intervencion;Lugar;Observaciones;Fecha_est\n"
+        "A200;01/01/2024;10/01/2024;IN;30;;\n"
     )
     (base_path / "Detenciones_Locs.txt").write_text(content, encoding="latin-1")
 
@@ -147,8 +147,8 @@ def test_import_detenciones_normaliza_fecha_hasta_vacia(tmp_path):
     )
 
     content = (
-        "Locs,Fecha_desde,Fecha_hasta,Intervencion,Lugar,Observaciones,Fecha_est\n"
-        "A201,01/02/2024,,RE,31,,\n"
+        "Locs;Fecha_desde;Fecha_hasta;Intervencion;Lugar;Observaciones;Fecha_est\n"
+        "A201;01/02/2024;;RE;31;;\n"
     )
     (base_path / "Detenciones_Locs.txt").write_text(content, encoding="latin-1")
 
