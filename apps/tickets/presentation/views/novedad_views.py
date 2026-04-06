@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from decimal import Decimal
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -21,6 +22,7 @@ from django.views.generic import (
     UpdateView,
 )
 
+from apps.tickets.application.formatters.km_format import format_km_eu
 from apps.tickets.application.use_cases.legacy_sync_use_case import LegacySyncUseCase
 from apps.tickets.application.use_cases.maintenance_entry_use_case import (
     MaintenanceEntryUseCase,
@@ -545,8 +547,8 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
         )
 
     @staticmethod
-    def _format_km(value: int) -> str:
-        return f"{value:,}".replace(",", ".")
+    def _format_km(value: Decimal | int | str | None) -> str:
+        return format_km_eu(value)
 
 
 class NovedadReferenceMixin:

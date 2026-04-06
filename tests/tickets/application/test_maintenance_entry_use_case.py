@@ -1,14 +1,20 @@
 """Pruebas de aplicación para ingreso a mantenimiento."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from apps.tickets.application.use_cases.maintenance_entry_use_case import (
+    MaintenanceEntryDraft,
     MaintenanceEntryUseCase,
+)
+from apps.tickets.domain.services.intervention_suggestion import (
+    InterventionSuggestion,
+    UnitMaintenanceHistory,
 )
 from apps.tickets.models import (
     BrandModel,
@@ -20,6 +26,7 @@ from apps.tickets.models import (
     LugarModel,
     MaintenanceCycleModel,
     MaintenanceEntryEmailDispatchModel,
+    MaintenanceEntryModel,
     MaintenanceUnitModel,
     NovedadModel,
     TicketModel,
@@ -240,3 +247,120 @@ def test_prepare_draft_resolves_wagon_brand_model_and_cycles():
     assert draft.brand_label == brand.name
     assert draft.model_label == wagon_type.name
     assert draft.suggestion.suggested_code == "REV"
+
+
+def test_email_content_formatea_km_en_eu():
+    """El correo muestra kilometraje en formato europeo."""
+    use_case = MaintenanceEntryUseCase()
+    history = UnitMaintenanceHistory(
+        last_rg_date=date(2026, 3, 1),
+        last_rg_km_since=Decimal("1000.5"),
+        last_numeral_code=None,
+        last_numeral_date=None,
+        last_numeral_km_since=None,
+        last_rp_code=None,
+        last_rp_date=None,
+        last_rp_km_since=None,
+        last_abc_date=None,
+        last_abc_km_since=None,
+    )
+    suggestion = InterventionSuggestion(
+        status="ok",
+        reason=None,
+        suggested_code=None,
+        suggested_name=None,
+        last_intervention_code=None,
+        last_intervention_date=None,
+        km_since_last=None,
+        period_since_last=None,
+    )
+    draft = MaintenanceEntryDraft(
+        novelty=NovedadModel(fecha_desde=date(2026, 3, 1)),
+        maintenance_unit=None,
+        unit_label="A904",
+        brand_label="GM",
+        model_label="GT22",
+        unit_type="locomotora",
+        brand_code="GM",
+        trigger_value=None,
+        trigger_type=None,
+        trigger_unit=None,
+        suggestion=suggestion,
+        history=history,
+        pending_ticket_tasks=[],
+    )
+    entry = MaintenanceEntryModel(
+        id=uuid.uuid4(),
+        novedad=draft.novelty,
+        entry_datetime=datetime(2026, 3, 6, 10, 30),
+        trigger_type="km",
+        trigger_value=1000,
+    )
+
+    _, body, _ = use_case._build_email_content(entry, draft)
+
+    assert "1.000,5 km" in body
+
+
+def test_pdf_payload_formatea_km_en_eu(tmp_path, settings):
+    """El PDF recibe kilometraje con formato europeo."""
+    settings.BASE_DIR = tmp_path
+
+    use_case = MaintenanceEntryUseCase()
+    captured = {}
+
+    def fake_generate(data):
+        captured["data"] = data
+        return b"%PDF-1.4"
+
+    use_case._pdf_generator.generate = fake_generate
+
+    history = UnitMaintenanceHistory(
+        last_rg_date=date(2026, 3, 1),
+        last_rg_km_since=Decimal("1000.5"),
+        last_numeral_code=None,
+        last_numeral_date=None,
+        last_numeral_km_since=None,
+        last_rp_code=None,
+        last_rp_date=None,
+        last_rp_km_since=None,
+        last_abc_date=None,
+        last_abc_km_since=None,
+    )
+    suggestion = InterventionSuggestion(
+        status="ok",
+        reason=None,
+        suggested_code=None,
+        suggested_name=None,
+        last_intervention_code=None,
+        last_intervention_date=None,
+        km_since_last=None,
+        period_since_last=None,
+    )
+    draft = MaintenanceEntryDraft(
+        novelty=NovedadModel(fecha_desde=date(2026, 3, 1)),
+        maintenance_unit=None,
+        unit_label="A904",
+        brand_label="GM",
+        model_label="GT22",
+        unit_type="locomotora",
+        brand_code="GM",
+        trigger_value=None,
+        trigger_type=None,
+        trigger_unit=None,
+        suggestion=suggestion,
+        history=history,
+        pending_ticket_tasks=[],
+    )
+    entry = MaintenanceEntryModel(
+        id=uuid.uuid4(),
+        novedad=draft.novelty,
+        entry_datetime=datetime(2026, 3, 6, 10, 30),
+        trigger_type="km",
+        trigger_value=1000,
+    )
+
+    use_case._generate_pdf(entry, draft, user=None)
+
+    assert captured["data"].last_rg_km == "1.000,5"
+    assert captured["data"].trigger_label == "KM RG: 1.000"

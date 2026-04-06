@@ -11,6 +11,7 @@ from pathlib import Path
 from django.conf import settings
 from django.utils import timezone
 
+from apps.tickets.application.formatters.km_format import format_km_eu
 from apps.tickets.domain.services.intervention_suggestion import (
     InterventionHistoryItem,
     InterventionSuggestion,
@@ -516,16 +517,10 @@ class MaintenanceEntryUseCase:
 
         trigger_label = "-"
         if entry.trigger_type == "km" and entry.trigger_value is not None:
-            formatted_km = f"{entry.trigger_value:,}".replace(",", ".")
+            formatted_km = format_km_eu(entry.trigger_value)
             trigger_label = f"KM RG: {formatted_km}"
         if entry.trigger_type == "time" and entry.trigger_value is not None:
             trigger_label = f"Período: {entry.trigger_value} meses"
-
-        # Format history dates and km with European separator
-        def fmt_km(val):
-            if val is None:
-                return None
-            return f"{val:,}".replace(",", ".")
 
         def fmt_date(val):
             if val is None:
@@ -550,15 +545,17 @@ class MaintenanceEntryUseCase:
             checklist_tasks=self._split_tasks(entry.checklist_tasks),
             # Historial
             last_rg_date=fmt_date(history.last_rg_date) if history else None,
-            last_rg_km=fmt_km(history.last_rg_km_since) if history else None,
+            last_rg_km=format_km_eu(history.last_rg_km_since) if history else None,
             last_numeral_code=history.last_numeral_code if history else None,
             last_numeral_date=fmt_date(history.last_numeral_date) if history else None,
-            last_numeral_km=fmt_km(history.last_numeral_km_since) if history else None,
+            last_numeral_km=format_km_eu(history.last_numeral_km_since)
+            if history
+            else None,
             last_rp_code=history.last_rp_code if history else None,
             last_rp_date=fmt_date(history.last_rp_date) if history else None,
-            last_rp_km=fmt_km(history.last_rp_km_since) if history else None,
+            last_rp_km=format_km_eu(history.last_rp_km_since) if history else None,
             last_abc_date=fmt_date(history.last_abc_date) if history else None,
-            last_abc_km=fmt_km(history.last_abc_km_since) if history else None,
+            last_abc_km=format_km_eu(history.last_abc_km_since) if history else None,
         )
 
         pdf_bytes = self._pdf_generator.generate(data)
@@ -591,11 +588,6 @@ class MaintenanceEntryUseCase:
 
         entry_identifier = str(entry.id)[:8]
         subject = f"Ingreso {entry_identifier} - {unit_label} - {intervention_label}"
-
-        def fmt_km(val):
-            if val is None:
-                return "-"
-            return f"{val:,}".replace(",", ".")
 
         def fmt_date(val):
             if val is None:
@@ -657,7 +649,7 @@ class MaintenanceEntryUseCase:
         ]
 
         if entry.trigger_type == "km" and entry.trigger_value is not None:
-            detail_items.append(("KM", fmt_km(entry.trigger_value)))
+            detail_items.append(("KM", format_km_eu(entry.trigger_value) or "-"))
         if entry.trigger_type == "time" and entry.trigger_value is not None:
             detail_items.append(("Período", f"{entry.trigger_value} meses"))
 
@@ -683,17 +675,16 @@ class MaintenanceEntryUseCase:
         body_lines.append(section_separator)
 
         if history and history.last_rg_date:
-            rg_value = (
-                f"{fmt_date(history.last_rg_date)} - "
-                f"{fmt_km(history.last_rg_km_since)} km"
-            )
+            rg_km = format_km_eu(history.last_rg_km_since) or "-"
+            rg_value = f"{fmt_date(history.last_rg_date)} - {rg_km} km"
         else:
             rg_value = "Sin registro"
 
         if secondary_code:
+            secondary_km_label = format_km_eu(secondary_km) or "-"
             secondary_value = (
                 f"{secondary_code} - {fmt_date(secondary_date)} - "
-                f"{fmt_km(secondary_km)} km"
+                f"{secondary_km_label} km"
             )
         else:
             secondary_value = "Sin registro"
@@ -705,10 +696,8 @@ class MaintenanceEntryUseCase:
 
         if display_rules.show_abc:
             if history and history.last_abc_date:
-                abc_value = (
-                    f"{fmt_date(history.last_abc_date)} - "
-                    f"{fmt_km(history.last_abc_km_since)} km"
-                )
+                abc_km = format_km_eu(history.last_abc_km_since) or "-"
+                abc_value = f"{fmt_date(history.last_abc_date)} - {abc_km} km"
             else:
                 abc_value = "Sin registro"
             history_items.append(("Última ABC", abc_value))

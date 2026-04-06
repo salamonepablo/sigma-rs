@@ -1,6 +1,7 @@
 """Pruebas de vistas para novedades."""
 
 from datetime import date
+from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -19,6 +20,7 @@ from apps.tickets.infrastructure.models import (
     MaintenanceUnitModel,
     NovedadModel,
 )
+from apps.tickets.presentation.views.novedad_views import MaintenanceEntryCreateView
 
 
 @pytest.mark.django_db
@@ -241,3 +243,8 @@ class TestNovedadViews:
             assert response.status_code == 200
             content = response.content.decode("utf-8")
             assert content.count('data-sync-control="legacy-sync"') == 1
+
+    def test_prefill_km_usa_formato_eu(self):
+        """El prefill de km aplica formato europeo con decimales reales."""
+        assert MaintenanceEntryCreateView._format_km(Decimal("1000.5")) == "1.000,5"
+        assert MaintenanceEntryCreateView._format_km("1.000,5") == "1.000,5"
