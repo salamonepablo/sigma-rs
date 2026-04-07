@@ -6,6 +6,7 @@ from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
@@ -25,6 +26,7 @@ from django.views.generic import (
 from apps.tickets.application.formatters.km_format import format_km_eu
 from apps.tickets.application.use_cases.legacy_sync_use_case import LegacySyncUseCase
 from apps.tickets.application.use_cases.maintenance_entry_use_case import (
+    MaintenanceEntryRequestCache,
     MaintenanceEntryUseCase,
 )
 from apps.tickets.infrastructure.services.kilometrage_repository import (
@@ -304,6 +306,9 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
         if not self.novedad:
             messages.error(request, "No se encontró la novedad seleccionada.")
             return super().dispatch(request, *args, **kwargs)
+        self._request_cache = None
+        if getattr(settings, "INGRESO_REQUEST_CACHE_ENABLED", False):
+            self._request_cache = MaintenanceEntryRequestCache()
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
@@ -375,6 +380,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             observations=form.cleaned_data.get("observations"),
             user=self.request.user,
             terminal_id=terminal_id,
+            request_cache=getattr(self, "_request_cache", None),
         )
 
         messages.success(
@@ -427,6 +433,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             trigger_value=trigger_value,
             trigger_type=trigger_type,
             trigger_unit=trigger_unit,
+            request_cache=getattr(self, "_request_cache", None),
         )
         return self._draft_cache
 
@@ -443,6 +450,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             trigger_value=latest_km,
             trigger_type="km",
             trigger_unit="km",
+            request_cache=getattr(self, "_request_cache", None),
         )
 
         km_since_rg = draft.history.last_rg_km_since

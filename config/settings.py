@@ -89,6 +89,7 @@ LOGOUT_REDIRECT_URL = "/sigma/login/"
 # Tray app integration
 INGRESO_TRAY_TOKEN = os.getenv("INGRESO_TRAY_TOKEN", "")
 INGRESO_EMAIL_SIGNING_SECRET = os.getenv("INGRESO_EMAIL_SIGNING_SECRET", "")
+INGRESO_REQUEST_CACHE_ENABLED = False
 
 LEGACY_DATA_PATH = os.getenv("LEGACY_DATA_PATH", "").strip() or str(
     BASE_DIR / "context" / "db-legacy"

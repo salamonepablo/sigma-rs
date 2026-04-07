@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import html
-from dataclasses import dataclass
+import logging
+import time
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -46,6 +48,8 @@ from apps.tickets.infrastructure.services.pdf_generator import (
     MaintenanceEntryPdfGenerator,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class MaintenanceEntryDraft:
@@ -64,6 +68,30 @@ class MaintenanceEntryDraft:
     suggestion: InterventionSuggestion
     history: UnitMaintenanceHistory
     pending_ticket_tasks: list[str]
+
+
+@dataclass
+class MaintenanceEntryRequestCache:
+    """Request-scoped cache for maintenance entry generation."""
+
+    drafts: dict[tuple[object, ...], MaintenanceEntryDraft] = field(
+        default_factory=dict
+    )
+    draft_timings: dict[tuple[object, ...], float] = field(default_factory=dict)
+    km_since: dict[tuple[str, date], Decimal | None] = field(default_factory=dict)
+    km_since_timings: dict[tuple[str, date], float] = field(default_factory=dict)
+    km_at_or_before: dict[tuple[str, date], Decimal | None] = field(
+        default_factory=dict
+    )
+    km_at_or_before_timings: dict[tuple[str, date], float] = field(default_factory=dict)
+    latest_km: dict[str, Decimal | None] = field(default_factory=dict)
+    latest_km_timings: dict[str, float] = field(default_factory=dict)
+    draft_hits: int = 0
+    draft_misses: int = 0
+    km_hits: int = 0
+    km_misses: int = 0
+    time_saved_seconds: float = 0.0
+    telemetry_emitted: bool = False
 
 
 @dataclass(frozen=True)
@@ -102,6 +130,7 @@ class MaintenanceEntryUseCase:
         trigger_type: str | None,
         trigger_unit: str | None,
         entry_date: date | None = None,
+        request_cache: MaintenanceEntryRequestCache | None = None,
     ) -> MaintenanceEntryDraft:
         """Prepare draft data and suggestion for a maintenance entry.
 
@@ -111,11 +140,28 @@ class MaintenanceEntryUseCase:
             trigger_type: Trigger type (km or time).
             trigger_unit: Trigger unit (km or month).
             entry_date: Entry date for period calculations.
+            request_cache: Optional request-scoped cache.
 
         Returns:
             Draft object with suggestion details.
         """
-
+        cache = self._get_request_cache(request_cache)
+        entry_date = entry_date or timezone.now().date()
+        cache_key = self._draft_cache_key(
+            novedad_id=novedad_id,
+            trigger_type=trigger_type,
+            trigger_unit=trigger_unit,
+            trigger_value=trigger_value,
+            entry_date=entry_date,
+        )
+        if cache and cache_key in cache.drafts:
+            cache.draft_hits += 1
+            cache.time_saved_seconds += cache.draft_timings.get(cache_key, 0.0)
+            self._emit_cache_telemetry(cache)
+            return cache.drafts[cache_key]
+        if cache:
+            cache.draft_misses += 1
+        start_time = time.perf_counter()
         novedad = (
             NovedadModel.objects.select_related(
                 "maintenance_unit",
@@ -145,7 +191,7 @@ class MaintenanceEntryUseCase:
         )
 
         cycles = self._load_cycles(maintenance_unit, brand_code, model_code)
-        history = self._load_history(maintenance_unit)
+        history_items = self._load_history(maintenance_unit)
 
         suggestion = self._suggestion_service.suggest(
             unit_type=maintenance_unit.unit_type if maintenance_unit else None,
@@ -154,7 +200,7 @@ class MaintenanceEntryUseCase:
             cycles=cycles,
             trigger_type=trigger_type,
             trigger_value=trigger_value,
-            history=history,
+            history=history_items,
             current_km_value=trigger_value if trigger_type == "km" else None,
             current_period_value=trigger_value if trigger_type == "time" else None,
         )
@@ -164,28 +210,31 @@ class MaintenanceEntryUseCase:
             maintenance_unit=maintenance_unit,
             trigger_type=trigger_type,
             trigger_value=trigger_value,
-            entry_date=entry_date or timezone.now().date(),
+            entry_date=entry_date,
+            request_cache=cache,
         )
 
         history_summary = self._suggestion_service.get_maintenance_history(
             unit_type=maintenance_unit.unit_type if maintenance_unit else None,
             brand_code=brand_code,
             model_code=model_code,
-            history=history,
+            history=history_items,
             current_km_value=trigger_value if trigger_type == "km" else None,
             current_period_value=trigger_value if trigger_type == "time" else None,
-            entry_date=entry_date or timezone.now().date(),
+            entry_date=entry_date,
         )
 
         history_summary = self._enrich_history_with_km(
             history_summary,
             maintenance_unit=maintenance_unit,
             current_km_value=trigger_value if trigger_type == "km" else None,
+            history_items=history_items,
+            request_cache=cache,
         )
 
         pending_ticket_tasks = self._load_pending_ticket_tasks(maintenance_unit)
 
-        return MaintenanceEntryDraft(
+        draft = MaintenanceEntryDraft(
             novelty=novedad,
             maintenance_unit=maintenance_unit,
             unit_label=unit_label,
@@ -200,6 +249,11 @@ class MaintenanceEntryUseCase:
             history=history_summary,
             pending_ticket_tasks=pending_ticket_tasks,
         )
+        if cache:
+            cache.drafts[cache_key] = draft
+            cache.draft_timings[cache_key] = time.perf_counter() - start_time
+            self._emit_cache_telemetry(cache)
+        return draft
 
     def create_entry(
         self,
@@ -214,6 +268,7 @@ class MaintenanceEntryUseCase:
         observations: str | None,
         user,
         terminal_id: str | None = None,
+        request_cache: MaintenanceEntryRequestCache | None = None,
     ) -> MaintenanceEntryResult:
         """Create a maintenance entry, PDF, and email dispatch record.
 
@@ -229,6 +284,7 @@ class MaintenanceEntryUseCase:
             observations: Observations text.
             user: Django user executing the action.
             terminal_id: Terminal ID that originated the dispatch (for routing).
+            request_cache: Optional request-scoped cache.
 
         Returns:
             MaintenanceEntryResult with processing status.
@@ -240,6 +296,7 @@ class MaintenanceEntryUseCase:
             trigger_type=trigger_type,
             trigger_unit=trigger_unit,
             entry_date=entry_datetime.date(),
+            request_cache=request_cache,
         )
 
         selected_code = selected_intervention_code or draft.suggestion.suggested_code
@@ -309,6 +366,128 @@ class MaintenanceEntryUseCase:
             outlook_status=outlook_status,
             outlook_reason=outlook_reason,
         )
+
+    @staticmethod
+    def _is_cache_enabled() -> bool:
+        return bool(getattr(settings, "INGRESO_REQUEST_CACHE_ENABLED", False))
+
+    def _get_request_cache(
+        self, request_cache: MaintenanceEntryRequestCache | None
+    ) -> MaintenanceEntryRequestCache | None:
+        if not self._is_cache_enabled():
+            return None
+        return request_cache
+
+    @staticmethod
+    def _draft_cache_key(
+        novedad_id: str,
+        trigger_type: str | None,
+        trigger_unit: str | None,
+        trigger_value: Decimal | int | None,
+        entry_date: date,
+    ) -> tuple[object, ...]:
+        return (
+            novedad_id,
+            trigger_type,
+            trigger_unit,
+            trigger_value,
+            entry_date,
+        )
+
+    def _get_km_since_cached(
+        self,
+        unit_number: str,
+        target_date: date,
+        request_cache: MaintenanceEntryRequestCache | None,
+    ) -> Decimal | None:
+        cache = self._get_request_cache(request_cache)
+        cache_key = (unit_number, target_date)
+        if cache and cache_key in cache.km_since:
+            cache.km_hits += 1
+            cache.time_saved_seconds += cache.km_since_timings.get(cache_key, 0.0)
+            self._emit_cache_telemetry(cache)
+            return cache.km_since[cache_key]
+        if cache:
+            cache.km_misses += 1
+        start_time = time.perf_counter()
+        value = self._kilometrage_repo.get_km_since(unit_number, target_date)
+        if cache:
+            cache.km_since[cache_key] = value
+            cache.km_since_timings[cache_key] = time.perf_counter() - start_time
+            self._emit_cache_telemetry(cache)
+        return value
+
+    def _get_km_at_or_before_cached(
+        self,
+        unit_number: str,
+        target_date: date,
+        request_cache: MaintenanceEntryRequestCache | None,
+    ) -> Decimal | None:
+        cache = self._get_request_cache(request_cache)
+        cache_key = (unit_number, target_date)
+        if cache and cache_key in cache.km_at_or_before:
+            cache.km_hits += 1
+            cache.time_saved_seconds += cache.km_at_or_before_timings.get(
+                cache_key, 0.0
+            )
+            self._emit_cache_telemetry(cache)
+            return cache.km_at_or_before[cache_key]
+        if cache:
+            cache.km_misses += 1
+        start_time = time.perf_counter()
+        value = self._kilometrage_repo.get_km_at_or_before(unit_number, target_date)
+        if cache:
+            cache.km_at_or_before[cache_key] = value
+            cache.km_at_or_before_timings[cache_key] = time.perf_counter() - start_time
+            self._emit_cache_telemetry(cache)
+        return value
+
+    def _get_latest_km_cached(
+        self,
+        unit_number: str,
+        request_cache: MaintenanceEntryRequestCache | None,
+    ) -> Decimal | None:
+        cache = self._get_request_cache(request_cache)
+        cache_key = unit_number
+        if cache and cache_key in cache.latest_km:
+            cache.km_hits += 1
+            cache.time_saved_seconds += cache.latest_km_timings.get(cache_key, 0.0)
+            self._emit_cache_telemetry(cache)
+            return cache.latest_km[cache_key]
+        if cache:
+            cache.km_misses += 1
+        start_time = time.perf_counter()
+        value = self._kilometrage_repo.get_latest_km(unit_number)
+        if cache:
+            cache.latest_km[cache_key] = value
+            cache.latest_km_timings[cache_key] = time.perf_counter() - start_time
+            self._emit_cache_telemetry(cache)
+        return value
+
+    @staticmethod
+    def _emit_cache_telemetry(
+        request_cache: MaintenanceEntryRequestCache | None,
+    ) -> None:
+        if not request_cache or request_cache.telemetry_emitted:
+            return
+        if request_cache.draft_hits == 0 and request_cache.km_hits == 0:
+            return
+        try:
+            total_hits = request_cache.draft_hits + request_cache.km_hits
+            total_misses = request_cache.draft_misses + request_cache.km_misses
+            total = total_hits + total_misses
+            hit_rate = total_hits / total if total else 0.0
+            logger.info(
+                "Ingreso request cache metrics | hits=%s misses=%s hit_rate=%.2f "
+                "time_saved_s=%.4f",
+                total_hits,
+                total_misses,
+                hit_rate,
+                request_cache.time_saved_seconds,
+            )
+        except Exception:  # pragma: no cover - telemetry must be non-blocking
+            return
+        request_cache.telemetry_emitted = True
 
     def _load_cycles(
         self,
@@ -395,6 +574,7 @@ class MaintenanceEntryUseCase:
         trigger_type: str | None,
         trigger_value: int | None,
         entry_date: date,
+        request_cache: MaintenanceEntryRequestCache | None = None,
     ) -> InterventionSuggestion:
         if not maintenance_unit or not suggestion.last_intervention_date:
             return suggestion
@@ -404,8 +584,10 @@ class MaintenanceEntryUseCase:
 
         if trigger_type == "km" and trigger_value is not None:
             trigger_km = self._coerce_decimal(trigger_value)
-            last_km = self._kilometrage_repo.get_km_at_or_before(
-                maintenance_unit.number, suggestion.last_intervention_date
+            last_km = self._get_km_at_or_before_cached(
+                maintenance_unit.number,
+                suggestion.last_intervention_date,
+                request_cache,
             )
             if last_km is not None and trigger_km is not None:
                 km_since = max(trigger_km - last_km, Decimal("0"))
@@ -431,13 +613,15 @@ class MaintenanceEntryUseCase:
         history: UnitMaintenanceHistory,
         maintenance_unit: MaintenanceUnitModel | None,
         current_km_value: Decimal | None,
+        history_items: list[InterventionHistoryItem] | None = None,
+        request_cache: MaintenanceEntryRequestCache | None = None,
     ) -> UnitMaintenanceHistory:
         if not maintenance_unit or current_km_value is None:
             return history
 
         unit_number = maintenance_unit.number
 
-        history_items = self._load_history(maintenance_unit)
+        history_items = history_items or self._load_history(maintenance_unit)
 
         def get_date_for_code(code: str) -> date | None:
             for item in history_items:
@@ -449,7 +633,11 @@ class MaintenanceEntryUseCase:
             target_date = get_date_for_code(code)
             if target_date is None:
                 return None
-            return self._kilometrage_repo.get_km_since(unit_number, target_date)
+            return self._get_km_since_cached(
+                unit_number,
+                target_date,
+                request_cache,
+            )
 
         last_rg_km_since = get_km_since_for_code("RG")
         last_numeral_km_since = None

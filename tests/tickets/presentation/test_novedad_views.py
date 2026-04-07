@@ -14,8 +14,12 @@ from apps.tickets.application.use_cases.legacy_sync_use_case import (
     LegacySyncResult,
     SyncStats,
 )
+from apps.tickets.application.use_cases.maintenance_entry_use_case import (
+    MaintenanceEntryUseCase,
+)
 from apps.tickets.infrastructure.models import (
     IntervencionTipoModel,
+    KilometrageRecordModel,
     LugarModel,
     MaintenanceUnitModel,
     NovedadModel,
@@ -248,3 +252,54 @@ class TestNovedadViews:
         """El prefill de km aplica formato europeo con decimales reales."""
         assert MaintenanceEntryCreateView._format_km(Decimal("1000.5")) == "1.000,5"
         assert MaintenanceEntryCreateView._format_km("1.000,5") == "1.000,5"
+
+    def test_maintenance_entry_view_reuses_request_cache(self, client, settings):
+        """La vista reutiliza el cache request-scoped del ingreso."""
+        settings.INGRESO_REQUEST_CACHE_ENABLED = True
+
+        user = self._user()
+        client.force_login(user)
+
+        unit = MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="A400",
+            unit_type=MaintenanceUnitModel.UnitType.LOCOMOTIVE,
+        )
+        intervencion = IntervencionTipoModel.objects.create(
+            codigo="RA",
+            descripcion="Revisión anual",
+        )
+        novedad = NovedadModel.objects.create(
+            maintenance_unit=unit,
+            fecha_desde=date.today(),
+            intervencion=intervencion,
+            is_legacy=False,
+        )
+        KilometrageRecordModel.objects.create(
+            maintenance_unit=unit,
+            unit_number=unit.number,
+            record_date=date.today(),
+            km_value=Decimal("1000.00"),
+            source="test",
+        )
+
+        with patch(
+            "apps.tickets.application.use_cases.maintenance_entry_use_case."
+            "MaintenanceEntryUseCase.prepare_draft",
+            autospec=True,
+            wraps=MaintenanceEntryUseCase.prepare_draft,
+        ) as spy:
+            response = client.get(
+                reverse(
+                    "tickets:maintenance_entry_create",
+                    kwargs={"pk": novedad.pk},
+                )
+            )
+
+        assert response.status_code == 200
+        request_caches = [
+            call.kwargs.get("request_cache") for call in spy.call_args_list
+        ]
+        assert request_caches
+        assert request_caches[0] is not None
+        assert all(cache is request_caches[0] for cache in request_caches)

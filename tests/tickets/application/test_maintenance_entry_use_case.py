@@ -3,6 +3,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -10,6 +11,7 @@ from django.utils import timezone
 
 from apps.tickets.application.use_cases.maintenance_entry_use_case import (
     MaintenanceEntryDraft,
+    MaintenanceEntryRequestCache,
     MaintenanceEntryUseCase,
 )
 from apps.tickets.domain.services.intervention_suggestion import (
@@ -364,3 +366,230 @@ def test_pdf_payload_formatea_km_en_eu(tmp_path, settings):
 
     assert captured["data"].last_rg_km == "1.000,5"
     assert captured["data"].trigger_label == "KM RG: 1.000"
+
+
+@pytest.mark.django_db
+def test_prepare_draft_reuses_request_cache(settings):
+    settings.INGRESO_REQUEST_CACHE_ENABLED = True
+
+    brand, _ = BrandModel.objects.get_or_create(
+        code="GM",
+        defaults={
+            "id": uuid.uuid4(),
+            "name": "GM",
+            "full_name": "General Motors",
+        },
+    )
+    model, _ = LocomotiveModelModel.objects.get_or_create(
+        code="GT22-CW",
+        defaults={"id": uuid.uuid4(), "name": "GT22-CW", "brand": brand},
+    )
+    unit = MaintenanceUnitModel.objects.create(
+        id=uuid.uuid4(), number="A990", unit_type="locomotora"
+    )
+    LocomotiveModel.objects.create(maintenance_unit=unit, brand=brand, model=model)
+    intervencion, _ = IntervencionTipoModel.objects.get_or_create(
+        codigo="A",
+        defaults={"id": uuid.uuid4(), "descripcion": "Revision A"},
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        maintenance_unit=unit,
+        fecha_desde=datetime(2026, 3, 1).date(),
+        intervencion=intervencion,
+        is_legacy=False,
+    )
+    MaintenanceCycleModel.objects.create(
+        id=uuid.uuid4(),
+        rolling_stock_type="locomotora",
+        brand=brand,
+        model=None,
+        intervention_code="A",
+        intervention_name="Revision A",
+        trigger_type="km",
+        trigger_value=16000,
+        trigger_unit="km",
+        is_active=True,
+    )
+
+    use_case = MaintenanceEntryUseCase()
+    cache = MaintenanceEntryRequestCache()
+
+    first = use_case.prepare_draft(
+        novedad_id=str(novedad.pk),
+        trigger_value=20000,
+        trigger_type="km",
+        trigger_unit="km",
+        entry_date=datetime(2026, 3, 6).date(),
+        request_cache=cache,
+    )
+
+    with patch.object(
+        use_case, "_load_history", side_effect=AssertionError("cache miss")
+    ):
+        second = use_case.prepare_draft(
+            novedad_id=str(novedad.pk),
+            trigger_value=20000,
+            trigger_type="km",
+            trigger_unit="km",
+            entry_date=datetime(2026, 3, 6).date(),
+            request_cache=cache,
+        )
+
+    assert second is first
+
+
+def test_km_lookup_uses_request_cache(settings):
+    settings.INGRESO_REQUEST_CACHE_ENABLED = True
+
+    use_case = MaintenanceEntryUseCase()
+    cache = MaintenanceEntryRequestCache()
+    calls: list[tuple[str, date]] = []
+
+    def fake_get_km_since(unit_number: str, from_date: date):
+        calls.append((unit_number, from_date))
+        return Decimal("10")
+
+    use_case._kilometrage_repo.get_km_since = fake_get_km_since
+
+    value_one = use_case._get_km_since_cached("A1", date(2026, 3, 1), cache)
+    value_two = use_case._get_km_since_cached("A1", date(2026, 3, 1), cache)
+
+    assert value_one == Decimal("10")
+    assert value_two == Decimal("10")
+    assert len(calls) == 1
+
+
+@pytest.mark.django_db
+def test_prepare_draft_ignores_cache_when_flag_disabled(settings):
+    settings.INGRESO_REQUEST_CACHE_ENABLED = False
+
+    unit = MaintenanceUnitModel.objects.create(
+        id=uuid.uuid4(), number="A991", unit_type="locomotora"
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        maintenance_unit=unit,
+        fecha_desde=datetime(2026, 3, 5).date(),
+        is_legacy=False,
+    )
+
+    use_case = MaintenanceEntryUseCase()
+    cache = MaintenanceEntryRequestCache()
+
+    use_case.prepare_draft(
+        novedad_id=str(novedad.pk),
+        trigger_value=None,
+        trigger_type=None,
+        trigger_unit=None,
+        entry_date=datetime(2026, 3, 6).date(),
+        request_cache=cache,
+    )
+
+    with patch.object(use_case, "_load_history", wraps=use_case._load_history) as spy:
+        use_case.prepare_draft(
+            novedad_id=str(novedad.pk),
+            trigger_value=None,
+            trigger_type=None,
+            trigger_unit=None,
+            entry_date=datetime(2026, 3, 6).date(),
+            request_cache=cache,
+        )
+
+    assert spy.call_count == 1
+    assert cache.drafts == {}
+
+
+@pytest.mark.django_db
+def test_cache_telemetry_failure_does_not_break_request(tmp_path, settings):
+    settings.BASE_DIR = tmp_path
+    settings.INGRESO_REQUEST_CACHE_ENABLED = True
+
+    brand, _ = BrandModel.objects.get_or_create(
+        code="GM",
+        defaults={
+            "id": uuid.uuid4(),
+            "name": "GM",
+            "full_name": "General Motors",
+        },
+    )
+    model, _ = LocomotiveModelModel.objects.get_or_create(
+        code="GT22-CW",
+        defaults={"id": uuid.uuid4(), "name": "GT22-CW", "brand": brand},
+    )
+    unit = MaintenanceUnitModel.objects.create(
+        id=uuid.uuid4(), number="A992", unit_type="locomotora"
+    )
+    LocomotiveModel.objects.create(maintenance_unit=unit, brand=brand, model=model)
+    lugar, _ = LugarModel.objects.get_or_create(
+        codigo=130,
+        defaults={"id": uuid.uuid4(), "descripcion": "PMRE"},
+    )
+    intervencion, _ = IntervencionTipoModel.objects.get_or_create(
+        codigo="A",
+        defaults={"id": uuid.uuid4(), "descripcion": "Revision A"},
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        maintenance_unit=unit,
+        fecha_desde=datetime(2026, 3, 1).date(),
+        intervencion=intervencion,
+        lugar=lugar,
+        is_legacy=False,
+    )
+    MaintenanceCycleModel.objects.create(
+        id=uuid.uuid4(),
+        rolling_stock_type="locomotora",
+        brand=brand,
+        model=None,
+        intervention_code="A",
+        intervention_name="Revision A",
+        trigger_type="km",
+        trigger_value=16000,
+        trigger_unit="km",
+        is_active=True,
+    )
+    user = get_user_model().objects.create_user(
+        username="tester2", email="tester2@trenesargentinos.gob.ar", password="x"
+    )
+
+    use_case = MaintenanceEntryUseCase()
+    cache = MaintenanceEntryRequestCache()
+    entry_datetime = timezone.make_aware(datetime(2026, 3, 6, 10, 30))
+
+    use_case.prepare_draft(
+        novedad_id=str(novedad.pk),
+        trigger_value=20000,
+        trigger_type="km",
+        trigger_unit="km",
+        entry_date=entry_datetime.date(),
+        request_cache=cache,
+    )
+    use_case.prepare_draft(
+        novedad_id=str(novedad.pk),
+        trigger_value=20000,
+        trigger_type="km",
+        trigger_unit="km",
+        entry_date=entry_datetime.date(),
+        request_cache=cache,
+    )
+
+    with patch(
+        "apps.tickets.application.use_cases.maintenance_entry_use_case.logger.info",
+        side_effect=RuntimeError("boom"),
+    ):
+        result = use_case.create_entry(
+            novedad_id=str(novedad.pk),
+            entry_datetime=entry_datetime,
+            trigger_type="km",
+            trigger_value=20000,
+            trigger_unit="km",
+            lugar_id=str(lugar.pk),
+            selected_intervention_code=None,
+            checklist_tasks=None,
+            observations=None,
+            user=user,
+            request_cache=cache,
+        )
+
+    assert result.entry is not None
