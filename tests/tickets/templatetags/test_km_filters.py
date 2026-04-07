@@ -20,6 +20,11 @@ def test_km_format_con_formato_eu():
     assert km_format("1.000,50") == "1.000,50"
 
 
+def test_km_format_trunca_decimales():
+    """Trunca decimales a dos posiciones sin redondear."""
+    assert km_format(Decimal("1000.567")) == "1.000,56"
+
+
 def test_km_format_con_nulos():
     """Devuelve cadena vacia para nulos."""
     assert km_format(None) == ""

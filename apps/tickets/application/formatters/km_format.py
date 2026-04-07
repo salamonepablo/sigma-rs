@@ -12,8 +12,9 @@ def format_km_eu(value: Decimal | int | str | None) -> str:
         value: Raw kilometrage value (Decimal, int, str, or None).
 
     Returns:
-        Formatted value using dot thousands and comma decimals. Empty input
-        returns an empty string.
+        Formatted value using dot thousands and comma decimals. Decimal values
+        are truncated to two places without rounding. Empty input returns an
+        empty string.
     """
 
     if value is None:
@@ -80,6 +81,8 @@ def _format_numeric_string(raw: str) -> str:
 def _format_parts(integer_part: str, decimal_part: str | None) -> str:
     integer_part = integer_part.strip()
     decimal_part = decimal_part.strip() if decimal_part is not None else None
+    if decimal_part is not None and len(decimal_part) > 2:
+        decimal_part = decimal_part[:2]
 
     sign = ""
     if integer_part.startswith("-"):
