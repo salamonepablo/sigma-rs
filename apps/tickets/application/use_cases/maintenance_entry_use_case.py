@@ -11,6 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from apps.tickets.application.formatters.km_format import format_km_eu
@@ -104,6 +105,16 @@ class MaintenanceEntryResult:
     recipients_reason: str | None
     outlook_status: str
     outlook_reason: str | None
+
+
+@dataclass(frozen=True)
+class MaintenanceEntryDeleteResult:
+    """Result of maintenance entry deletion."""
+
+    novedad: NovedadModel
+    entry_id: str | None
+    had_sent_dispatch: bool
+    pdf_deleted: bool
 
 
 class MaintenanceEntryUseCase:
@@ -367,9 +378,82 @@ class MaintenanceEntryUseCase:
             outlook_reason=outlook_reason,
         )
 
+    def delete_entry(
+        self,
+        novedad_id: str,
+        user,
+        *,
+        confirm_sent: bool = False,
+    ) -> MaintenanceEntryDeleteResult:
+        """Delete a maintenance entry and its related artifacts.
+
+        Args:
+            novedad_id: Novedad identifier.
+            user: Django user executing the action.
+            confirm_sent: Explicit confirmation when sent dispatches exist.
+
+        Returns:
+            MaintenanceEntryDeleteResult with deletion status.
+        """
+        if not self._is_admin(user):
+            raise PermissionError("Admin privileges required")
+
+        novedad = NovedadModel.objects.filter(pk=novedad_id).first()
+        if not novedad:
+            raise ValueError("Novedad not found")
+
+        entry = (
+            MaintenanceEntryModel.objects.filter(novedad_id=novedad_id)
+            .order_by("-created_at")
+            .first()
+        )
+        if not entry:
+            raise ValueError("Maintenance entry not found")
+
+        had_sent_dispatch = self._dispatch_repo.has_sent_by_entry(entry.id)
+        if had_sent_dispatch and not confirm_sent:
+            raise ValueError("Sent dispatches require confirmation")
+
+        entry_id = str(entry.id)
+        pdf_path = entry.pdf_path
+        pdf_deleted = False
+
+        def delete_pdf() -> None:
+            nonlocal pdf_deleted
+            if not pdf_path:
+                return
+            file_path = Path(pdf_path)
+            if not file_path.exists():
+                return
+            try:
+                file_path.unlink()
+                pdf_deleted = True
+            except Exception as exc:  # pragma: no cover - filesystem failure
+                logger.warning("Failed to delete ingreso PDF %s: %s", pdf_path, exc)
+
+        with transaction.atomic():
+            self._dispatch_repo.delete_by_entry(entry.id)
+            entry.delete()
+            novedad.ingreso_generado = False
+            novedad.save(update_fields=["ingreso_generado", "updated_at"])
+            transaction.on_commit(delete_pdf)
+
+        return MaintenanceEntryDeleteResult(
+            novedad=novedad,
+            entry_id=entry_id,
+            had_sent_dispatch=had_sent_dispatch,
+            pdf_deleted=pdf_deleted,
+        )
+
     @staticmethod
     def _is_cache_enabled() -> bool:
         return bool(getattr(settings, "INGRESO_REQUEST_CACHE_ENABLED", False))
+
+    @staticmethod
+    def _is_admin(user) -> bool:
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        return bool(user.is_staff or user.is_superuser)
 
     def _get_request_cache(
         self, request_cache: MaintenanceEntryRequestCache | None

@@ -3,6 +3,7 @@
 from django.urls import path
 
 from apps.tickets.presentation.views import (
+    DeleteIngresoView,
     HomeView,
     LegacySyncView,
     LoginView,
@@ -94,6 +95,11 @@ urlpatterns = [
         "novedad/<uuid:pk>/reset-ingreso/",
         ResetIngresoView.as_view(),
         name="novedad_reset_ingreso",
+    ),
+    path(
+        "novedad/<uuid:pk>/ingreso/delete/",
+        DeleteIngresoView.as_view(),
+        name="novedad_delete_ingreso",
     ),
     # Novedad CRUD - Separated by category
     path(

@@ -71,6 +71,7 @@ DATABASES = {
 
 # Asegurar que exista el directorio de la BD
 os.makedirs(BASE_DIR / "db", exist_ok=True)
+os.makedirs(BASE_DIR / "logs", exist_ok=True)
 
 LANGUAGE_CODE = "es-ar"
 TIME_ZONE = "America/Argentina/Buenos_Aires"
@@ -95,3 +96,28 @@ LEGACY_DATA_PATH = os.getenv("LEGACY_DATA_PATH", "").strip() or str(
     BASE_DIR / "context" / "db-legacy"
 )
 # Shared path reference: G:\Material Rodante\IFM\DOCUMENT\db-access
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        }
+    },
+    "handlers": {
+        "ingresos_file": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": str(BASE_DIR / "logs" / "ingresos.log"),
+            "formatter": "simple",
+        }
+    },
+    "loggers": {
+        "apps.tickets.presentation.views.novedad_views": {
+            "handlers": ["ingresos_file"],
+            "level": "INFO",
+            "propagate": False,
+        }
+    },
+}

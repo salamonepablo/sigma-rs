@@ -1,0 +1,37 @@
+{% extends "tickets/base.html" %}
+{% block page_title %}Eliminar ingreso{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 720px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-danger text-white">
+            Confirmar eliminacion de ingreso
+        </div>
+        <div class="card-body">
+            {% if had_sent_dispatch %}
+            <div class="alert alert-danger" role="alert">
+                Este ingreso ya fue enviado por correo. La eliminacion es irreversible y solo
+                puede deshacerse restaurando la base de datos.
+            </div>
+            {% else %}
+            <div class="alert alert-warning" role="alert">
+                Vas a eliminar el ingreso. Esta accion es irreversible y solo se revierte con
+                un restore de base de datos.
+            </div>
+            {% endif %}
+
+            <p class="mb-2"><strong>Novedad:</strong> {{ novedad.pk|slice:":8" }}...</p>
+            <p class="mb-4"><strong>Ingreso:</strong> {{ entry.id|slice:":8" }}...</p>
+
+            <form method="post" action="{{ confirm_action }}" class="d-flex gap-2">
+                {% csrf_token %}
+                {% if had_sent_dispatch %}
+                <input type="hidden" name="confirm_sent" value="1">
+                {% endif %}
+                <button type="submit" class="btn btn-danger">Eliminar ingreso</button>
+                <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

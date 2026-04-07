@@ -593,3 +593,114 @@ def test_cache_telemetry_failure_does_not_break_request(tmp_path, settings):
         )
 
     assert result.entry is not None
+
+
+@pytest.mark.django_db
+def test_delete_entry_removes_dispatches_and_resets_novedad():
+    user = get_user_model().objects.create_user(
+        username="admin", password="secret", is_staff=True
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        fecha_desde=datetime(2026, 3, 7).date(),
+        is_legacy=False,
+        ingreso_generado=True,
+    )
+    entry = MaintenanceEntryModel.objects.create(
+        id=uuid.uuid4(),
+        novedad=novedad,
+        entry_datetime=timezone.now(),
+    )
+    MaintenanceEntryEmailDispatchModel.objects.create(
+        entry=entry,
+        status=MaintenanceEntryEmailDispatchModel.Status.PENDING,
+        attempts=0,
+        to_recipients=["to@example.com"],
+        cc_recipients=[],
+        subject="Ingreso",
+        body="Cuerpo",
+    )
+
+    use_case = MaintenanceEntryUseCase()
+
+    result = use_case.delete_entry(novedad_id=str(novedad.pk), user=user)
+
+    assert not MaintenanceEntryEmailDispatchModel.objects.filter(
+        entry_id=entry.id
+    ).exists()
+    assert not MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+    novedad.refresh_from_db()
+    assert novedad.ingreso_generado is False
+    assert result.had_sent_dispatch is False
+
+
+@pytest.mark.django_db
+def test_delete_entry_blocks_when_sent_without_confirmation():
+    user = get_user_model().objects.create_user(
+        username="admin", password="secret", is_staff=True
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        fecha_desde=datetime(2026, 3, 7).date(),
+        is_legacy=False,
+        ingreso_generado=True,
+    )
+    entry = MaintenanceEntryModel.objects.create(
+        id=uuid.uuid4(),
+        novedad=novedad,
+        entry_datetime=timezone.now(),
+    )
+    MaintenanceEntryEmailDispatchModel.objects.create(
+        entry=entry,
+        status=MaintenanceEntryEmailDispatchModel.Status.SENT,
+        attempts=1,
+        to_recipients=["to@example.com"],
+        cc_recipients=[],
+        subject="Ingreso",
+        body="Cuerpo",
+    )
+
+    use_case = MaintenanceEntryUseCase()
+
+    with pytest.raises(ValueError, match="confirmation"):
+        use_case.delete_entry(novedad_id=str(novedad.pk), user=user)
+
+    assert MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+
+
+@pytest.mark.django_db
+def test_delete_entry_allows_sent_with_confirmation(tmp_path):
+    user = get_user_model().objects.create_user(
+        username="admin", password="secret", is_staff=True
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        fecha_desde=datetime(2026, 3, 7).date(),
+        is_legacy=False,
+        ingreso_generado=True,
+    )
+    missing_pdf = tmp_path / "ingreso_missing.pdf"
+    entry = MaintenanceEntryModel.objects.create(
+        id=uuid.uuid4(),
+        novedad=novedad,
+        entry_datetime=timezone.now(),
+        pdf_path=str(missing_pdf),
+    )
+    MaintenanceEntryEmailDispatchModel.objects.create(
+        entry=entry,
+        status=MaintenanceEntryEmailDispatchModel.Status.SENT,
+        attempts=1,
+        to_recipients=["to@example.com"],
+        cc_recipients=[],
+        subject="Ingreso",
+        body="Cuerpo",
+    )
+
+    use_case = MaintenanceEntryUseCase()
+
+    result = use_case.delete_entry(
+        novedad_id=str(novedad.pk), user=user, confirm_sent=True
+    )
+
+    assert not MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+    assert result.pdf_deleted is False

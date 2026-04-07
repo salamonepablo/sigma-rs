@@ -9,6 +9,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.tickets.application.use_cases.legacy_sync_use_case import (
     LegacySyncResult,
@@ -21,6 +22,8 @@ from apps.tickets.infrastructure.models import (
     IntervencionTipoModel,
     KilometrageRecordModel,
     LugarModel,
+    MaintenanceEntryEmailDispatchModel,
+    MaintenanceEntryModel,
     MaintenanceUnitModel,
     NovedadModel,
 )
@@ -35,6 +38,12 @@ class TestNovedadViews:
         user_model = get_user_model()
         return user_model.objects.create_user(
             username="novedades", password="secret123"
+        )
+
+    def _admin_user(self):
+        user_model = get_user_model()
+        return user_model.objects.create_user(
+            username="admin", password="secret123", is_staff=True
         )
 
     def _references(self):
@@ -303,3 +312,71 @@ class TestNovedadViews:
         assert request_caches
         assert request_caches[0] is not None
         assert all(cache is request_caches[0] for cache in request_caches)
+
+    def test_delete_ingreso_view_post_deletes_and_redirects(self, client):
+        """El POST de borrado elimina el ingreso y redirige."""
+        admin = self._admin_user()
+        client.force_login(admin)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        entry = MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+        MaintenanceEntryEmailDispatchModel.objects.create(
+            entry=entry,
+            status=MaintenanceEntryEmailDispatchModel.Status.PENDING,
+            attempts=0,
+            to_recipients=["to@example.com"],
+            cc_recipients=[],
+            subject="Ingreso",
+            body="Cuerpo",
+        )
+
+        response = client.post(
+            reverse("tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 302
+        assert not MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+        novedad.refresh_from_db()
+        assert novedad.ingreso_generado is False
+
+    def test_delete_ingreso_view_get_renders_confirm_when_sent(self, client):
+        """El GET muestra confirmacion si el ingreso fue enviado."""
+        admin = self._admin_user()
+        client.force_login(admin)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        entry = MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+        MaintenanceEntryEmailDispatchModel.objects.create(
+            entry=entry,
+            status=MaintenanceEntryEmailDispatchModel.Status.SENT,
+            attempts=1,
+            to_recipients=["to@example.com"],
+            cc_recipients=[],
+            subject="Ingreso",
+            body="Cuerpo",
+        )
+
+        response = client.get(
+            reverse("tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 200
+        assert any(
+            template.name == "tickets/ingreso_confirm_delete.html"
+            for template in response.templates
+            if template.name
+        )
