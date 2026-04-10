@@ -118,6 +118,22 @@ class NovedadModel(models.Model):
         verbose_name = "Novedad"
         verbose_name_plural = "Novedades"
         ordering = ["-fecha_desde", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "maintenance_unit",
+                    "legacy_unit_code",
+                    "fecha_desde",
+                    "fecha_hasta",
+                    "intervencion",
+                    "legacy_intervencion_codigo",
+                    "lugar",
+                    "legacy_lugar_codigo",
+                ],
+                condition=models.Q(is_legacy=True),
+                name="uniq_legacy_novedad",
+            )
+        ]
         indexes = [
             models.Index(fields=["fecha_desde"]),
             models.Index(fields=["maintenance_unit"]),
