@@ -21,6 +21,7 @@ from apps.tickets.models import KilometrageRecordModel, MaintenanceUnitModel
 class AccessKilometrageSource:
     db_path: Path
     unit_field: str
+    source_label: str
 
 
 class AccessKilometrageImporter:
@@ -37,14 +38,13 @@ class AccessKilometrageImporter:
 
     def import_all(
         self,
-        baselocs: AccessKilometrageSource,
-        baseccrr: AccessKilometrageSource,
+        baselocs: AccessKilometrageSource | None,
+        baseccrr: AccessKilometrageSource | None,
         db_password: str | None = None,
         since_date: date | None = None,
         dry_run: bool = False,
         progress_every: int = 500,
     ) -> SyncStats:
-        resolved_since = since_date or self._resolve_last_date()
         unit_id_by_number = {
             number.upper(): unit_id
             for number, unit_id in MaintenanceUnitModel.objects.values_list(
@@ -60,7 +60,10 @@ class AccessKilometrageImporter:
         )
 
         for source in (baselocs, baseccrr):
-            source_label = self._source_label(source)
+            if source is None:
+                continue
+            source_label = source.source_label
+            resolved_since = since_date or self._resolve_last_date(source_label)
             records = self._extractor.extract(
                 db_path=source.db_path,
                 table=self.TABLE_NAME,
@@ -74,15 +77,18 @@ class AccessKilometrageImporter:
                 records,
                 unit_id_by_number=unit_id_by_number,
                 dry_run=dry_run,
+                source_label=source_label,
             )
             aggregated = self._merge_stats(aggregated, stats)
 
         return aggregated
 
-    def _resolve_last_date(self) -> date:
-        last = KilometrageRecordModel.objects.aggregate(Max("record_date"))[
-            "record_date__max"
-        ]
+    def _resolve_last_date(self, source_label: str) -> date:
+        last = (
+            KilometrageRecordModel.objects.filter(source=source_label).aggregate(
+                Max("record_date")
+            )
+        )["record_date__max"]
         return last or date(1990, 1, 1)
 
     def _import_records(
@@ -90,6 +96,7 @@ class AccessKilometrageImporter:
         records: list[dict],
         unit_id_by_number: dict[str, str],
         dry_run: bool,
+        source_label: str,
     ) -> SyncStats:
         processed = 0
         inserted = 0
@@ -128,7 +135,7 @@ class AccessKilometrageImporter:
                     unit_number=unit,
                     record_date=record_date,
                     km_value=km_value,
-                    source="access",
+                    source=source_label,
                 )
             )
 
@@ -205,9 +212,3 @@ class AccessKilometrageImporter:
             duplicates=left.duplicates + right.duplicates,
             invalid=left.invalid + right.invalid,
         )
-
-    @staticmethod
-    def _source_label(source: AccessKilometrageSource) -> str:
-        if source.unit_field.strip().lower() == "locs":
-            return "LOCS"
-        return "CCRR"

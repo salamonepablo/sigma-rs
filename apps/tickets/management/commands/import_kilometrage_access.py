@@ -91,9 +91,13 @@ class Command(BaseCommand):
             self.stderr.write(f"Access DB not found: {db_path}")
             return
 
-        ultima_fecha = self._resolve_last_date(options["since_date"])
+        source_label = self._resolve_source_label(options["unit_field"])
+        ultima_fecha = self._resolve_last_date(
+            since_date=options["since_date"],
+            source_label=source_label,
+        )
         access_date = ultima_fecha.strftime("%m/%d/%Y")
-        self.stdout.write(f"Ultima fecha usada: {access_date}")
+        self.stdout.write(f"Ultima fecha usada ({source_label}): {access_date}")
 
         command = [
             options["powershell"],
@@ -141,16 +145,29 @@ class Command(BaseCommand):
             records,
             progress_every=options["progress_every"],
             dry_run=options["dry_run"],
+            source_label=source_label,
         )
 
-    def _resolve_last_date(self, since_date: str | None) -> date:
+    def _resolve_last_date(
+        self,
+        since_date: str | None,
+        source_label: str,
+    ) -> date:
         if since_date:
             return datetime.strptime(since_date, "%Y-%m-%d").date()
 
-        last = KilometrageRecordModel.objects.aggregate(Max("record_date"))[
-            "record_date__max"
-        ]
+        last = (
+            KilometrageRecordModel.objects.filter(source=source_label).aggregate(
+                Max("record_date")
+            )
+        )["record_date__max"]
         return last or date(1990, 1, 1)
+
+    @staticmethod
+    def _resolve_source_label(unit_field: str) -> str:
+        if unit_field.strip().lower() == "locs":
+            return "access_locs"
+        return "access_ccrr"
 
     def _run_extractor(self, command: list[str]) -> str | None:
         process = subprocess.Popen(
@@ -199,6 +216,7 @@ class Command(BaseCommand):
         records: list[dict],
         progress_every: int,
         dry_run: bool,
+        source_label: str,
     ) -> None:
         total = len(records)
         processed = 0
@@ -233,7 +251,7 @@ class Command(BaseCommand):
                     record_date=record_date,
                     defaults={
                         "km_value": km_value,
-                        "source": "access",
+                        "source": source_label,
                     },
                 )
                 if created:

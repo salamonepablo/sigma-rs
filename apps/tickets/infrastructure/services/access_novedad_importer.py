@@ -47,8 +47,8 @@ class AccessNovedadImporter:
 
     def import_all(
         self,
-        baselocs: AccessNovedadSource,
-        baseccrr: AccessNovedadSource,
+        baselocs: AccessNovedadSource | None,
+        baseccrr: AccessNovedadSource | None,
         db_password: str | None = None,
         since_date: date | None = None,
         dry_run: bool = False,
@@ -75,6 +75,8 @@ class AccessNovedadImporter:
         }
 
         for source in (baselocs, baseccrr):
+            if source is None:
+                continue
             source_label = self._source_label(source)
             records = self._extractor.extract(
                 db_path=source.db_path,

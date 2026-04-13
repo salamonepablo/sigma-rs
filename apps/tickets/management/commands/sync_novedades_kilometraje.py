@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from apps.tickets.application.use_cases.access_sync_use_case import (
     AccessSyncConfig,
+    AccessSyncFilters,
     AccessSyncUseCase,
 )
 
@@ -84,18 +85,61 @@ class Command(BaseCommand):
             action="store_true",
             help="Show what would be imported without writing",
         )
+        origin_group = parser.add_mutually_exclusive_group()
+        origin_group.add_argument(
+            "--only-locs",
+            action="store_true",
+            help="Import only LOCS sources (baselocs.mdb)",
+        )
+        origin_group.add_argument(
+            "--only-ccrr",
+            action="store_true",
+            help="Import only CCRR sources (baseCCRR.mdb)",
+        )
+        type_group = parser.add_mutually_exclusive_group()
+        type_group.add_argument(
+            "--only-km",
+            action="store_true",
+            help="Import only kilometrage records",
+        )
+        type_group.add_argument(
+            "--only-novedades",
+            action="store_true",
+            help="Import only novedades records",
+        )
 
     def handle(self, *args, **options):
+        include_locs = not options["only_ccrr"]
+        include_ccrr = not options["only_locs"]
+        include_kilometrage = not options["only_novedades"]
+        include_novedades = not options["only_km"]
+
         baselocs_path = (
             Path(options["baselocs_path"]) if options["baselocs_path"] else None
         )
         baseccrr_path = (
             Path(options["baseccrr_path"]) if options["baseccrr_path"] else None
         )
-        if not baselocs_path or not baselocs_path.exists():
-            raise CommandError(f"baselocs.mdb path does not exist: {baselocs_path}")
-        if not baseccrr_path or not baseccrr_path.exists():
-            raise CommandError(f"baseCCRR.mdb path does not exist: {baseccrr_path}")
+        if include_locs:
+            if not baselocs_path or not baselocs_path.exists():
+                raise CommandError(f"baselocs.mdb path does not exist: {baselocs_path}")
+        else:
+            baselocs_path = None
+        if include_ccrr:
+            if not baseccrr_path or not baseccrr_path.exists():
+                raise CommandError(f"baseCCRR.mdb path does not exist: {baseccrr_path}")
+        else:
+            baseccrr_path = None
+
+        if include_kilometrage:
+            sources = []
+            if include_locs:
+                sources.append("access_locs")
+            if include_ccrr:
+                sources.append("access_ccrr")
+            self.stdout.write(
+                "Kilometraje origenes: {sources}".format(sources=", ".join(sources))
+            )
 
         since_date = None
         if options["full"]:
@@ -110,6 +154,12 @@ class Command(BaseCommand):
             script_path=Path(options["script_path"]),
             powershell_path=Path(options["powershell"]),
         )
+        filters = AccessSyncFilters(
+            include_locs=include_locs,
+            include_ccrr=include_ccrr,
+            include_novedades=include_novedades,
+            include_kilometrage=include_kilometrage,
+        )
         use_case = AccessSyncUseCase(config=config)
         result = use_case.run(
             since_date=since_date,
@@ -117,6 +167,7 @@ class Command(BaseCommand):
             progress_every=options["progress_every"],
             stdout_writer=self.stdout.write,
             stderr_writer=self.stderr.write,
+            filters=filters,
         )
 
         self.stdout.write("Resumen final")
