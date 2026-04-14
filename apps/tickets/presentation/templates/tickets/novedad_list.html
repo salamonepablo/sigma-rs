@@ -169,7 +169,7 @@
                     <th>Lugar</th>
                     <th class="observaciones">Observaciones</th>
                     <th>Origen</th>
-                    <th>Ingreso</th>
+                    <th class="text-center">Ingreso</th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
@@ -224,13 +224,15 @@
                         <span class="badge bg-info text-dark">Manual</span>
                         {% endif %}
                     </td>
+                    <td class="text-center">
+                        {% if novedad.ingreso_generado %}
+                        <span class="btn btn-sm btn-success" title="Ingreso generado">✅</span>
+                        {% else %}
+                        <a href="{% url 'tickets:maintenance_entry_create' novedad.pk %}" class="btn btn-sm btn-outline-success" title="Generar Ingreso">⚙️</a>
+                        {% endif %}
+                    </td>
                     <td>
-                        <div class="d-flex gap-1 justify-content-end">
-                            {% if novedad.ingreso_generado %}
-                            <span class="btn btn-sm btn-success" title="Ingreso generado">✅</span>
-                            {% else %}
-                            <a href="{% url 'tickets:maintenance_entry_create' novedad.pk %}" class="btn btn-sm btn-outline-success" title="Generar Ingreso">⚙️</a>
-                            {% endif %}
+                        <div class="d-flex gap-1 justify-content-center">
                             <a href="{% url 'tickets:novedad_detail' novedad.pk %}" class="btn btn-sm btn-outline-info" title="Ver">👁</a>
                             <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
                             {% if novedad.ingreso_generado %}
