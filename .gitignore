@@ -6,8 +6,10 @@ __pycache__/
 *.pyo
 .vscode/
 .atl/
+.claude/
 context/
 generated/
+logs/
 nul
 secrets/
 servidor_auto.ps1
