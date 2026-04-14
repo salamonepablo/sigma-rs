@@ -1,1 +1,1 @@
-"""Formatters for ticket application data."""
+"""Formatting helpers for application layer."""

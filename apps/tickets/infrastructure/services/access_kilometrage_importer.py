@@ -10,10 +10,7 @@ from pathlib import Path
 from django.db.models import Max
 
 from apps.tickets.application.use_cases.legacy_sync_use_case import SyncStats
-from apps.tickets.infrastructure.services.access_extractor import (
-    AccessExtractor,
-    AccessExtractorConfig,
-)
+from apps.tickets.infrastructure.services.access_extractor import AccessExtractor
 from apps.tickets.models import KilometrageRecordModel, MaintenanceUnitModel
 
 

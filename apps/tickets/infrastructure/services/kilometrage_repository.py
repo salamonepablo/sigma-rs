@@ -68,3 +68,16 @@ class KilometrageRepository:
             .first()
         )
         return record.km_value if record else None
+
+    def get_km_for_month(
+        self, unit_number: str, year: int, month: int
+    ) -> Decimal | None:
+        """Return total kilometers for a given month."""
+
+        unit_key = unit_number.strip().upper()
+        result = KilometrageRecordModel.objects.filter(
+            unit_number__iexact=unit_key,
+            record_date__year=year,
+            record_date__month=month,
+        ).aggregate(total=Sum("km_value"))
+        return result["total"] if result["total"] is not None else None

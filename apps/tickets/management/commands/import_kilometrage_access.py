@@ -132,10 +132,7 @@ class Command(BaseCommand):
             self.stderr.write(str(exc))
             return
 
-        if isinstance(payload, dict):
-            records = [payload]
-        else:
-            records = list(payload or [])
+        records = [payload] if isinstance(payload, dict) else list(payload or [])
 
         if not records:
             self.stdout.write("No hay registros para importar.")

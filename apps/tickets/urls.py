@@ -9,8 +9,6 @@ from apps.tickets.presentation.views import (
     LoginView,
     LogoutView,
     MaintenanceEntryCreateView,
-    MaintenanceUnitDetailApiView,
-    MaintenanceUnitDetailView,
     NovedadCreateView,
     NovedadDeleteView,
     NovedadDetailView,
@@ -102,17 +100,6 @@ urlpatterns = [
         "novedad/<uuid:pk>/delete-ingreso/",
         DeleteIngresoView.as_view(),
         name="novedad_delete_ingreso",
-    ),
-    # Maintenance unit detail
-    path(
-        "um/<uuid:pk>/detail/",
-        MaintenanceUnitDetailView.as_view(),
-        name="maintenance_unit_detail",
-    ),
-    path(
-        "api/um/<uuid:pk>/detail/",
-        MaintenanceUnitDetailApiView.as_view(),
-        name="maintenance_unit_detail_api",
     ),
     # Novedad CRUD - Separated by category
     path(
