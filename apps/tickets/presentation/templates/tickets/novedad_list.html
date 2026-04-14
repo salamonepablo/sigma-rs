@@ -170,7 +170,7 @@
                     <th class="observaciones">Observaciones</th>
                     <th>Origen</th>
                     <th>Ingreso</th>
-                    <th>Acciones</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -178,7 +178,7 @@
                 <tr>
                     <td class="fechas">
                         <div><strong>{{ novedad.fecha_desde|date:"d/m/Y" }}</strong></div>
-                        {% if novedad.fecha_hasta and novedad.fecha_hasta != novedad.fecha_desde %}
+                        {% if novedad.fecha_hasta %}
                         <small class="text-muted">→ {{ novedad.fecha_hasta|date:"d/m/Y" }}</small>
                         {% endif %}
                     </td>
@@ -225,7 +225,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <div class="d-flex gap-1">
+                        <div class="d-flex gap-1 justify-content-end">
                             {% if novedad.ingreso_generado %}
                             <span class="btn btn-sm btn-success" title="Ingreso generado">✅</span>
                             {% else %}
