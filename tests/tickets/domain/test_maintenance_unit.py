@@ -113,6 +113,7 @@ class TestWagonMaintenanceRules:
         rules = resolve_maintenance_display_rules(
             unit_type="vagon",
             brand_code="Carga",
+            model_code=None,
         )
 
         assert rules.history_label == "Última Revisión (AL/REV/A/B)"

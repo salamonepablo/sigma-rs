@@ -1,6 +1,7 @@
 """Pruebas de vistas para novedades."""
 
 from datetime import date
+from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -8,17 +9,25 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.tickets.application.use_cases.legacy_sync_use_case import (
     LegacySyncResult,
     SyncStats,
 )
+from apps.tickets.application.use_cases.maintenance_entry_use_case import (
+    MaintenanceEntryUseCase,
+)
 from apps.tickets.infrastructure.models import (
     IntervencionTipoModel,
+    KilometrageRecordModel,
     LugarModel,
+    MaintenanceEntryEmailDispatchModel,
+    MaintenanceEntryModel,
     MaintenanceUnitModel,
     NovedadModel,
 )
+from apps.tickets.presentation.views.novedad_views import MaintenanceEntryCreateView
 
 
 @pytest.mark.django_db
@@ -29,6 +38,12 @@ class TestNovedadViews:
         user_model = get_user_model()
         return user_model.objects.create_user(
             username="novedades", password="secret123"
+        )
+
+    def _admin_user(self):
+        user_model = get_user_model()
+        return user_model.objects.create_user(
+            username="admin", password="secret123", is_staff=True
         )
 
     def _references(self):
@@ -213,7 +228,7 @@ class TestNovedadViews:
         )
 
         with patch(
-            "apps.tickets.presentation.views.novedad_views.LegacySyncUseCase.run",
+            "apps.tickets.presentation.views.novedad_views.AccessSyncUseCase.run",
             return_value=result,
         ):
             response = client.post(reverse("tickets:novedad_sync"))
@@ -241,3 +256,239 @@ class TestNovedadViews:
             assert response.status_code == 200
             content = response.content.decode("utf-8")
             assert content.count('data-sync-control="legacy-sync"') == 1
+
+    def test_prefill_km_usa_formato_eu(self):
+        """El prefill de km aplica formato europeo con decimales reales."""
+        assert MaintenanceEntryCreateView._format_km(Decimal("1000.5")) == "1.000,5"
+        assert MaintenanceEntryCreateView._format_km("1.000,5") == "1.000,5"
+
+    def test_maintenance_entry_view_reuses_request_cache(self, client, settings):
+        """La vista reutiliza el cache request-scoped del ingreso."""
+        settings.INGRESO_REQUEST_CACHE_ENABLED = True
+
+        user = self._user()
+        client.force_login(user)
+
+        unit = MaintenanceUnitModel.objects.create(
+            id=uuid4(),
+            number="A400",
+            unit_type=MaintenanceUnitModel.UnitType.LOCOMOTIVE,
+        )
+        intervencion = IntervencionTipoModel.objects.create(
+            codigo="RA",
+            descripcion="Revisión anual",
+        )
+        novedad = NovedadModel.objects.create(
+            maintenance_unit=unit,
+            fecha_desde=date.today(),
+            intervencion=intervencion,
+            is_legacy=False,
+        )
+        KilometrageRecordModel.objects.create(
+            maintenance_unit=unit,
+            unit_number=unit.number,
+            record_date=date.today(),
+            km_value=Decimal("1000.00"),
+            source="test",
+        )
+
+        with patch(
+            "apps.tickets.application.use_cases.maintenance_entry_use_case."
+            "MaintenanceEntryUseCase.prepare_draft",
+            autospec=True,
+            wraps=MaintenanceEntryUseCase.prepare_draft,
+        ) as spy:
+            response = client.get(
+                reverse(
+                    "tickets:maintenance_entry_create",
+                    kwargs={"pk": novedad.pk},
+                )
+            )
+
+        assert response.status_code == 200
+        request_caches = [
+            call.kwargs.get("request_cache") for call in spy.call_args_list
+        ]
+        assert request_caches
+        assert request_caches[0] is not None
+        assert all(cache is request_caches[0] for cache in request_caches)
+
+    def test_delete_ingreso_view_post_deletes_and_redirects(self, client):
+        """El POST de borrado elimina el ingreso y redirige."""
+        admin = self._admin_user()
+        client.force_login(admin)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        entry = MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+        MaintenanceEntryEmailDispatchModel.objects.create(
+            entry=entry,
+            status=MaintenanceEntryEmailDispatchModel.Status.PENDING,
+            attempts=0,
+            to_recipients=["to@example.com"],
+            cc_recipients=[],
+            subject="Ingreso",
+            body="Cuerpo",
+        )
+
+        response = client.post(
+            reverse("tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 302
+        assert not MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+        novedad.refresh_from_db()
+        assert novedad.ingreso_generado is False
+
+    def test_delete_ingreso_view_get_renders_confirm_when_sent(self, client):
+        """El GET muestra confirmacion si el ingreso fue enviado."""
+        admin = self._admin_user()
+        client.force_login(admin)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        entry = MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+        MaintenanceEntryEmailDispatchModel.objects.create(
+            entry=entry,
+            status=MaintenanceEntryEmailDispatchModel.Status.SENT,
+            attempts=1,
+            to_recipients=["to@example.com"],
+            cc_recipients=[],
+            subject="Ingreso",
+            body="Cuerpo",
+        )
+
+        response = client.get(
+            reverse("tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 200
+        assert any(
+            template.name == "tickets/ingreso_confirm_delete.html"
+            for template in response.templates
+            if template.name
+        )
+
+    def test_delete_ingreso_list_action_visible_for_admin(self, client):
+        """El listado muestra eliminar ingreso solo para admin."""
+        admin = self._admin_user()
+        client.force_login(admin)
+        unit_loco, _, intervencion, lugar = self._references()
+        novedad = NovedadModel.objects.create(
+            maintenance_unit=unit_loco,
+            fecha_desde=date.today(),
+            intervencion=intervencion,
+            lugar=lugar,
+            ingreso_generado=True,
+            is_legacy=False,
+        )
+
+        response = client.get(reverse("tickets:novedad_list"))
+
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        delete_url = reverse(
+            "tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk}
+        )
+        assert delete_url in content
+
+    def test_delete_ingreso_detail_action_hidden_for_non_admin(self, client):
+        """El detalle no muestra eliminar ingreso a no admin."""
+        user = self._user()
+        client.force_login(user)
+        unit_loco, _, intervencion, lugar = self._references()
+        novedad = NovedadModel.objects.create(
+            maintenance_unit=unit_loco,
+            fecha_desde=date.today(),
+            intervencion=intervencion,
+            lugar=lugar,
+            ingreso_generado=True,
+            is_legacy=False,
+        )
+
+        response = client.get(
+            reverse("tickets:novedad_detail", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        delete_url = reverse(
+            "tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk}
+        )
+        assert delete_url not in content
+
+    def test_delete_ingreso_cancel_keeps_entry(self, client):
+        """Cancelar la confirmacion no elimina el ingreso."""
+        admin = self._admin_user()
+        client.force_login(admin)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        entry = MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+        MaintenanceEntryEmailDispatchModel.objects.create(
+            entry=entry,
+            status=MaintenanceEntryEmailDispatchModel.Status.SENT,
+            attempts=1,
+            to_recipients=["to@example.com"],
+            cc_recipients=[],
+            subject="Ingreso",
+            body="Cuerpo",
+        )
+
+        response = client.get(
+            reverse("tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk})
+        )
+
+        cancel_url = response.context["cancel_url"]
+        cancel_response = client.get(cancel_url)
+
+        assert cancel_response.status_code == 200
+        assert MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+
+    def test_novedad_delete_protected_redirects_to_detail(self, client):
+        """Eliminar una novedad con ingreso asociado redirige al detalle."""
+        user = self._user()
+        client.force_login(user)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+
+        response = client.post(
+            reverse("tickets:novedad_delete", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "tickets:novedad_detail", kwargs={"pk": novedad.pk}
+        )
+        messages_list = [
+            str(message) for message in get_messages(response.wsgi_request)
+        ]
+        assert any(
+            "eliminar el ingreso" in message.lower() for message in messages_list
+        )

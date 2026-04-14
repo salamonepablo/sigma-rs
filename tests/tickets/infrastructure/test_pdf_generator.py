@@ -19,6 +19,7 @@ class TestMaintenanceEntryPdfGenerator:
             unit_type="locomotora",
             brand_label="GM",
             brand_code="GM",
+            model_code="GT22-CW",
             model_label="GT22-CW",
             user_label="Usuario Test",
             intervention_label="A - Revision",

@@ -13,11 +13,20 @@ class MaintenanceDisplayRules:
     km_label: str
     use_rp_history: bool
     show_abc: bool
+    abc_label: str
+    abc_km_label: str
+
+
+def _is_ckd(brand_code: str | None, model_code: str | None) -> bool:
+    normalized_brand = (brand_code or "").strip().upper()
+    normalized_model = (model_code or "").strip().upper()
+    return normalized_brand == "CNR" and normalized_model.startswith("CKD")
 
 
 def resolve_maintenance_display_rules(
     unit_type: str | None,
     brand_code: str | None,
+    model_code: str | None = None,
 ) -> MaintenanceDisplayRules:
     """Return display rules based on rolling stock type and brand."""
     if not unit_type or not brand_code:
@@ -26,32 +35,40 @@ def resolve_maintenance_display_rules(
             km_label="KM Intervención:",
             use_rp_history=False,
             show_abc=True,
+            abc_label="Última ABC",
+            abc_km_label="KM ABC:",
         )
 
     brand = (brand_code or "").strip().upper()
 
     if unit_type == "locomotora":
-        if brand.startswith("CKD") or brand == "CNR":
+        if _is_ckd(brand_code, model_code):
             return MaintenanceDisplayRules(
-                history_label="Última Revisión (R1-R6)",
-                km_label="KM Revisión:",
+                history_label="Última Numeral (360K/720K)",
+                km_label="KM Numeral:",
                 use_rp_history=False,
                 show_abc=True,
+                abc_label="Última Revisión (R1-R6)",
+                abc_km_label="KM Revisión:",
             )
         return MaintenanceDisplayRules(
             history_label="Última Numeral (N1-N11)",
             km_label="KM Numeral:",
             use_rp_history=False,
             show_abc=True,
+            abc_label="Última ABC",
+            abc_km_label="KM ABC:",
         )
 
     if unit_type == "coche_remolcado":
         if brand in {"CNR"}:
             return MaintenanceDisplayRules(
-                history_label="Última Revisión (A1-A4)",
+                history_label="Última Revisión (A1-A4/SEM/MEN)",
                 km_label="KM Revisión:",
                 use_rp_history=False,
-                show_abc=True,
+                show_abc=False,
+                abc_label="Última ABC",
+                abc_km_label="KM ABC:",
             )
         if brand in {"MATERFER", "MTF"}:
             return MaintenanceDisplayRules(
@@ -59,12 +76,16 @@ def resolve_maintenance_display_rules(
                 km_label="KM RP:",
                 use_rp_history=True,
                 show_abc=True,
+                abc_label="Última ABC",
+                abc_km_label="KM ABC:",
             )
         return MaintenanceDisplayRules(
             history_label="Última Intervención",
             km_label="KM Intervención:",
             use_rp_history=False,
             show_abc=True,
+            abc_label="Última ABC",
+            abc_km_label="KM ABC:",
         )
 
     if unit_type == "coche_motor":
@@ -74,12 +95,16 @@ def resolve_maintenance_display_rules(
                 km_label="KM RP:",
                 use_rp_history=True,
                 show_abc=False,
+                abc_label="Última ABC",
+                abc_km_label="KM ABC:",
             )
         return MaintenanceDisplayRules(
             history_label="Última Intervención",
             km_label="KM Intervención:",
             use_rp_history=False,
             show_abc=True,
+            abc_label="Última ABC",
+            abc_km_label="KM ABC:",
         )
 
     if unit_type == "vagon":
@@ -88,6 +113,8 @@ def resolve_maintenance_display_rules(
             km_label="KM Revisión:",
             use_rp_history=False,
             show_abc=False,
+            abc_label="Última ABC",
+            abc_km_label="KM ABC:",
         )
 
     return MaintenanceDisplayRules(
@@ -95,4 +122,6 @@ def resolve_maintenance_display_rules(
         km_label="KM Intervención:",
         use_rp_history=False,
         show_abc=True,
+        abc_label="Última ABC",
+        abc_km_label="KM ABC:",
     )

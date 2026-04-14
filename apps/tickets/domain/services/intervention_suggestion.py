@@ -40,8 +40,19 @@ class UnitMaintenanceHistory:
     last_rp_code: str | None
     last_rp_date: date | None
     last_rp_km_since: Decimal | None
+    last_abc_code: str | None
     last_abc_date: date | None
     last_abc_km_since: Decimal | None
+
+
+def _normalize_code(value: str | None) -> str:
+    return (value or "").strip().upper()
+
+
+def _is_ckd(brand_code: str | None, model_code: str | None) -> bool:
+    normalized_brand = _normalize_code(brand_code)
+    normalized_model = _normalize_code(model_code)
+    return normalized_brand == "CNR" and normalized_model.startswith("CKD")
 
 
 @dataclass(frozen=True)
@@ -137,11 +148,11 @@ class InterventionPriorityResolver:
         if not unit_type:
             return []
 
-        normalized_brand = (brand_code or "").strip().upper()
-        normalized_model = (model_code or "").strip().upper()
+        normalized_brand = _normalize_code(brand_code)
+        normalized_model = _normalize_code(model_code)
 
         if unit_type == "locomotora":
-            if normalized_model.startswith("CKD") or normalized_brand == "CNR":
+            if _is_ckd(normalized_brand, normalized_model):
                 return self.CKD_LOCO
             return self.GM_LOCO
 
@@ -294,6 +305,7 @@ class InterventionSuggestionService:
         unit_type: str | None,
         brand_code: str | None,
         model_code: str | None,
+        cycles: Iterable[MaintenanceCycle] | None,
         history: Iterable[InterventionHistoryItem],
         current_km_value: Decimal | None = None,
         current_period_value: int | None = None,
@@ -318,11 +330,85 @@ class InterventionSuggestionService:
             history, key=lambda item: item.date_until or item.date_from, reverse=True
         )
 
+        cycle_codes = {
+            _normalize_code(cycle.intervention_code) for cycle in (cycles or [])
+        }
+
+        normalized_brand = _normalize_code(brand_code)
+        normalized_model = _normalize_code(model_code)
+
+        def fallback_secondary_codes() -> set[str]:
+            if unit_type == "locomotora":
+                if _is_ckd(brand_code, model_code):
+                    return {"360K", "720K"}
+                return {f"N{idx}" for idx in range(1, 12)}
+            if unit_type == "coche_remolcado":
+                if normalized_brand == "CNR":
+                    return {"A1", "A2", "A3", "A4", "SEM", "MEN"}
+                return {"RP"}
+            if unit_type == "coche_motor":
+                return {"RP"}
+            if unit_type == "vagon":
+                return {"AL", "REV", "A", "B"}
+            return set()
+
+        def fallback_tertiary_codes() -> set[str]:
+            if unit_type == "locomotora":
+                if _is_ckd(brand_code, model_code):
+                    return {f"R{idx}" for idx in range(1, 7)}
+                return {"ABC"}
+            if unit_type == "coche_remolcado" and normalized_brand in {
+                "MATERFER",
+                "MTF",
+            }:
+                return {"ABC"}
+            return set()
+
+        if unit_type == "locomotora":
+            if _is_ckd(brand_code, model_code):
+                secondary_codes = {code for code in cycle_codes if code.endswith("K")}
+                tertiary_codes = {
+                    code
+                    for code in cycle_codes
+                    if code.startswith("R") and code[1:].isdigit()
+                }
+            else:
+                secondary_codes = {
+                    code
+                    for code in cycle_codes
+                    if code.startswith("N") and code[1:].isdigit()
+                }
+                tertiary_codes = {"ABC"} if "ABC" in cycle_codes else set()
+        elif unit_type == "coche_remolcado":
+            if normalized_brand == "CNR":
+                secondary_codes = cycle_codes.intersection(
+                    {"A1", "A2", "A3", "A4", "SEM", "MEN"}
+                )
+                tertiary_codes = set()
+            else:
+                secondary_codes = {"RP"} if "RP" in cycle_codes else set()
+                tertiary_codes = {"ABC"} if "ABC" in cycle_codes else set()
+        elif unit_type == "coche_motor":
+            secondary_codes = {"RP"} if "RP" in cycle_codes else set()
+            tertiary_codes = set()
+        elif unit_type == "vagon":
+            secondary_codes = cycle_codes.intersection({"AL", "REV", "A", "B"})
+            tertiary_codes = set()
+        else:
+            secondary_codes = set()
+            tertiary_codes = set()
+
+        if not secondary_codes:
+            secondary_codes = fallback_secondary_codes()
+        if not tertiary_codes:
+            tertiary_codes = fallback_tertiary_codes()
+
         last_rg_date = None
         last_numeral_code = None
         last_numeral_date = None
         last_rp_code = None
         last_rp_date = None
+        last_abc_code = None
         last_abc_date = None
 
         for item in sorted_history:
@@ -332,18 +418,18 @@ class InterventionSuggestionService:
             if code == "RG" and last_rg_date is None:
                 last_rg_date = item_date
 
-            if code.startswith("N") and code[1:].isdigit():
-                if last_numeral_code is None:
-                    last_numeral_code = code
-                    last_numeral_date = item_date
-
             if code == "RP":
                 if last_rp_code is None:
                     last_rp_code = code
                     last_rp_date = item_date
 
-            if code == "ABC" and last_abc_date is None:
+            if code in tertiary_codes and last_abc_date is None:
+                last_abc_code = code
                 last_abc_date = item_date
+
+            if last_numeral_date is None and code in secondary_codes:
+                last_numeral_code = code
+                last_numeral_date = item_date
 
         last_rg_km_since = None
         last_numeral_km_since = None
@@ -369,6 +455,7 @@ class InterventionSuggestionService:
             last_rp_code=last_rp_code,
             last_rp_date=last_rp_date,
             last_rp_km_since=last_rp_km_since,
+            last_abc_code=last_abc_code,
             last_abc_date=last_abc_date,
             last_abc_km_since=last_abc_km_since,
         )

@@ -32,7 +32,7 @@ class _NovedadRow:
     fecha_hasta: date | None
     fecha_estimada: date | None
     intervencion_codigo: str
-    lugar_codigo: str
+    lugar_codigo: int | None
     observaciones: str | None
 
 
@@ -125,24 +125,21 @@ class AccessNovedadImporter:
                 invalid += 1
                 continue
 
-            intervencion_id = intervenciones_by_codigo.get(parsed.intervencion_codigo)
-            legacy_intervencion_codigo = (
-                parsed.intervencion_codigo if not intervencion_id else None
+            intervencion_id = (
+                intervenciones_by_codigo.get(parsed.intervencion_codigo)
+                if parsed.intervencion_codigo
+                else None
             )
+            legacy_intervencion_codigo = parsed.intervencion_codigo
 
             maintenance_unit_id = units_by_number.get(parsed.unit_code)
-            legacy_unit_code = parsed.unit_code if not maintenance_unit_id else None
+            legacy_unit_code = parsed.unit_code
 
             lugar_id = None
             legacy_lugar_codigo = None
-            if parsed.lugar_codigo:
-                try:
-                    lugar_codigo = int(parsed.lugar_codigo)
-                    lugar_id = lugares_by_codigo.get(lugar_codigo)
-                    if not lugar_id:
-                        legacy_lugar_codigo = lugar_codigo
-                except ValueError:
-                    legacy_lugar_codigo = None
+            if parsed.lugar_codigo is not None:
+                lugar_id = lugares_by_codigo.get(parsed.lugar_codigo)
+                legacy_lugar_codigo = parsed.lugar_codigo
 
             if dry_run:
                 inserted += 1
@@ -185,7 +182,7 @@ class AccessNovedadImporter:
         )
 
     def _parse_row(self, row: dict[str, object]) -> _NovedadRow | None:
-        unit_code = str(row.get("Unidad") or "").strip().upper()
+        unit_code = self._normalize_code(row.get("Unidad"), upper=True)
         if not unit_code:
             return None
 
@@ -195,8 +192,8 @@ class AccessNovedadImporter:
 
         fecha_hasta = self._parse_date(str(row.get("Fecha_hasta") or "").strip())
         fecha_estimada = self._parse_date(str(row.get("Fecha_est") or "").strip())
-        intervencion_codigo = str(row.get("Intervencion") or "").strip()
-        lugar_codigo = str(row.get("Lugar") or "").strip()
+        intervencion_codigo = self._normalize_code(row.get("Intervencion"), upper=True)
+        lugar_codigo = self._parse_lugar_codigo(row.get("Lugar"))
         observaciones = str(row.get("Observaciones") or "").strip() or None
 
         return _NovedadRow(
@@ -208,6 +205,26 @@ class AccessNovedadImporter:
             lugar_codigo=lugar_codigo,
             observaciones=observaciones,
         )
+
+    @staticmethod
+    def _normalize_code(value: object, *, upper: bool) -> str | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        return text.upper() if upper else text
+
+    @staticmethod
+    def _parse_lugar_codigo(value: object) -> int | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        try:
+            return int(text)
+        except ValueError:
+            try:
+                return int(float(text))
+            except ValueError:
+                return None
 
     @staticmethod
     def _parse_date(value: str) -> date | None:
