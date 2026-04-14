@@ -126,6 +126,9 @@ class MaintenanceEntryPdfGenerator:
             data.unit_type,
             data.brand_code,
             data.model_code,
+            data.brand_label,
+            data.model_label,
+            data.unit_label,
         )
 
         def draw_line(label: str, value: str):

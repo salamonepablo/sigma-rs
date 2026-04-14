@@ -16,6 +16,9 @@
         {% endif %}
         {% if novedad.ingreso_generado %}
         <span class="btn btn-success disabled">✅ Ingreso Generado</span>
+        {% if request.user.is_staff or request.user.is_superuser %}
+        <a href="{% url 'tickets:novedad_delete_ingreso' novedad.pk %}" class="btn btn-outline-danger">Eliminar ingreso</a>
+        {% endif %}
         <form method="post" action="{% url 'tickets:novedad_reset_ingreso' novedad.pk %}" class="d-inline">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-warning" title="Permitir regenerar">🔄 Regenerar</button>

@@ -49,10 +49,23 @@ def _normalize_code(value: str | None) -> str:
     return (value or "").strip().upper()
 
 
-def _is_ckd(brand_code: str | None, model_code: str | None) -> bool:
+def _is_ckd(
+    brand_code: str | None,
+    model_code: str | None,
+    brand_name: str | None = None,
+    model_name: str | None = None,
+    unit_number: str | None = None,
+) -> bool:
     normalized_brand = _normalize_code(brand_code)
     normalized_model = _normalize_code(model_code)
-    return normalized_brand == "CNR" and normalized_model.startswith("CKD")
+    if normalized_brand == "CNR" and normalized_model.startswith("CKD"):
+        return True
+    brand_label = _normalize_code(brand_name)
+    model_label = _normalize_code(model_name)
+    unit_label = _normalize_code(unit_number)
+    return ("CNR" in brand_label or "DALIAN" in brand_label) and (
+        "CKD" in model_label or "CKD" in unit_label
+    )
 
 
 @dataclass(frozen=True)
@@ -133,6 +146,9 @@ class InterventionPriorityResolver:
         unit_type: str | None,
         brand_code: str | None,
         model_code: str | None,
+        brand_name: str | None = None,
+        model_name: str | None = None,
+        unit_number: str | None = None,
     ) -> list[str]:
         """Return priority list for the unit.
 
@@ -152,7 +168,7 @@ class InterventionPriorityResolver:
         normalized_model = _normalize_code(model_code)
 
         if unit_type == "locomotora":
-            if _is_ckd(normalized_brand, normalized_model):
+            if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
                 return self.CKD_LOCO
             return self.GM_LOCO
 
@@ -193,6 +209,9 @@ class InterventionSuggestionService:
         current_km_value: Decimal | None = None,
         last_period_value: int | None = None,
         current_period_value: int | None = None,
+        brand_name: str | None = None,
+        model_name: str | None = None,
+        unit_number: str | None = None,
     ) -> InterventionSuggestion:
         """Calculate a suggested intervention for a maintenance entry.
 
@@ -262,7 +281,7 @@ class InterventionSuggestionService:
             status = "ok"
 
         priority_list = self._priority_resolver.resolve(
-            unit_type, brand_code, model_code
+            unit_type, brand_code, model_code, brand_name, model_name, unit_number
         )
         priority_index = {code: idx for idx, code in enumerate(priority_list)}
         eligible_codes = None
@@ -310,6 +329,9 @@ class InterventionSuggestionService:
         current_km_value: Decimal | None = None,
         current_period_value: int | None = None,
         entry_date: date | None = None,
+        brand_name: str | None = None,
+        model_name: str | None = None,
+        unit_number: str | None = None,
     ) -> UnitMaintenanceHistory:
         """Extract key maintenance history items for display.
 
@@ -339,7 +361,7 @@ class InterventionSuggestionService:
 
         def fallback_secondary_codes() -> set[str]:
             if unit_type == "locomotora":
-                if _is_ckd(brand_code, model_code):
+                if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
                     return {"360K", "720K"}
                 return {f"N{idx}" for idx in range(1, 12)}
             if unit_type == "coche_remolcado":
@@ -354,7 +376,7 @@ class InterventionSuggestionService:
 
         def fallback_tertiary_codes() -> set[str]:
             if unit_type == "locomotora":
-                if _is_ckd(brand_code, model_code):
+                if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
                     return {f"R{idx}" for idx in range(1, 7)}
                 return {"ABC"}
             if unit_type == "coche_remolcado" and normalized_brand in {
@@ -365,7 +387,7 @@ class InterventionSuggestionService:
             return set()
 
         if unit_type == "locomotora":
-            if _is_ckd(brand_code, model_code):
+            if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
                 secondary_codes = {code for code in cycle_codes if code.endswith("K")}
                 tertiary_codes = {
                     code

@@ -215,6 +215,9 @@ class MaintenanceEntryUseCase:
             history=history_items,
             current_km_value=trigger_value if trigger_type == "km" else None,
             current_period_value=trigger_value if trigger_type == "time" else None,
+            brand_name=brand_label,
+            model_name=model_label,
+            unit_number=unit_label,
         )
 
         suggestion = self._enrich_suggestion_with_history(
@@ -235,6 +238,9 @@ class MaintenanceEntryUseCase:
             current_km_value=trigger_value if trigger_type == "km" else None,
             current_period_value=trigger_value if trigger_type == "time" else None,
             entry_date=entry_date,
+            brand_name=brand_label,
+            model_name=model_label,
+            unit_number=unit_label,
         )
 
         history_summary = self._enrich_history_with_km(
@@ -886,6 +892,9 @@ class MaintenanceEntryUseCase:
             draft.unit_type,
             draft.brand_code,
             draft.model_code,
+            draft.brand_label,
+            draft.model_label,
+            draft.unit_label,
         )
 
         if display_rules.use_rp_history:

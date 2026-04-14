@@ -1,7 +1,14 @@
 """Views for the tickets presentation layer."""
 
 from apps.tickets.presentation.views.auth_views import LoginView, LogoutView
-from apps.tickets.presentation.views.novedad_actions import ResetIngresoView
+from apps.tickets.presentation.views.maintenance_unit_views import (
+    MaintenanceUnitDetailApiView,
+    MaintenanceUnitDetailView,
+)
+from apps.tickets.presentation.views.novedad_actions import (
+    DeleteIngresoView,
+    ResetIngresoView,
+)
 from apps.tickets.presentation.views.novedad_views import (
     MaintenanceEntryCreateView,
     NovedadCreateView,
@@ -41,4 +48,7 @@ __all__ = [
     "NovedadDeleteView",
     "NovedadSyncView",
     "ResetIngresoView",
+    "DeleteIngresoView",
+    "MaintenanceUnitDetailView",
+    "MaintenanceUnitDetailApiView",
 ]

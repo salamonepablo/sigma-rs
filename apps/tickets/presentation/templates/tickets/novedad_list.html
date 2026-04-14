@@ -233,6 +233,11 @@
                             {% endif %}
                             <a href="{% url 'tickets:novedad_detail' novedad.pk %}" class="btn btn-sm btn-outline-info" title="Ver">👁</a>
                             <a href="{% url 'tickets:novedad_update' novedad.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">✏️</a>
+                            {% if novedad.ingreso_generado %}
+                                {% if request.user.is_staff or request.user.is_superuser %}
+                                <a href="{% url 'tickets:novedad_delete_ingreso' novedad.pk %}" class="btn btn-sm btn-outline-danger" title="Eliminar ingreso">🧹</a>
+                                {% endif %}
+                            {% endif %}
                             <a href="{% url 'tickets:novedad_delete' novedad.pk %}" class="btn btn-sm btn-outline-danger" title="Eliminar">🗑️</a>
                         </div>
                     </td>
