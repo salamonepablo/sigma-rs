@@ -34,5 +34,9 @@ def get_maintenance_display_rules(
 ):
     """Return maintenance display rules for the unit."""
     return resolve_maintenance_display_rules(
-        unit_type, brand_code, model_code, brand_name=brand_name, unit_number=unit_number
+        unit_type,
+        brand_code,
+        model_code,
+        brand_name=brand_name,
+        unit_number=unit_number,
     )
