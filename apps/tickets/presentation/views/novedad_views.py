@@ -249,7 +249,14 @@ class NovedadSyncView(LoginRequiredMixin, View):
             or request.META.get("HTTP_REFERER")
             or reverse("tickets:novedad_list")
         )
-        use_case = AccessSyncUseCase()
+        try:
+            use_case = AccessSyncUseCase()
+        except ValueError:
+            messages.error(
+                request,
+                "No se puede sincronizar: rutas de Access no configuradas.",
+            )
+            return redirect(next_url)
 
         try:
             result = use_case.run()
