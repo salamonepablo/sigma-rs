@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -227,9 +228,17 @@ class TestNovedadViews:
             duration_seconds=0.5,
         )
 
-        with patch(
-            "apps.tickets.presentation.views.novedad_views.AccessSyncUseCase.run",
-            return_value=result,
+        with (
+            patch(
+                "apps.tickets.presentation.views.novedad_views.AccessSyncUseCase.run",
+                return_value=result,
+            ),
+            override_settings(
+                ACCESS_BASELOCS_PATH="dummy",
+                ACCESS_BASECCRR_PATH="dummy",
+                ACCESS_EXTRACTOR_SCRIPT="dummy",
+                ACCESS_POWERSHELL_PATH="dummy",
+            ),
         ):
             response = client.post(reverse("tickets:novedad_sync"))
 

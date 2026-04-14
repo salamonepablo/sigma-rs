@@ -13,10 +13,10 @@ def format_km_eu(value: object) -> str:
         return str(value)
 
     quantized = number.quantize(Decimal("0.01"), rounding=ROUND_DOWN)
-    integer_part = int(quantized.to_integral())
+    integer_part = int(quantized)
     formatted_int = f"{integer_part:,}".replace(",", ".")
 
-    decimal_part = abs(quantized - int(quantized)).quantize(
+    decimal_part = abs(quantized - Decimal(integer_part)).quantize(
         Decimal("0.01"), rounding=ROUND_DOWN
     )
     if decimal_part == 0:
