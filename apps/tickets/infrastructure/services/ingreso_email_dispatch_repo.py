@@ -205,3 +205,17 @@ class IngresoEmailDispatchRepository:
                 entry_id=entry_id
             ).order_by("-created_at")
         )
+
+    def delete_by_entry(self, entry_id) -> int:
+        """Delete dispatches for a maintenance entry."""
+        deleted, _ = MaintenanceEntryEmailDispatchModel.objects.filter(
+            entry_id=entry_id
+        ).delete()
+        return deleted
+
+    def has_sent_by_entry(self, entry_id) -> bool:
+        """Return True if the entry has sent dispatches."""
+        return MaintenanceEntryEmailDispatchModel.objects.filter(
+            entry_id=entry_id,
+            status=MaintenanceEntryEmailDispatchModel.Status.SENT,
+        ).exists()

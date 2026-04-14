@@ -165,7 +165,6 @@ class InterventionPriorityResolver:
             return []
 
         normalized_brand = _normalize_code(brand_code)
-        normalized_model = _normalize_code(model_code)
 
         if unit_type == "locomotora":
             if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
@@ -357,7 +356,6 @@ class InterventionSuggestionService:
         }
 
         normalized_brand = _normalize_code(brand_code)
-        normalized_model = _normalize_code(model_code)
 
         def fallback_secondary_codes() -> set[str]:
             if unit_type == "locomotora":
