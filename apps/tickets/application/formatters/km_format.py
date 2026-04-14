@@ -1,20 +1,26 @@
-"""Kilometer formatting helpers."""
-
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_DOWN, Decimal, InvalidOperation
 
 
-def format_km_eu(value: object) -> str | None:
+def format_km_eu(value: object) -> str:
     """Format kilometer values using dot as thousands separator."""
     if value is None:
-        return None
+        return ""
     try:
         number = Decimal(str(value))
     except (InvalidOperation, ValueError):
         return str(value)
 
-    if number == number.to_integral():
-        return f"{int(number):,}".replace(",", ".")
+    quantized = number.quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+    integer_part = int(quantized.to_integral())
+    formatted_int = f"{integer_part:,}".replace(",", ".")
 
-    return f"{number:,}".replace(",", ".")
+    decimal_part = abs(quantized - int(quantized)).quantize(
+        Decimal("0.01"), rounding=ROUND_DOWN
+    )
+    if decimal_part == 0:
+        return formatted_int
+
+    decimal_str = f"{decimal_part:.2f}".split(".")[1].rstrip("0")
+    return f"{formatted_int},{decimal_str}"
