@@ -63,6 +63,7 @@ class MaintenanceEntryDraft:
     model_label: str
     unit_type: str | None
     brand_code: str | None
+    model_code: str | None
     trigger_value: int | None
     trigger_type: str | None
     trigger_unit: str | None
@@ -229,6 +230,7 @@ class MaintenanceEntryUseCase:
             unit_type=maintenance_unit.unit_type if maintenance_unit else None,
             brand_code=brand_code,
             model_code=model_code,
+            cycles=cycles,
             history=history_items,
             current_km_value=trigger_value if trigger_type == "km" else None,
             current_period_value=trigger_value if trigger_type == "time" else None,
@@ -253,6 +255,7 @@ class MaintenanceEntryUseCase:
             model_label=model_label,
             unit_type=unit_type,
             brand_code=brand_code,
+            model_code=model_code,
             trigger_value=trigger_value,
             trigger_type=trigger_type,
             trigger_unit=trigger_unit,
@@ -730,7 +733,9 @@ class MaintenanceEntryUseCase:
         last_rp_km_since = None
         if history.last_rp_code:
             last_rp_km_since = get_km_since_for_code(history.last_rp_code)
-        last_abc_km_since = get_km_since_for_code("ABC")
+        last_abc_km_since = None
+        if history.last_abc_code:
+            last_abc_km_since = get_km_since_for_code(history.last_abc_code)
 
         return UnitMaintenanceHistory(
             last_rg_date=history.last_rg_date,
@@ -741,6 +746,7 @@ class MaintenanceEntryUseCase:
             last_rp_code=history.last_rp_code,
             last_rp_date=history.last_rp_date,
             last_rp_km_since=last_rp_km_since,
+            last_abc_code=history.last_abc_code,
             last_abc_date=history.last_abc_date,
             last_abc_km_since=last_abc_km_since,
         )
@@ -806,6 +812,7 @@ class MaintenanceEntryUseCase:
             unit_type=draft.unit_type or "",
             brand_label=draft.brand_label,
             brand_code=draft.brand_code,
+            model_code=draft.model_code,
             model_label=draft.model_label,
             user_label=user_label or "-",
             intervention_label=intervention_label,
@@ -878,6 +885,7 @@ class MaintenanceEntryUseCase:
         display_rules = resolve_maintenance_display_rules(
             draft.unit_type,
             draft.brand_code,
+            draft.model_code,
         )
 
         if display_rules.use_rp_history:
@@ -969,10 +977,14 @@ class MaintenanceEntryUseCase:
         if display_rules.show_abc:
             if history and history.last_abc_date:
                 abc_km = format_km_eu(history.last_abc_km_since) or "-"
-                abc_value = f"{fmt_date(history.last_abc_date)} - {abc_km} km"
+                abc_code = history.last_abc_code or ""
+                abc_label = f"{abc_code} - " if abc_code else ""
+                abc_value = (
+                    f"{abc_label}{fmt_date(history.last_abc_date)} - {abc_km} km"
+                )
             else:
                 abc_value = "Sin registro"
-            history_items.append(("Última ABC", abc_value))
+            history_items.append((display_rules.abc_label, abc_value))
 
         history_width = max(len(label) for label, _ in history_items)
 

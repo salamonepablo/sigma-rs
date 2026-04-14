@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -26,10 +27,13 @@ from django.views.generic import (
 )
 
 from apps.tickets.application.formatters.km_format import format_km_eu
-from apps.tickets.application.use_cases.legacy_sync_use_case import LegacySyncUseCase
+from apps.tickets.application.use_cases.access_sync_use_case import AccessSyncUseCase
 from apps.tickets.application.use_cases.maintenance_entry_use_case import (
     MaintenanceEntryRequestCache,
     MaintenanceEntryUseCase,
+)
+from apps.tickets.domain.services.intervention_suggestion import (
+    InterventionPriorityResolver,
 )
 from apps.tickets.infrastructure.services.kilometrage_repository import (
     KilometrageRepository,
@@ -245,7 +249,7 @@ class NovedadSyncView(LoginRequiredMixin, View):
             or request.META.get("HTTP_REFERER")
             or reverse("tickets:novedad_list")
         )
-        use_case = LegacySyncUseCase()
+        use_case = AccessSyncUseCase()
 
         try:
             result = use_case.run()
@@ -481,6 +485,8 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             last_intervention_code = None
             last_intervention_km = None
             unit_type = self.novedad.maintenance_unit.unit_type
+            brand_code = None
+            model_code = None
             if unit_type == "locomotora":
                 brand = getattr(
                     getattr(self.novedad.maintenance_unit, "locomotive", None),
@@ -494,39 +500,6 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
                     None,
                 )
                 model_code = model.code if model else None
-
-                priority_codes = []
-                if model_code and model_code.startswith("CKD"):
-                    priority_codes = [
-                        "RG",
-                        "720K",
-                        "360K",
-                        "R6",
-                        "R5",
-                        "R4",
-                        "R3",
-                        "R2",
-                        "R1",
-                        "EX",
-                    ]
-                else:
-                    priority_codes = [
-                        "RG",
-                        "N11",
-                        "N10",
-                        "N9",
-                        "N8",
-                        "N7",
-                        "N6",
-                        "N5",
-                        "N4",
-                        "N3",
-                        "N2",
-                        "N1",
-                        "ABC",
-                        "AB",
-                        "A",
-                    ]
             elif unit_type == "coche_remolcado":
                 brand = getattr(
                     getattr(self.novedad.maintenance_unit, "railcar", None),
@@ -534,14 +507,30 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
                     None,
                 )
                 brand_code = brand.code if brand else None
-                if brand_code == "CNR":
-                    priority_codes = ["A4", "A3", "A2", "A1", "SEM", "MEN"]
-                else:
-                    priority_codes = ["RG", "RP", "ABC", "AB", "A"]
             elif unit_type == "coche_motor":
-                priority_codes = ["RG", "RP", "SEM", "MEN"]
-            else:
-                priority_codes = []
+                brand = getattr(
+                    getattr(self.novedad.maintenance_unit, "motorcoach", None),
+                    "brand",
+                    None,
+                )
+                brand_code = brand.code if brand else None
+
+            priority_codes = InterventionPriorityResolver().resolve(
+                unit_type=unit_type,
+                brand_code=brand_code,
+                model_code=model_code,
+            )
+
+            cycles = use_case._load_cycles(
+                self.novedad.maintenance_unit,
+                brand_code,
+                model_code,
+            )
+            if cycles:
+                cycle_codes = {cycle.intervention_code.upper() for cycle in cycles}
+                filtered = [code for code in priority_codes if code in cycle_codes]
+                if filtered:
+                    priority_codes = filtered
 
             if priority_codes:
                 last_intervention = (
@@ -711,9 +700,20 @@ class NovedadDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "tickets/novedad_confirm_delete.html"
     context_object_name = "novedad"
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, "Novedad eliminada correctamente.")
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        try:
+            response = super().form_valid(form)
+        except ProtectedError:
+            messages.error(
+                self.request,
+                "No se puede eliminar la novedad porque tiene un ingreso asociado. "
+                "Debés eliminar el ingreso primero desde el detalle.",
+            )
+            return redirect(
+                reverse("tickets:novedad_detail", kwargs={"pk": self.object.pk})
+            )
+        messages.success(self.request, "Novedad eliminada correctamente.")
+        return response
 
     def get_success_url(self):
         category = None

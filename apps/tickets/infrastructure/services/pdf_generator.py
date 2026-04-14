@@ -31,6 +31,7 @@ class MaintenanceEntryPdfData:
     unit_type: str
     brand_label: str
     brand_code: str | None
+    model_code: str | None
     model_label: str
     user_label: str
     intervention_label: str
@@ -124,6 +125,7 @@ class MaintenanceEntryPdfGenerator:
         display_rules = resolve_maintenance_display_rules(
             data.unit_type,
             data.brand_code,
+            data.model_code,
         )
 
         def draw_line(label: str, value: str):
@@ -259,7 +261,7 @@ class MaintenanceEntryPdfGenerator:
         )
         lines.append((display_rules.km_label, second_km))
         if display_rules.show_abc:
-            lines.append(("KM ABC:", data.last_abc_km))
+            lines.append((display_rules.abc_km_label, data.last_abc_km))
         return lines
 
     @staticmethod

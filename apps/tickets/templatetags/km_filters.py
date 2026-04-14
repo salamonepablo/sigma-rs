@@ -15,6 +15,18 @@ def km_format(value):
 
 
 @register.simple_tag
-def get_maintenance_label(unit_type: str | None, brand_code: str | None):
+def get_maintenance_label(
+    unit_type: str | None, brand_code: str | None, model_code: str | None = None
+):
     """Return the appropriate maintenance label based on unit type and brand."""
-    return resolve_maintenance_display_rules(unit_type, brand_code).history_label
+    return resolve_maintenance_display_rules(
+        unit_type, brand_code, model_code
+    ).history_label
+
+
+@register.simple_tag
+def get_maintenance_display_rules(
+    unit_type: str | None, brand_code: str | None, model_code: str | None = None
+):
+    """Return maintenance display rules for the unit."""
+    return resolve_maintenance_display_rules(unit_type, brand_code, model_code)

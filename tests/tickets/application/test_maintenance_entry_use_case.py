@@ -263,6 +263,7 @@ def test_email_content_formatea_km_en_eu():
         last_rp_code=None,
         last_rp_date=None,
         last_rp_km_since=None,
+        last_abc_code=None,
         last_abc_date=None,
         last_abc_km_since=None,
     )
@@ -284,6 +285,7 @@ def test_email_content_formatea_km_en_eu():
         model_label="GT22",
         unit_type="locomotora",
         brand_code="GM",
+        model_code=None,
         trigger_value=None,
         trigger_type=None,
         trigger_unit=None,
@@ -326,6 +328,7 @@ def test_pdf_payload_formatea_km_en_eu(tmp_path, settings):
         last_rp_code=None,
         last_rp_date=None,
         last_rp_km_since=None,
+        last_abc_code=None,
         last_abc_date=None,
         last_abc_km_since=None,
     )
@@ -347,6 +350,7 @@ def test_pdf_payload_formatea_km_en_eu(tmp_path, settings):
         model_label="GT22",
         unit_type="locomotora",
         brand_code="GM",
+        model_code=None,
         trigger_value=None,
         trigger_type=None,
         trigger_unit=None,
@@ -704,3 +708,74 @@ def test_delete_entry_allows_sent_with_confirmation(tmp_path):
 
     assert not MaintenanceEntryModel.objects.filter(id=entry.id).exists()
     assert result.pdf_deleted is False
+
+
+@pytest.mark.django_db
+def test_delete_entry_rejects_non_admin():
+    user = get_user_model().objects.create_user(
+        username="user", password="secret", is_staff=False
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        fecha_desde=datetime(2026, 3, 7).date(),
+        is_legacy=False,
+        ingreso_generado=True,
+    )
+    MaintenanceEntryModel.objects.create(
+        id=uuid.uuid4(),
+        novedad=novedad,
+        entry_datetime=timezone.now(),
+    )
+
+    use_case = MaintenanceEntryUseCase()
+
+    with pytest.raises(PermissionError):
+        use_case.delete_entry(novedad_id=str(novedad.pk), user=user)
+
+
+@pytest.mark.django_db
+def test_delete_entry_removes_pdf_and_dispatches_when_present(tmp_path):
+    user = get_user_model().objects.create_user(
+        username="admin", password="secret", is_staff=True
+    )
+    novedad = NovedadModel.objects.create(
+        id=uuid.uuid4(),
+        fecha_desde=datetime(2026, 3, 7).date(),
+        is_legacy=False,
+        ingreso_generado=True,
+    )
+    pdf_path = tmp_path / "ingreso.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4")
+    entry = MaintenanceEntryModel.objects.create(
+        id=uuid.uuid4(),
+        novedad=novedad,
+        entry_datetime=timezone.now(),
+        pdf_path=str(pdf_path),
+    )
+    MaintenanceEntryEmailDispatchModel.objects.create(
+        entry=entry,
+        status=MaintenanceEntryEmailDispatchModel.Status.PENDING,
+        attempts=0,
+        to_recipients=["to@example.com"],
+        cc_recipients=[],
+        subject="Ingreso",
+        body="Cuerpo",
+    )
+
+    use_case = MaintenanceEntryUseCase()
+
+    def run_on_commit(callback):
+        callback()
+
+    with patch(
+        "apps.tickets.application.use_cases.maintenance_entry_use_case."
+        "transaction.on_commit",
+        side_effect=run_on_commit,
+    ):
+        use_case.delete_entry(novedad_id=str(novedad.pk), user=user)
+
+    assert not MaintenanceEntryEmailDispatchModel.objects.filter(
+        entry_id=entry.id
+    ).exists()
+    assert not MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+    assert not pdf_path.exists()

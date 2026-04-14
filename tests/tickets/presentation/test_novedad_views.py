@@ -228,7 +228,7 @@ class TestNovedadViews:
         )
 
         with patch(
-            "apps.tickets.presentation.views.novedad_views.LegacySyncUseCase.run",
+            "apps.tickets.presentation.views.novedad_views.AccessSyncUseCase.run",
             return_value=result,
         ):
             response = client.post(reverse("tickets:novedad_sync"))
@@ -379,4 +379,116 @@ class TestNovedadViews:
             template.name == "tickets/ingreso_confirm_delete.html"
             for template in response.templates
             if template.name
+        )
+
+    def test_delete_ingreso_list_action_visible_for_admin(self, client):
+        """El listado muestra eliminar ingreso solo para admin."""
+        admin = self._admin_user()
+        client.force_login(admin)
+        unit_loco, _, intervencion, lugar = self._references()
+        novedad = NovedadModel.objects.create(
+            maintenance_unit=unit_loco,
+            fecha_desde=date.today(),
+            intervencion=intervencion,
+            lugar=lugar,
+            ingreso_generado=True,
+            is_legacy=False,
+        )
+
+        response = client.get(reverse("tickets:novedad_list"))
+
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        delete_url = reverse(
+            "tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk}
+        )
+        assert delete_url in content
+
+    def test_delete_ingreso_detail_action_hidden_for_non_admin(self, client):
+        """El detalle no muestra eliminar ingreso a no admin."""
+        user = self._user()
+        client.force_login(user)
+        unit_loco, _, intervencion, lugar = self._references()
+        novedad = NovedadModel.objects.create(
+            maintenance_unit=unit_loco,
+            fecha_desde=date.today(),
+            intervencion=intervencion,
+            lugar=lugar,
+            ingreso_generado=True,
+            is_legacy=False,
+        )
+
+        response = client.get(
+            reverse("tickets:novedad_detail", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+        delete_url = reverse(
+            "tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk}
+        )
+        assert delete_url not in content
+
+    def test_delete_ingreso_cancel_keeps_entry(self, client):
+        """Cancelar la confirmacion no elimina el ingreso."""
+        admin = self._admin_user()
+        client.force_login(admin)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        entry = MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+        MaintenanceEntryEmailDispatchModel.objects.create(
+            entry=entry,
+            status=MaintenanceEntryEmailDispatchModel.Status.SENT,
+            attempts=1,
+            to_recipients=["to@example.com"],
+            cc_recipients=[],
+            subject="Ingreso",
+            body="Cuerpo",
+        )
+
+        response = client.get(
+            reverse("tickets:novedad_delete_ingreso", kwargs={"pk": novedad.pk})
+        )
+
+        cancel_url = response.context["cancel_url"]
+        cancel_response = client.get(cancel_url)
+
+        assert cancel_response.status_code == 200
+        assert MaintenanceEntryModel.objects.filter(id=entry.id).exists()
+
+    def test_novedad_delete_protected_redirects_to_detail(self, client):
+        """Eliminar una novedad con ingreso asociado redirige al detalle."""
+        user = self._user()
+        client.force_login(user)
+
+        novedad = NovedadModel.objects.create(
+            fecha_desde=date.today(),
+            is_legacy=False,
+            ingreso_generado=True,
+        )
+        MaintenanceEntryModel.objects.create(
+            novedad=novedad,
+            entry_datetime=timezone.now(),
+        )
+
+        response = client.post(
+            reverse("tickets:novedad_delete", kwargs={"pk": novedad.pk})
+        )
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "tickets:novedad_detail", kwargs={"pk": novedad.pk}
+        )
+        messages_list = [
+            str(message) for message in get_messages(response.wsgi_request)
+        ]
+        assert any(
+            "eliminar el ingreso" in message.lower() for message in messages_list
         )

@@ -9,6 +9,23 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ENV_PATH = BASE_DIR / ".env"
+if ENV_PATH.exists():
+    for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        os.environ.setdefault(key, value)
+
 # SECURITY WARNING: cambiar en producción
 SECRET_KEY = "proto-mr-dev-key-cambiar-en-produccion"
 
@@ -87,37 +104,56 @@ LOGIN_URL = "/sigma/login/"
 LOGIN_REDIRECT_URL = "/sigma/"
 LOGOUT_REDIRECT_URL = "/sigma/login/"
 
-# Tray app integration
-INGRESO_TRAY_TOKEN = os.getenv("INGRESO_TRAY_TOKEN", "")
-INGRESO_EMAIL_SIGNING_SECRET = os.getenv("INGRESO_EMAIL_SIGNING_SECRET", "")
-INGRESO_REQUEST_CACHE_ENABLED = True
-
-LEGACY_DATA_PATH = os.getenv("LEGACY_DATA_PATH", "").strip() or str(
-    BASE_DIR / "context" / "db-legacy"
-)
-# Shared path reference: G:\Material Rodante\IFM\DOCUMENT\db-access
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
             "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
-        }
+        },
     },
     "handlers": {
         "ingresos_file": {
-            "level": "INFO",
             "class": "logging.FileHandler",
-            "filename": str(BASE_DIR / "logs" / "ingresos.log"),
+            "level": "INFO",
+            "filename": BASE_DIR / "logs" / "ingresos.log",
             "formatter": "simple",
-        }
+        },
     },
     "loggers": {
         "apps.tickets.presentation.views.novedad_views": {
             "handlers": ["ingresos_file"],
             "level": "INFO",
             "propagate": False,
-        }
+        },
     },
+}
+
+# Tray app integration
+INGRESO_TRAY_TOKEN = os.getenv("INGRESO_TRAY_TOKEN", "")
+INGRESO_EMAIL_SIGNING_SECRET = os.getenv("INGRESO_EMAIL_SIGNING_SECRET", "")
+INGRESO_REQUEST_CACHE_ENABLED = False
+
+LEGACY_DATA_PATH = os.getenv("LEGACY_DATA_PATH", "").strip() or str(
+    BASE_DIR / "context" / "db-legacy"
+)
+# Shared path reference: G:\Material Rodante\IFM\DOCUMENT\db-access
+
+ACCESS_BASELOCS_PATH = os.getenv("ACCESS_BASELOCS_PATH", "").strip()
+ACCESS_BASECCRR_PATH = os.getenv("ACCESS_BASECCRR_PATH", "").strip()
+ACCESS_DB_PASSWORD = os.getenv("ACCESS_DB_PASSWORD", "").strip()
+ACCESS_EXTRACTOR_SCRIPT = os.getenv("ACCESS_EXTRACTOR_SCRIPT", "").strip() or str(
+    BASE_DIR / "extractor_access.ps1"
+)
+ACCESS_POWERSHELL_PATH = os.getenv("ACCESS_POWERSHELL_PATH", "").strip() or str(
+    r"C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
+)
+
+# UM detail fixed averages (km/month)
+UM_DETAIL_FIXED_AVG_KM = {
+    "GM": 8000,
+    "CKD": 7500,
+    "CCRR_MATERFER": 7000,
+    "CCRR_CNR_APR_NOV": 8500,
+    "CCRR_CNR_DEC_MAR": 12500,
 }
