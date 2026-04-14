@@ -26,7 +26,13 @@ def get_maintenance_label(
 
 @register.simple_tag
 def get_maintenance_display_rules(
-    unit_type: str | None, brand_code: str | None, model_code: str | None = None
+    unit_type: str | None,
+    brand_code: str | None,
+    model_code: str | None = None,
+    brand_name: str | None = None,
+    unit_number: str | None = None,
 ):
     """Return maintenance display rules for the unit."""
-    return resolve_maintenance_display_rules(unit_type, brand_code, model_code)
+    return resolve_maintenance_display_rules(
+        unit_type, brand_code, model_code, brand_name=brand_name, unit_number=unit_number
+    )

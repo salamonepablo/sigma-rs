@@ -375,7 +375,7 @@ class InterventionSuggestionService:
         def fallback_tertiary_codes() -> set[str]:
             if unit_type == "locomotora":
                 if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
-                    return {f"R{idx}" for idx in range(1, 7)}
+                    return {"R6"}
                 return {"ABC"}
             if unit_type == "coche_remolcado" and normalized_brand in {
                 "MATERFER",
@@ -387,11 +387,7 @@ class InterventionSuggestionService:
         if unit_type == "locomotora":
             if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
                 secondary_codes = {code for code in cycle_codes if code.endswith("K")}
-                tertiary_codes = {
-                    code
-                    for code in cycle_codes
-                    if code.startswith("R") and code[1:].isdigit()
-                }
+                tertiary_codes = {"R6"} if "R6" in cycle_codes else set()
             else:
                 secondary_codes = {
                     code

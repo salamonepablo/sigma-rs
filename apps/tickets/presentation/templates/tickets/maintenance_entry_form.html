@@ -38,7 +38,7 @@
                     <span class="text-muted">Sin registro</span>
                 {% endif %}
                 </p>
-                {% get_maintenance_display_rules draft.unit_type draft.brand_code draft.model_code as display_rules %}
+                {% get_maintenance_display_rules draft.unit_type draft.brand_code draft.model_code draft.brand_label draft.unit_label as display_rules %}
                 <p class="mb-1"><strong>{{ display_rules.history_label }}:</strong> 
                 {% if draft.history.last_numeral_code %}
                     {{ draft.history.last_numeral_code }} ({{ draft.history.last_numeral_date|date:"d/m/Y" }})

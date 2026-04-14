@@ -493,6 +493,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
             last_intervention_km = None
             unit_type = self.novedad.maintenance_unit.unit_type
             brand_code = None
+            brand_name = None
             model_code = None
             if unit_type == "locomotora":
                 brand = getattr(
@@ -501,6 +502,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
                     None,
                 )
                 brand_code = brand.code if brand else None
+                brand_name = brand.name if brand else None
                 model = getattr(
                     getattr(self.novedad.maintenance_unit, "locomotive", None),
                     "model",
@@ -514,6 +516,7 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
                     None,
                 )
                 brand_code = brand.code if brand else None
+                brand_name = brand.name if brand else None
             elif unit_type == "coche_motor":
                 brand = getattr(
                     getattr(self.novedad.maintenance_unit, "motorcoach", None),
@@ -521,11 +524,14 @@ class MaintenanceEntryCreateView(LoginRequiredMixin, FormView):
                     None,
                 )
                 brand_code = brand.code if brand else None
+                brand_name = brand.name if brand else None
 
             priority_codes = InterventionPriorityResolver().resolve(
                 unit_type=unit_type,
                 brand_code=brand_code,
                 model_code=model_code,
+                brand_name=brand_name,
+                unit_number=self.novedad.maintenance_unit.number,
             )
 
             cycles = use_case._load_cycles(

@@ -60,12 +60,12 @@ def resolve_maintenance_display_rules(
     if unit_type == "locomotora":
         if _is_ckd(brand_code, model_code, brand_name, model_name, unit_number):
             return MaintenanceDisplayRules(
-                history_label="Última Numeral (360K/720K)",
+                history_label="Última Numeral (N1-N2)",
                 km_label="KM Numeral:",
                 use_rp_history=False,
                 show_abc=True,
-                abc_label="Última Revisión (R1-R6)",
-                abc_km_label="KM Revisión:",
+                abc_label="Última R6",
+                abc_km_label="KM R6:",
             )
         return MaintenanceDisplayRules(
             history_label="Última Numeral (N1-N11)",
