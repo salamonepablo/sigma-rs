@@ -48,6 +48,9 @@ from apps.tickets.infrastructure.services.pdf_generator import (
     MaintenanceEntryPdfData,
     MaintenanceEntryPdfGenerator,
 )
+from apps.tickets.infrastructure.services.unit_maintenance_snapshot_service import (
+    UnitMaintenanceSnapshotService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -128,12 +131,14 @@ class MaintenanceEntryUseCase:
         pdf_generator: MaintenanceEntryPdfGenerator | None = None,
         dispatch_repo: IngresoEmailDispatchRepository | None = None,
         kilometrage_repo: KilometrageRepository | None = None,
+        snapshot_service: UnitMaintenanceSnapshotService | None = None,
     ) -> None:
         self._suggestion_service = suggestion_service or InterventionSuggestionService()
         self._recipient_resolver = recipient_resolver or RecipientResolver()
         self._pdf_generator = pdf_generator or MaintenanceEntryPdfGenerator()
         self._dispatch_repo = dispatch_repo or IngresoEmailDispatchRepository()
         self._kilometrage_repo = kilometrage_repo or KilometrageRepository()
+        self._snapshot_service = snapshot_service or UnitMaintenanceSnapshotService()
 
     def prepare_draft(
         self,
@@ -714,6 +719,27 @@ class MaintenanceEntryUseCase:
 
         unit_number = maintenance_unit.number
 
+        # Fast path: read from pre-computed snapshot.
+        snapshot = self._snapshot_service.get_snapshot(unit_number)
+        if snapshot is not None:
+            return UnitMaintenanceHistory(
+                last_rg_date=history.last_rg_date or snapshot.last_rg_date,
+                last_rg_km_since=snapshot.km_since_rg,
+                last_numeral_code=history.last_numeral_code,
+                last_numeral_date=history.last_numeral_date,
+                last_numeral_km_since=snapshot.km_since_numeral,
+                last_rp_code=history.last_rp_code,
+                last_rp_date=history.last_rp_date,
+                last_rp_km_since=snapshot.km_since_rp,
+                last_abc_code=history.last_abc_code,
+                last_abc_date=history.last_abc_date,
+                last_abc_km_since=snapshot.km_since_abc,
+            )
+
+        # Fallback: compute live from km records (used before snapshot is built).
+        logger.debug(
+            "No km snapshot for %s — falling back to live SUM queries", unit_number
+        )
         history_items = history_items or self._load_history(maintenance_unit)
 
         def get_date_for_code(code: str) -> date | None:
@@ -722,26 +748,37 @@ class MaintenanceEntryUseCase:
                     return item.date_until or item.date_from
             return None
 
-        def get_km_since_for_code(code: str) -> int | None:
+        def get_km_since_for_code(code: str) -> Decimal | None:
             target_date = get_date_for_code(code)
             if target_date is None:
                 return None
-            return self._get_km_since_cached(
-                unit_number,
-                target_date,
-                request_cache,
-            )
+            return self._get_km_since_cached(unit_number, target_date, request_cache)
 
+        # For units without a RG intervention (e.g. CKD, CNR coaches), fall back
+        # to the km since their first km record (puesta en servicio).
         last_rg_km_since = get_km_since_for_code("RG")
-        last_numeral_km_since = None
-        if history.last_numeral_code:
-            last_numeral_km_since = get_km_since_for_code(history.last_numeral_code)
-        last_rp_km_since = None
-        if history.last_rp_code:
-            last_rp_km_since = get_km_since_for_code(history.last_rp_code)
-        last_abc_km_since = None
-        if history.last_abc_code:
-            last_abc_km_since = get_km_since_for_code(history.last_abc_code)
+        if last_rg_km_since is None and history.last_rg_date is None:
+            ps_date = self._snapshot_service._ps_date_from_km(unit_number)
+            if ps_date:
+                last_rg_km_since = self._get_km_since_cached(
+                    unit_number, ps_date, request_cache
+                )
+
+        last_numeral_km_since = (
+            get_km_since_for_code(history.last_numeral_code)
+            if history.last_numeral_code
+            else None
+        )
+        last_rp_km_since = (
+            get_km_since_for_code(history.last_rp_code)
+            if history.last_rp_code
+            else None
+        )
+        last_abc_km_since = (
+            get_km_since_for_code(history.last_abc_code)
+            if history.last_abc_code
+            else None
+        )
 
         return UnitMaintenanceHistory(
             last_rg_date=history.last_rg_date,

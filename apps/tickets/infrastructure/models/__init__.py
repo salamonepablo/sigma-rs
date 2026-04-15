@@ -31,6 +31,9 @@ from apps.tickets.infrastructure.models.reference import (
 )
 from apps.tickets.infrastructure.models.ticket import TicketModel
 from apps.tickets.infrastructure.models.tray_terminal import TrayTerminalModel
+from apps.tickets.infrastructure.models.unit_maintenance_snapshot import (
+    UnitMaintenanceSnapshotModel,
+)
 
 __all__ = [
     # Base
@@ -67,4 +70,6 @@ __all__ = [
     "NovedadModel",
     # Tray terminal
     "TrayTerminalModel",
+    # Snapshot
+    "UnitMaintenanceSnapshotModel",
 ]

@@ -13,6 +13,9 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db.models import Max
 
+from apps.tickets.infrastructure.services.unit_maintenance_snapshot_service import (
+    UnitMaintenanceSnapshotService,
+)
 from apps.tickets.models import KilometrageRecordModel
 
 
@@ -220,6 +223,7 @@ class Command(BaseCommand):
         inserted = 0
         skipped = 0
         invalid = 0
+        affected_units: set[str] = set()
 
         for record in records:
             processed += 1
@@ -253,6 +257,7 @@ class Command(BaseCommand):
                 )
                 if created:
                     inserted += 1
+                    affected_units.add(unit)
                 else:
                     skipped += 1
 
@@ -274,6 +279,14 @@ class Command(BaseCommand):
                 invalid=invalid,
             )
         )
+
+        if not dry_run and affected_units:
+            self.stdout.write(
+                f"Actualizando snapshot de km para {len(affected_units)} unidad(es)..."
+            )
+            snapshot_svc = UnitMaintenanceSnapshotService()
+            refreshed = snapshot_svc.refresh_bulk(unit_numbers=list(affected_units))
+            self.stdout.write(f"  {refreshed} snapshot(s) actualizados.")
 
     def _log_progress(
         self,

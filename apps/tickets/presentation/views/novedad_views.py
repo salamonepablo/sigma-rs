@@ -38,6 +38,9 @@ from apps.tickets.domain.services.intervention_suggestion import (
 from apps.tickets.infrastructure.services.kilometrage_repository import (
     KilometrageRepository,
 )
+from apps.tickets.infrastructure.services.unit_maintenance_snapshot_service import (
+    UnitMaintenanceSnapshotService,
+)
 from apps.tickets.models import (
     IntervencionTipoModel,
     LugarModel,
@@ -623,6 +626,26 @@ class NovedadReferenceMixin:
             "lugar_options": lugar_options,
         }
 
+    @staticmethod
+    def _refresh_snapshot(novedad: NovedadModel) -> None:
+        """Refresh the km snapshot for the novedad's unit after a save.
+
+        Only meaningful when the novedad has a maintenance_unit and a
+        fecha_hasta (closed novedad), since those affect the history
+        used to compute the snapshot. Non-blocking: errors are logged
+        but do not fail the response.
+        """
+        mu = getattr(novedad, "maintenance_unit", None)
+        if not mu:
+            return
+        try:
+            UnitMaintenanceSnapshotService().refresh_unit(mu)
+        except Exception:
+            logger.exception(
+                "Failed to refresh km snapshot for unit %s after novedad save",
+                mu.number,
+            )
+
 
 class NovedadCreateView(NovedadReferenceMixin, LoginRequiredMixin, CreateView):
     """Create a new novedad entry."""
@@ -648,6 +671,7 @@ class NovedadCreateView(NovedadReferenceMixin, LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, "Novedad registrada correctamente.")
+        self._refresh_snapshot(self.object)
         return response
 
     def get_context_data(self, **kwargs):
@@ -691,6 +715,7 @@ class NovedadUpdateView(NovedadReferenceMixin, LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, "Novedad actualizada correctamente.")
+        self._refresh_snapshot(self.object)
         return response
 
     def get_context_data(self, **kwargs):
