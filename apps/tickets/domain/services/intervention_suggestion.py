@@ -454,17 +454,19 @@ class InterventionSuggestionService:
         last_abc_date = None
 
         if is_cnr_coach:
-            # CNR: A2 and A1 are each independent — both filtered only by last RG date,
-            # not by each other. The rp slot carries A2, abc slot carries A1.
+            # CNR inheritance: A4 > A3 > A2 > A1 > SEM > MEN.
+            # A2 slot = most recent {A2, A3, A4} after RG (A3/A4 reset A2).
+            # A1 slot = most recent {A1, A2, A3, A4} after RG (any higher resets A1).
+            # Both slots are filtered only by RG date (not by each other).
             for item in sorted_history:
                 code = item.intervention_code.upper()
                 item_date = item.date_until or item.date_from
                 if last_rg_date is not None and item_date <= last_rg_date:
                     continue
-                if last_rp_code is None and code == "A2":
+                if last_rp_code is None and code in {"A2", "A3", "A4"}:
                     last_rp_code = code
                     last_rp_date = item_date
-                if last_abc_code is None and code == "A1":
+                if last_abc_code is None and code in {"A1", "A2", "A3", "A4"}:
                     last_abc_code = code
                     last_abc_date = item_date
                 if last_rp_code and last_abc_code:
