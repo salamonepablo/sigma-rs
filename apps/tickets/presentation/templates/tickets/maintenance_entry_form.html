@@ -39,13 +39,13 @@
                 {% endif %}
                 </p>
                 {% get_maintenance_display_rules draft.unit_type draft.brand_code draft.model_code draft.brand_label draft.unit_label as display_rules %}
-                <p class="mb-1"><strong>{{ display_rules.history_label }}:</strong> 
+                <p class="mb-1"><strong>{{ display_rules.history_label }}:</strong>
                 {% if draft.history.last_numeral_code %}
                     {{ draft.history.last_numeral_code }} ({{ draft.history.last_numeral_date|date:"d/m/Y" }})
                     {% if draft.history.last_numeral_km_since %}
                         <span class="text-muted">({{ draft.history.last_numeral_km_since|km_format }} km)</span>
                     {% endif %}
-                {% elif draft.history.last_rp_code %}
+                {% elif draft.history.last_rp_code and not display_rules.show_rp_as_secondary_2 %}
                     {{ draft.history.last_rp_code }} ({{ draft.history.last_rp_date|date:"d/m/Y" }})
                     {% if draft.history.last_rp_km_since %}
                         <span class="text-muted">({{ draft.history.last_rp_km_since|km_format }} km)</span>
@@ -54,8 +54,20 @@
                     <span class="text-muted">Sin registro</span>
                 {% endif %}
                 </p>
+                {% if display_rules.show_rp_as_secondary_2 %}
+                <p class="mb-1"><strong>{{ display_rules.secondary_2_label }}:</strong>
+                {% if draft.history.last_rp_code %}
+                    {{ draft.history.last_rp_code }} ({{ draft.history.last_rp_date|date:"d/m/Y" }})
+                    {% if draft.history.last_rp_km_since %}
+                        <span class="text-muted">({{ draft.history.last_rp_km_since|km_format }} km)</span>
+                    {% endif %}
+                {% else %}
+                    <span class="text-muted">Sin registro</span>
+                {% endif %}
+                </p>
+                {% endif %}
                 {% if display_rules.show_abc %}
-                <p class="mb-0"><strong>{{ display_rules.abc_label }}:</strong> 
+                <p class="mb-0"><strong>{{ display_rules.abc_label }}:</strong>
                 {% if draft.history.last_abc_date %}
                     {% if draft.history.last_abc_code %}
                         {{ draft.history.last_abc_code }}

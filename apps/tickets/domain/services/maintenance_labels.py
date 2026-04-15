@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -15,6 +15,11 @@ class MaintenanceDisplayRules:
     show_abc: bool
     abc_label: str
     abc_km_label: str
+    # CNR coaches need 3 independent secondary rows (A3, A2, A1).
+    # When True, the rp slot holds A2 and the abc slot holds A1.
+    show_rp_as_secondary_2: bool = field(default=False)
+    secondary_2_label: str = field(default="")
+    secondary_2_km_label: str = field(default="")
 
 
 def _is_ckd(
@@ -78,13 +83,18 @@ def resolve_maintenance_display_rules(
 
     if unit_type == "coche_remolcado":
         if brand in {"CNR"}:
+            # CNR coaches show 3 independent rows: A3, A2, A1 (all after last RG/PS).
+            # last_numeral → A3, last_rp → A2 (repurposed), last_abc → A1 (repurposed).
             return MaintenanceDisplayRules(
-                history_label="Última Revisión (A1-A4/SEM/MEN)",
-                km_label="KM Revisión:",
+                history_label="Última A3",
+                km_label="KM A3:",
                 use_rp_history=False,
-                show_abc=False,
-                abc_label="Última ABC",
-                abc_km_label="KM ABC:",
+                show_abc=True,
+                abc_label="Última A1",
+                abc_km_label="KM A1:",
+                show_rp_as_secondary_2=True,
+                secondary_2_label="Última A2",
+                secondary_2_km_label="KM A2:",
             )
         if brand in {"MATERFER", "MTF"}:
             return MaintenanceDisplayRules(

@@ -397,9 +397,9 @@ class InterventionSuggestionService:
                 tertiary_codes = {"ABC"} if "ABC" in cycle_codes else set()
         elif unit_type == "coche_remolcado":
             if normalized_brand == "CNR":
-                secondary_codes = cycle_codes.intersection(
-                    {"A1", "A2", "A3", "A4", "SEM", "MEN"}
-                )
+                # CNR: three independent secondary slots shown separately in UI.
+                # secondary → A3/A4 (highest), rp slot → A2, abc slot → A1.
+                secondary_codes = cycle_codes.intersection({"A3", "A4"}) or {"A3", "A4"}
                 tertiary_codes = set()
             else:
                 secondary_codes = {"RP"} if "RP" in cycle_codes else set()
@@ -419,6 +419,8 @@ class InterventionSuggestionService:
         if not tertiary_codes:
             tertiary_codes = fallback_tertiary_codes()
 
+        is_cnr_coach = unit_type == "coche_remolcado" and normalized_brand == "CNR"
+
         # Pass 1: find last RG with no cutoff.
         last_rg_date = None
         for item in sorted_history:
@@ -430,6 +432,7 @@ class InterventionSuggestionService:
         # Pass 2: find last secondary (numeral / RP) only AFTER the last RG.
         # Inheritance rule: a higher-rank intervention resets all lower-rank ones,
         # so interventions on or before the RG date are considered superseded.
+        # For CNR coaches: find A3/A4 only (A2 and A1 are independent slots).
         last_numeral_code = None
         last_numeral_date = None
         last_rp_code = None
@@ -442,24 +445,43 @@ class InterventionSuggestionService:
             if last_numeral_date is None and code in secondary_codes:
                 last_numeral_code = code
                 last_numeral_date = item_date
-            if last_rp_code is None and code == "RP":
+            if not is_cnr_coach and last_rp_code is None and code == "RP":
                 last_rp_code = code
                 last_rp_date = item_date
 
-        # Pass 3: find last tertiary (ABC / R6 / …) only AFTER the last secondary
-        # or, if no secondary exists after RG, after the last RG itself.
+        # Pass 3: tertiary or CNR A2/A1 slots.
         last_abc_code = None
         last_abc_date = None
-        abc_cutoff = last_numeral_date or last_rp_date or last_rg_date
-        for item in sorted_history:
-            code = item.intervention_code.upper()
-            item_date = item.date_until or item.date_from
-            if abc_cutoff is not None and item_date <= abc_cutoff:
-                continue
-            if code in tertiary_codes:
-                last_abc_code = code
-                last_abc_date = item_date
-                break
+
+        if is_cnr_coach:
+            # CNR: A2 and A1 are each independent — both filtered only by last RG date,
+            # not by each other. The rp slot carries A2, abc slot carries A1.
+            for item in sorted_history:
+                code = item.intervention_code.upper()
+                item_date = item.date_until or item.date_from
+                if last_rg_date is not None and item_date <= last_rg_date:
+                    continue
+                if last_rp_code is None and code == "A2":
+                    last_rp_code = code
+                    last_rp_date = item_date
+                if last_abc_code is None and code == "A1":
+                    last_abc_code = code
+                    last_abc_date = item_date
+                if last_rp_code and last_abc_code:
+                    break
+        else:
+            # Standard: tertiary (ABC / R6 / …) only AFTER the last secondary
+            # or, if no secondary exists after RG, after the last RG itself.
+            abc_cutoff = last_numeral_date or last_rp_date or last_rg_date
+            for item in sorted_history:
+                code = item.intervention_code.upper()
+                item_date = item.date_until or item.date_from
+                if abc_cutoff is not None and item_date <= abc_cutoff:
+                    continue
+                if code in tertiary_codes:
+                    last_abc_code = code
+                    last_abc_date = item_date
+                    break
 
         last_rg_km_since = None
         last_numeral_km_since = None
