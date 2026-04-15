@@ -269,6 +269,8 @@ class MaintenanceEntryPdfGenerator:
             display_rules,
         )
         lines.append((display_rules.km_label, second_km))
+        if display_rules.show_rp_as_secondary_2:
+            lines.append((display_rules.secondary_2_km_label, data.last_rp_km))
         if display_rules.show_abc:
             lines.append((display_rules.abc_km_label, data.last_abc_km))
         return lines

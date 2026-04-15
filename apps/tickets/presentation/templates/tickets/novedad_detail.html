@@ -92,14 +92,26 @@
             </div>
         </div>
     </div>
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light py-2">Observaciones</div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-light py-2">Observaciones Ingreso</div>
             <div class="card-body">
                 {% if novedad.observaciones %}
                 <pre class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;">{{ novedad.observaciones }}</pre>
                 {% else %}
-                <span class="text-muted">Sin observaciones registradas.</span>
+                <span class="text-muted">Sin observaciones de ingreso.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-light py-2">Observaciones Egreso</div>
+            <div class="card-body">
+                {% if novedad.observaciones_egreso %}
+                <pre class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;">{{ novedad.observaciones_egreso }}</pre>
+                {% else %}
+                <span class="text-muted">Sin observaciones de egreso.</span>
                 {% endif %}
             </div>
         </div>

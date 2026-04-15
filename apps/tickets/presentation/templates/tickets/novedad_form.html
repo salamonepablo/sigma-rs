@@ -78,9 +78,17 @@
             </div>
 
             <div class="mt-3">
-                <label class="form-label small fw-semibold">Observaciones</label>
+                <label class="form-label small fw-semibold">Observaciones Ingreso</label>
                 {{ form.observaciones }}
                 {% for error in form.observaciones.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label small fw-semibold">Observaciones Egreso</label>
+                {{ form.observaciones_egreso }}
+                {% for error in form.observaciones_egreso.errors %}
                 <div class="text-danger small">{{ error }}</div>
                 {% endfor %}
             </div>

@@ -91,7 +91,12 @@ class NovedadModel(models.Model):
     observaciones = models.TextField(
         blank=True,
         null=True,
-        verbose_name="Observaciones",
+        verbose_name="Observaciones Ingreso",
+    )
+    observaciones_egreso = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observaciones Egreso",
     )
     # Flag to identify imported vs manually created records
     is_legacy = models.BooleanField(

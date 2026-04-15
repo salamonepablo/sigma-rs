@@ -69,6 +69,7 @@ class NovedadForm(forms.ModelForm):
             "intervencion",
             "lugar",
             "observaciones",
+            "observaciones_egreso",
         ]
         widgets = {
             "maintenance_unit": forms.HiddenInput(),
@@ -86,7 +87,14 @@ class NovedadForm(forms.ModelForm):
                 attrs={
                     "class": "form-control form-control-sm",
                     "rows": 3,
-                    "placeholder": "Observaciones u otros datos relevantes",
+                    "placeholder": "Motivo de ingreso, falla observada, etc.",
+                }
+            ),
+            "observaciones_egreso": forms.Textarea(
+                attrs={
+                    "class": "form-control form-control-sm",
+                    "rows": 3,
+                    "placeholder": "Trabajos realizados, nota de entrega, etc.",
                 }
             ),
         }
@@ -95,6 +103,7 @@ class NovedadForm(forms.ModelForm):
         unit_type = kwargs.pop("unit_type", None)
         super().__init__(*args, **kwargs)
         self.fields["observaciones"].required = False
+        self.fields["observaciones_egreso"].required = False
         self.fields["maintenance_unit"].required = False
         self.fields["intervencion"].required = False
         self.fields["lugar"].required = False

@@ -1020,6 +1020,16 @@ class MaintenanceEntryUseCase:
             (display_rules.history_label, secondary_value),
         ]
 
+        if display_rules.show_rp_as_secondary_2:
+            if history and history.last_rp_date:
+                rp_km = format_km_eu(history.last_rp_km_since) or "-"
+                rp_code = history.last_rp_code or ""
+                rp_label = f"{rp_code} - " if rp_code else ""
+                rp_value = f"{rp_label}{fmt_date(history.last_rp_date)} - {rp_km} km"
+            else:
+                rp_value = "Sin registro"
+            history_items.append((display_rules.secondary_2_label, rp_value))
+
         if display_rules.show_abc:
             if history and history.last_abc_date:
                 abc_km = format_km_eu(history.last_abc_km_since) or "-"
