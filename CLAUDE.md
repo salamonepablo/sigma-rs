@@ -62,14 +62,17 @@ apps/tickets/
 ├── domain/           # Pure Python — no Django imports. Entities are @dataclass,
 │   ├── entities/     # repository interfaces are ABC.
 │   ├── repositories/ # Interfaces only; implementations live in infrastructure.
-│   └── services/     # Domain services (business logic).
+│   ├── services/     # Domain services (business logic).
+│   ├── dto/          # Data Transfer Objects between layers.
+│   └── value_objects/# Immutable domain value types.
 ├── application/
 │   └── use_cases/    # Orchestrates domain objects; depends only on domain.
 ├── infrastructure/   # Django ORM models, repository implementations, PDF/mail services.
 │   ├── models/
 │   ├── repositories/
-│   ├── services/
-│   └── migrations/
+│   ├── services/     # pdf_generator.py (WeasyPrint), outlook_client.py (Outlook draft via COM).
+│   ├── migrations/
+│   └── management/   # Custom management commands (import_kilometrage, load_initial_data, etc.)
 └── presentation/     # Views, forms, templates, URL routing.
     ├── views/
     ├── forms/
@@ -79,6 +82,14 @@ apps/tickets/
 **Dependency rule**: domain ← application ← presentation; infrastructure implements domain interfaces.
 
 Shared base classes and exceptions live in `shared/`. Tests mirror the source structure under `tests/tickets/`.
+
+**URL routing**: all routes live under `/sigma/` with namespace `tickets:`. Root `/` redirects there. Reference: `config/urls.py`.
+
+**Tray app** (`tray-app/`): local Windows tray application that automates Outlook draft creation. Packaged separately with PyInstaller. See `docs/TRAY_APP_INSTALL_ES.md`.
+
+**Initial data**: CSV seed files for maintenance units and personnel live in `context/ums.csv` and `context/personal.csv` (loaded by `load_initial_data`).
+
+> Note: `docs/agents/AGENTS.md` still references a `core/` legacy app that has been fully removed. Ignore those references.
 
 ## Tech Stack
 

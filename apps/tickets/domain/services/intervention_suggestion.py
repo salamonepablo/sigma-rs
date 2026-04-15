@@ -419,33 +419,47 @@ class InterventionSuggestionService:
         if not tertiary_codes:
             tertiary_codes = fallback_tertiary_codes()
 
+        # Pass 1: find last RG with no cutoff.
         last_rg_date = None
+        for item in sorted_history:
+            code = item.intervention_code.upper()
+            if code == "RG":
+                last_rg_date = item.date_until or item.date_from
+                break
+
+        # Pass 2: find last secondary (numeral / RP) only AFTER the last RG.
+        # Inheritance rule: a higher-rank intervention resets all lower-rank ones,
+        # so interventions on or before the RG date are considered superseded.
         last_numeral_code = None
         last_numeral_date = None
         last_rp_code = None
         last_rp_date = None
-        last_abc_code = None
-        last_abc_date = None
-
         for item in sorted_history:
             code = item.intervention_code.upper()
             item_date = item.date_until or item.date_from
-
-            if code == "RG" and last_rg_date is None:
-                last_rg_date = item_date
-
-            if code == "RP":
-                if last_rp_code is None:
-                    last_rp_code = code
-                    last_rp_date = item_date
-
-            if code in tertiary_codes and last_abc_date is None:
-                last_abc_code = code
-                last_abc_date = item_date
-
+            if last_rg_date is not None and item_date <= last_rg_date:
+                continue
             if last_numeral_date is None and code in secondary_codes:
                 last_numeral_code = code
                 last_numeral_date = item_date
+            if last_rp_code is None and code == "RP":
+                last_rp_code = code
+                last_rp_date = item_date
+
+        # Pass 3: find last tertiary (ABC / R6 / …) only AFTER the last secondary
+        # or, if no secondary exists after RG, after the last RG itself.
+        last_abc_code = None
+        last_abc_date = None
+        abc_cutoff = last_numeral_date or last_rp_date or last_rg_date
+        for item in sorted_history:
+            code = item.intervention_code.upper()
+            item_date = item.date_until or item.date_from
+            if abc_cutoff is not None and item_date <= abc_cutoff:
+                continue
+            if code in tertiary_codes:
+                last_abc_code = code
+                last_abc_date = item_date
+                break
 
         last_rg_km_since = None
         last_numeral_km_since = None
