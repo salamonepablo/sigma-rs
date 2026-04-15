@@ -9,6 +9,7 @@ from datetime import datetime
 from io import BytesIO
 
 from django.conf import settings
+from django.utils import timezone as dj_timezone
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -148,7 +149,12 @@ class MaintenanceEntryPdfGenerator:
         )
         draw_line("Intervención:", data.intervention_label)
         draw_line("Lugar:", data.lugar_label)
-        draw_line("Fecha ingreso:", data.entry_datetime.strftime("%d/%m/%Y %H:%M"))
+        local_dt = (
+            dj_timezone.localtime(data.entry_datetime)
+            if dj_timezone.is_aware(data.entry_datetime)
+            else data.entry_datetime
+        )
+        draw_line("Fecha ingreso:", local_dt.strftime("%d/%m/%Y %H:%M"))
         draw_line("Fecha egreso:", data.exit_datetime)
         for km_label, km_value in self._km_lines(data, display_rules):
             draw_line(km_label, self._format_km_value(km_value))

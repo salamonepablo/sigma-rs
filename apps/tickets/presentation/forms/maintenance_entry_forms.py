@@ -127,7 +127,9 @@ class MaintenanceEntryForm(forms.Form):
         self._resolved_trigger_unit = None
 
         if not self.initial.get("entry_datetime"):
-            self.initial["entry_datetime"] = timezone.now().strftime("%Y-%m-%dT%H:%M")
+            self.initial["entry_datetime"] = timezone.localtime(
+                timezone.now()
+            ).strftime("%Y-%m-%dT%H:%M")
 
         if suggested_code:
             self.fields["selected_intervention"].initial = (
