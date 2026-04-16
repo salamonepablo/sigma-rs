@@ -82,6 +82,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Parse and report without writing",
         )
+        parser.add_argument(
+            "--update",
+            action="store_true",
+            help="Update existing records (use update_or_create instead of get_or_create)",
+        )
 
     def handle(self, *args, **options):
         script_path = Path(options["script_path"])
@@ -146,6 +151,7 @@ class Command(BaseCommand):
             progress_every=options["progress_every"],
             dry_run=options["dry_run"],
             source_label=source_label,
+            update=options["update"],
         )
 
     def _resolve_last_date(
@@ -217,10 +223,12 @@ class Command(BaseCommand):
         progress_every: int,
         dry_run: bool,
         source_label: str,
+        update: bool = False,
     ) -> None:
         total = len(records)
         processed = 0
         inserted = 0
+        updated = 0
         skipped = 0
         invalid = 0
         affected_units: set[str] = set()
@@ -240,45 +248,75 @@ class Command(BaseCommand):
                     processed,
                     total,
                     inserted,
+                    updated,
                     skipped,
                     invalid,
                     progress_every,
+                    update,
                 )
                 continue
 
             if not dry_run:
-                _, created = KilometrageRecordModel.objects.get_or_create(
-                    unit_number=unit,
-                    record_date=record_date,
-                    defaults={
-                        "km_value": km_value,
-                        "source": source_label,
-                    },
-                )
-                if created:
-                    inserted += 1
+                if update:
+                    _, created = KilometrageRecordModel.objects.update_or_create(
+                        unit_number=unit,
+                        record_date=record_date,
+                        defaults={
+                            "km_value": km_value,
+                            "source": source_label,
+                        },
+                    )
+                    if created:
+                        inserted += 1
+                    else:
+                        updated += 1
                     affected_units.add(unit)
                 else:
-                    skipped += 1
+                    _, created = KilometrageRecordModel.objects.get_or_create(
+                        unit_number=unit,
+                        record_date=record_date,
+                        defaults={
+                            "km_value": km_value,
+                            "source": source_label,
+                        },
+                    )
+                    if created:
+                        inserted += 1
+                        affected_units.add(unit)
+                    else:
+                        skipped += 1
 
             self._log_progress(
                 processed,
                 total,
                 inserted,
+                updated,
                 skipped,
                 invalid,
                 progress_every,
+                update,
             )
 
-        self.stdout.write(
-            "Sincronizacion completa. Leidos {processed}, insertados "
-            "{inserted}, duplicados {skipped}, invalidos {invalid}.".format(
-                processed=processed,
-                inserted=inserted,
-                skipped=skipped,
-                invalid=invalid,
+        if update:
+            self.stdout.write(
+                "Sincronizacion completa. Leidos {processed}, insertados "
+                "{inserted}, actualizados {updated}, invalidos {invalid}.".format(
+                    processed=processed,
+                    inserted=inserted,
+                    updated=updated,
+                    invalid=invalid,
+                )
             )
-        )
+        else:
+            self.stdout.write(
+                "Sincronizacion completa. Leidos {processed}, insertados "
+                "{inserted}, duplicados {skipped}, invalidos {invalid}.".format(
+                    processed=processed,
+                    inserted=inserted,
+                    skipped=skipped,
+                    invalid=invalid,
+                )
+            )
 
         if not dry_run and affected_units:
             self.stdout.write(
@@ -293,26 +331,41 @@ class Command(BaseCommand):
         processed: int,
         total: int,
         inserted: int,
+        updated: int,
         skipped: int,
         invalid: int,
         progress_every: int,
+        update_mode: bool = False,
     ) -> None:
         if progress_every <= 0:
             return
         if processed % progress_every != 0 and processed != total:
             return
         percent = (processed / total) * 100 if total else 0
-        self.stdout.write(
-            "Progreso: {processed}/{total} ({percent:.1f}%) - "
-            "insertados {inserted}, duplicados {skipped}, invalidos {invalid}".format(
-                processed=processed,
-                total=total,
-                percent=percent,
-                inserted=inserted,
-                skipped=skipped,
-                invalid=invalid,
+        if update_mode:
+            self.stdout.write(
+                "Progreso: {processed}/{total} ({percent:.1f}%) - "
+                "insertados {inserted}, actualizados {updated}, invalidos {invalid}".format(
+                    processed=processed,
+                    total=total,
+                    percent=percent,
+                    inserted=inserted,
+                    updated=updated,
+                    invalid=invalid,
+                )
             )
-        )
+        else:
+            self.stdout.write(
+                "Progreso: {processed}/{total} ({percent:.1f}%) - "
+                "insertados {inserted}, duplicados {skipped}, invalidos {invalid}".format(
+                    processed=processed,
+                    total=total,
+                    percent=percent,
+                    inserted=inserted,
+                    skipped=skipped,
+                    invalid=invalid,
+                )
+            )
 
     def _parse_date(self, value: object) -> date | None:
         if value is None:
