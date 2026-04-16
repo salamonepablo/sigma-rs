@@ -396,6 +396,13 @@ class Command(BaseCommand):
         value_str = str(value).strip()
         if not value_str:
             return None
+        # PowerShell outputs values in InvariantCulture (period as decimal separator).
+        # Try direct parse first to avoid stripping the period (e.g. "266.4" → 266.4).
+        try:
+            return Decimal(value_str)
+        except (InvalidOperation, ValueError):
+            pass
+        # Fallback: European format (period = thousands separator, comma = decimal).
         value_str = value_str.replace(".", "").replace(",", ".")
         try:
             return Decimal(value_str)

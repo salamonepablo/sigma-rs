@@ -369,7 +369,7 @@ class InterventionSuggestionService:
             if unit_type == "coche_motor":
                 return {"RP"}
             if unit_type == "vagon":
-                return {"AL", "REV", "A", "B"}
+                return {"B"}
             return set()
 
         def fallback_tertiary_codes() -> set[str]:
@@ -382,6 +382,10 @@ class InterventionSuggestionService:
                 "MTF",
             }:
                 return {"ABC"}
+            if unit_type == "coche_motor" and normalized_brand == "NOHAB":
+                return {"MEN", "SEM"}
+            if unit_type == "vagon":
+                return {"AL", "REV", "A"}
             return set()
 
         if unit_type == "locomotora":
@@ -406,10 +410,22 @@ class InterventionSuggestionService:
                 tertiary_codes = {"ABC"} if "ABC" in cycle_codes else set()
         elif unit_type == "coche_motor":
             secondary_codes = {"RP"} if "RP" in cycle_codes else set()
-            tertiary_codes = set()
+            if normalized_brand == "NOHAB":
+                tertiary_codes = cycle_codes.intersection({"MEN", "SEM"}) or {
+                    "MEN",
+                    "SEM",
+                }
+            else:
+                tertiary_codes = set()
         elif unit_type == "vagon":
-            secondary_codes = cycle_codes.intersection({"AL", "REV", "A", "B"})
-            tertiary_codes = set()
+            # Secondary: last B (tallest periodic inspection for wagons).
+            # Tertiary: last A/REV/AL — independent from B, only filtered by RG.
+            secondary_codes = {"B"} if "B" in cycle_codes else {"B"}
+            tertiary_codes = cycle_codes.intersection({"AL", "REV", "A"}) or {
+                "AL",
+                "REV",
+                "A",
+            }
         else:
             secondary_codes = set()
             tertiary_codes = set()
@@ -420,6 +436,7 @@ class InterventionSuggestionService:
             tertiary_codes = fallback_tertiary_codes()
 
         is_cnr_coach = unit_type == "coche_remolcado" and normalized_brand == "CNR"
+        is_vagon = unit_type == "vagon"
 
         # Pass 1: find last RG with no cutoff.
         last_rg_date = None
@@ -471,8 +488,21 @@ class InterventionSuggestionService:
                     last_abc_date = item_date
                 if last_rp_code and last_abc_code:
                     break
+        elif is_vagon:
+            # Wagons: A/REV/AL slot is independent from B — filtered only by RG date.
+            # This lets both B and A/REV/AL reflect the most recent occurrence
+            # regardless of which came last.
+            for item in sorted_history:
+                code = item.intervention_code.upper()
+                item_date = item.date_until or item.date_from
+                if last_rg_date is not None and item_date <= last_rg_date:
+                    continue
+                if code in tertiary_codes:
+                    last_abc_code = code
+                    last_abc_date = item_date
+                    break
         else:
-            # Standard: tertiary (ABC / R6 / …) only AFTER the last secondary
+            # Standard: tertiary (ABC / R6 / MEN/SEM / …) only AFTER the last secondary
             # or, if no secondary exists after RG, after the last RG itself.
             abc_cutoff = last_numeral_date or last_rp_date or last_rg_date
             for item in sorted_history:

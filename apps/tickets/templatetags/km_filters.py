@@ -1,3 +1,5 @@
+from datetime import date
+
 from django import template
 
 from apps.tickets.application.formatters.km_format import format_km_eu
@@ -12,6 +14,15 @@ register = template.Library()
 def km_format(value):
     """Format number with European thousands separator (dots)."""
     return format_km_eu(value)
+
+
+@register.filter
+def days_since(value):
+    """Return number of days elapsed from value (date) to today."""
+    if value is None:
+        return None
+    ref = value if isinstance(value, date) else getattr(value, "date", lambda: value)()
+    return (date.today() - ref).days
 
 
 @register.simple_tag

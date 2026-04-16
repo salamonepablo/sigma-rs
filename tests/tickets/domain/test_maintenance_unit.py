@@ -116,10 +116,12 @@ class TestWagonMaintenanceRules:
             model_code=None,
         )
 
-        assert rules.history_label == "Última Revisión (AL/REV/A/B)"
-        assert rules.km_label == "KM Revisión:"
+        assert rules.history_label == "Última B"
+        assert rules.km_label == "Días desde B:"
         assert rules.use_rp_history is False
-        assert rules.show_abc is False
+        assert rules.show_abc is True
+        assert rules.abc_label == "Última A/REV/AL"
+        assert rules.show_days_instead_of_km is True
 
 
 @pytest.mark.django_db

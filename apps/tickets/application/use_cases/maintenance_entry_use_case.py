@@ -849,6 +849,27 @@ class MaintenanceEntryUseCase:
             return val.strftime("%d/%m/%Y")
 
         history = draft.history
+        pdf_display_rules = resolve_maintenance_display_rules(
+            draft.unit_type,
+            draft.brand_code,
+            draft.model_code,
+            draft.brand_label,
+            draft.model_label,
+            draft.unit_label,
+        )
+        pdf_entry_date = (
+            entry.entry_datetime.date()
+            if hasattr(entry.entry_datetime, "date")
+            else entry.entry_datetime
+        )
+
+        def fmt_km_or_days(km_since, ref_date) -> str | None:
+            if pdf_display_rules.show_days_instead_of_km:
+                if ref_date and pdf_entry_date:
+                    return str((pdf_entry_date - ref_date).days)
+                return None
+            return format_km_eu(km_since)
+
         data = MaintenanceEntryPdfData(
             entry_number=entry_number,
             unit_label=unit_label,
@@ -867,17 +888,25 @@ class MaintenanceEntryUseCase:
             checklist_tasks=self._split_tasks(entry.checklist_tasks),
             # Historial
             last_rg_date=fmt_date(history.last_rg_date) if history else None,
-            last_rg_km=format_km_eu(history.last_rg_km_since) if history else None,
+            last_rg_km=format_km_eu(history.last_rg_km_since)
+            if history and not pdf_display_rules.show_days_instead_of_km
+            else None,
             last_numeral_code=history.last_numeral_code if history else None,
             last_numeral_date=fmt_date(history.last_numeral_date) if history else None,
-            last_numeral_km=format_km_eu(history.last_numeral_km_since)
+            last_numeral_km=fmt_km_or_days(
+                history.last_numeral_km_since, history.last_numeral_date
+            )
             if history
             else None,
             last_rp_code=history.last_rp_code if history else None,
             last_rp_date=fmt_date(history.last_rp_date) if history else None,
-            last_rp_km=format_km_eu(history.last_rp_km_since) if history else None,
+            last_rp_km=fmt_km_or_days(history.last_rp_km_since, history.last_rp_date)
+            if history
+            else None,
             last_abc_date=fmt_date(history.last_abc_date) if history else None,
-            last_abc_km=format_km_eu(history.last_abc_km_since) if history else None,
+            last_abc_km=fmt_km_or_days(history.last_abc_km_since, history.last_abc_date)
+            if history
+            else None,
         )
 
         pdf_bytes = self._pdf_generator.generate(data)
@@ -1000,18 +1029,36 @@ class MaintenanceEntryUseCase:
         body_lines.append("HISTORIAL DE MANTENIMIENTO")
         body_lines.append(section_separator)
 
+        entry_date = (
+            entry_datetime.date() if hasattr(entry_datetime, "date") else entry_datetime
+        )
+
+        def fmt_days(ref_date) -> str:
+            if ref_date is None:
+                return "-"
+            return str((entry_date - ref_date).days)
+
         if history and history.last_rg_date:
-            rg_km = format_km_eu(history.last_rg_km_since) or "-"
-            rg_value = f"{fmt_date(history.last_rg_date)} - {rg_km} km"
+            if display_rules.show_days_instead_of_km:
+                rg_value = fmt_date(history.last_rg_date)
+            else:
+                rg_km = format_km_eu(history.last_rg_km_since) or "-"
+                rg_value = f"{fmt_date(history.last_rg_date)} - {rg_km} km"
         else:
             rg_value = "Sin registro"
 
         if secondary_code:
-            secondary_km_label = format_km_eu(secondary_km) or "-"
-            secondary_value = (
-                f"{secondary_code} - {fmt_date(secondary_date)} - "
-                f"{secondary_km_label} km"
-            )
+            if display_rules.show_days_instead_of_km:
+                secondary_value = (
+                    f"{secondary_code} - {fmt_date(secondary_date)} - "
+                    f"{fmt_days(secondary_date)} días"
+                )
+            else:
+                secondary_km_label = format_km_eu(secondary_km) or "-"
+                secondary_value = (
+                    f"{secondary_code} - {fmt_date(secondary_date)} - "
+                    f"{secondary_km_label} km"
+                )
         else:
             secondary_value = "Sin registro"
 
@@ -1032,12 +1079,18 @@ class MaintenanceEntryUseCase:
 
         if display_rules.show_abc:
             if history and history.last_abc_date:
-                abc_km = format_km_eu(history.last_abc_km_since) or "-"
                 abc_code = history.last_abc_code or ""
                 abc_label = f"{abc_code} - " if abc_code else ""
-                abc_value = (
-                    f"{abc_label}{fmt_date(history.last_abc_date)} - {abc_km} km"
-                )
+                if display_rules.show_days_instead_of_km:
+                    abc_value = (
+                        f"{abc_label}{fmt_date(history.last_abc_date)} - "
+                        f"{fmt_days(history.last_abc_date)} días"
+                    )
+                else:
+                    abc_km = format_km_eu(history.last_abc_km_since) or "-"
+                    abc_value = (
+                        f"{abc_label}{fmt_date(history.last_abc_date)} - {abc_km} km"
+                    )
             else:
                 abc_value = "Sin registro"
             history_items.append((display_rules.abc_label, abc_value))

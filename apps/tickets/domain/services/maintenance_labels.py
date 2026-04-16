@@ -20,6 +20,8 @@ class MaintenanceDisplayRules:
     show_rp_as_secondary_2: bool = field(default=False)
     secondary_2_label: str = field(default="")
     secondary_2_km_label: str = field(default="")
+    # When True, km_since fields are not available; display days elapsed instead.
+    show_days_instead_of_km: bool = field(default=False)
 
 
 def _is_ckd(
@@ -120,9 +122,9 @@ def resolve_maintenance_display_rules(
                 history_label="Última RP",
                 km_label="KM RP:",
                 use_rp_history=True,
-                show_abc=False,
-                abc_label="Última ABC",
-                abc_km_label="KM ABC:",
+                show_abc=True,
+                abc_label="Último MEN/SEM",
+                abc_km_label="KM MEN/SEM:",
             )
         return MaintenanceDisplayRules(
             history_label="Última Intervención",
@@ -135,12 +137,13 @@ def resolve_maintenance_display_rules(
 
     if unit_type == "vagon":
         return MaintenanceDisplayRules(
-            history_label="Última Revisión (AL/REV/A/B)",
-            km_label="KM Revisión:",
+            history_label="Última B",
+            km_label="Días desde B:",
             use_rp_history=False,
-            show_abc=False,
-            abc_label="Última ABC",
-            abc_km_label="KM ABC:",
+            show_abc=True,
+            abc_label="Última A/REV/AL",
+            abc_km_label="Días desde A/REV/AL:",
+            show_days_instead_of_km=True,
         )
 
     return MaintenanceDisplayRules(
