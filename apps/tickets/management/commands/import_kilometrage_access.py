@@ -82,6 +82,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Parse and report without writing",
         )
+        parser.add_argument(
+            "--update",
+            action="store_true",
+            help="Update km_value for existing records (use after fixing import bugs)",
+        )
 
     def handle(self, *args, **options):
         script_path = Path(options["script_path"])
@@ -146,6 +151,7 @@ class Command(BaseCommand):
             progress_every=options["progress_every"],
             dry_run=options["dry_run"],
             source_label=source_label,
+            update=options["update"],
         )
 
     def _resolve_last_date(
@@ -217,6 +223,7 @@ class Command(BaseCommand):
         progress_every: int,
         dry_run: bool,
         source_label: str,
+        update: bool = False,
     ) -> None:
         total = len(records)
         processed = 0
@@ -247,19 +254,31 @@ class Command(BaseCommand):
                 continue
 
             if not dry_run:
-                _, created = KilometrageRecordModel.objects.get_or_create(
-                    unit_number=unit,
-                    record_date=record_date,
-                    defaults={
-                        "km_value": km_value,
-                        "source": source_label,
-                    },
-                )
-                if created:
+                if update:
+                    obj, created = KilometrageRecordModel.objects.update_or_create(
+                        unit_number=unit,
+                        record_date=record_date,
+                        defaults={
+                            "km_value": km_value,
+                            "source": source_label,
+                        },
+                    )
                     inserted += 1
                     affected_units.add(unit)
                 else:
-                    skipped += 1
+                    _, created = KilometrageRecordModel.objects.get_or_create(
+                        unit_number=unit,
+                        record_date=record_date,
+                        defaults={
+                            "km_value": km_value,
+                            "source": source_label,
+                        },
+                    )
+                    if created:
+                        inserted += 1
+                        affected_units.add(unit)
+                    else:
+                        skipped += 1
 
             self._log_progress(
                 processed,
@@ -343,6 +362,13 @@ class Command(BaseCommand):
         value_str = str(value).strip()
         if not value_str:
             return None
+        # PowerShell outputs values in InvariantCulture (period as decimal separator).
+        # Try direct parse first to avoid stripping the period (e.g. "266.4" → 266.4).
+        try:
+            return Decimal(value_str)
+        except (InvalidOperation, ValueError):
+            pass
+        # Fallback: European format (period = thousands separator, comma = decimal).
         value_str = value_str.replace(".", "").replace(",", ".")
         try:
             return Decimal(value_str)

@@ -28,21 +28,23 @@
         <div class="card shadow-sm h-100">
             <div class="card-header bg-primary text-white py-2">Historial de Mantenimiento</div>
             <div class="card-body">
-                <p class="mb-1"><strong>Última RG:</strong> 
+                {% get_maintenance_display_rules draft.unit_type draft.brand_code draft.model_code draft.brand_label draft.unit_label as display_rules %}
+                <p class="mb-1"><strong>Última RG:</strong>
                 {% if draft.history.last_rg_date %}
                     {{ draft.history.last_rg_date|date:"d/m/Y" }}
-                    {% if draft.history.last_rg_km_since %}
+                    {% if draft.history.last_rg_km_since and not display_rules.show_days_instead_of_km %}
                         <span class="text-muted">({{ draft.history.last_rg_km_since|km_format }} km)</span>
                     {% endif %}
                 {% else %}
                     <span class="text-muted">Sin registro</span>
                 {% endif %}
                 </p>
-                {% get_maintenance_display_rules draft.unit_type draft.brand_code draft.model_code draft.brand_label draft.unit_label as display_rules %}
                 <p class="mb-1"><strong>{{ display_rules.history_label }}:</strong>
                 {% if draft.history.last_numeral_code %}
                     {{ draft.history.last_numeral_code }} ({{ draft.history.last_numeral_date|date:"d/m/Y" }})
-                    {% if draft.history.last_numeral_km_since %}
+                    {% if display_rules.show_days_instead_of_km %}
+                        <span class="text-muted">({{ draft.history.last_numeral_date|days_since }} días)</span>
+                    {% elif draft.history.last_numeral_km_since %}
                         <span class="text-muted">({{ draft.history.last_numeral_km_since|km_format }} km)</span>
                     {% endif %}
                 {% elif draft.history.last_rp_code and not display_rules.show_rp_as_secondary_2 %}
@@ -73,7 +75,9 @@
                         {{ draft.history.last_abc_code }}
                     {% endif %}
                     ({{ draft.history.last_abc_date|date:"d/m/Y" }})
-                    {% if draft.history.last_abc_km_since %}
+                    {% if display_rules.show_days_instead_of_km %}
+                        <span class="text-muted">({{ draft.history.last_abc_date|days_since }} días)</span>
+                    {% elif draft.history.last_abc_km_since %}
                         <span class="text-muted">({{ draft.history.last_abc_km_since|km_format }} km)</span>
                     {% endif %}
                 {% else %}
