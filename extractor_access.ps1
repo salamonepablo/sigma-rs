@@ -101,20 +101,20 @@ $rs.Open($query, $conn, 3, 1)
 $progressEvery = $ProgressEvery
 $current = 0
 
-$results = @()
+$results = [System.Collections.Generic.List[object]]::new()
 
 # Recorrer los resultados
 while (-not $rs.EOF) {
     $current += 1
     if ($Tabla -ieq "Kilometraje") {
-        $results += [PSCustomObject]@{
+        $results.Add([PSCustomObject]@{
             Unidad = $rs.Fields.Item($UnitField).Value
             Kilometros = Format-DecimalInvariant $rs.Fields.Item("Kms_diario").Value
             Fecha = Format-DateValue $rs.Fields.Item("Fecha").Value
             Observaciones = $rs.Fields.Item("Observaciones").Value
-        }
+        })
     } else {
-        $results += [PSCustomObject]@{
+        $results.Add([PSCustomObject]@{
             Unidad = $rs.Fields.Item($UnitField).Value
             Fecha_desde = Format-DateValue $rs.Fields.Item("Fecha_desde").Value
             Fecha_hasta = Format-DateValue $rs.Fields.Item("Fecha_hasta").Value
@@ -122,7 +122,7 @@ while (-not $rs.EOF) {
             Intervencion = $rs.Fields.Item("Intervencion").Value
             Lugar = $rs.Fields.Item("Lugar").Value
             Observaciones = $rs.Fields.Item("Observaciones").Value
-        }
+        })
     }
     if ($progressEvery -gt 0 -and ($current % $progressEvery -eq 0)) {
         if ($totalRows -gt 0) {
