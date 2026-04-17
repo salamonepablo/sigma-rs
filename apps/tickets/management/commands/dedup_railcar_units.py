@@ -1,10 +1,11 @@
-"""Find and remove duplicate railcar maintenance units that have no associated records."""
+"""Find and remove duplicate railcar maintenance units with U/FU prefix."""
 
 from __future__ import annotations
 
 import re
 
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from apps.tickets.infrastructure.models import (
     KilometrageRecordModel,
@@ -16,9 +17,17 @@ from apps.tickets.infrastructure.models import (
     UnitMaintenanceSnapshotModel,
 )
 
+# Fields considered "real data" — railcar and snapshot are structural and will
+# be deleted together with the unit, so they don't count as a conflict blocker.
+_DATA_FIELDS = ("novedades", "km", "entries", "tickets")
+
+
+def _has_prefix(number: str) -> bool:
+    return bool(re.match(r"^F?U\s+", number.strip().upper()))
+
 
 def _normalize(number: str) -> str:
-    """Strip U / FU prefix and return the bare numeric part."""
+    """Strip U / FU prefix (with optional space) and return the bare number."""
     return re.sub(r"^F?U\s*", "", number.strip().upper())
 
 
@@ -38,23 +47,29 @@ def _count_references(unit: MaintenanceUnitModel) -> dict[str, int]:
     }
 
 
-def _has_any_reference(counts: dict[str, int]) -> bool:
-    return any(v > 0 for v in counts.values())
+def _has_real_data(counts: dict[str, int]) -> bool:
+    """Return True if the unit has novedades, km, entries or tickets."""
+    return any(counts[f] > 0 for f in _DATA_FIELDS)
 
 
 class Command(BaseCommand):
-    """Detect and optionally delete railcar units that are duplicates with no data."""
+    """Detect and optionally delete prefixed (U/FU) duplicate railcar units.
+
+    The prefixed units only carry a RailcarModel and a snapshot record —
+    no novedades, km, entries or tickets. The command deletes those
+    structural records and then the MaintenanceUnitModel itself.
+    """
 
     help = (
-        "Find railcar units duplicated by U/FU prefix and delete those with no "
-        "associated records. Run without --execute to preview only."
+        "Delete railcar units duplicated with U/FU prefix that carry no real data "
+        "(novedades, km, entries, tickets). Run without --execute for a dry-run."
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--execute",
             action="store_true",
-            help="Actually delete the empty duplicates (default: dry-run preview only)",
+            help="Actually delete (default: dry-run preview only)",
         )
         parser.add_argument(
             "--unit-type",
@@ -86,62 +101,55 @@ class Command(BaseCommand):
         self.stdout.write(f"Encontrados {len(duplicates)} grupo(s) con duplicados:\n")
 
         to_delete: list[MaintenanceUnitModel] = []
-        has_conflict: list[tuple[str, list[MaintenanceUnitModel]]] = []
+        blocked: list[tuple[str, MaintenanceUnitModel]] = []
 
         for key, group in sorted(duplicates.items()):
+            prefixed = [u for u in group if _has_prefix(u.number)]
+            bare = [u for u in group if not _has_prefix(u.number)]
+
             self.stdout.write(f"\n{'─' * 60}")
             self.stdout.write(f"  Grupo: {key!r}  ({len(group)} unidades)")
-            refs_by_unit = {}
+
             for unit in group:
                 refs = _count_references(unit)
-                refs_by_unit[unit.pk] = refs
                 ref_summary = (
                     "  ".join(f"{k}={v}" for k, v in refs.items() if v > 0)
                     or "SIN DATOS"
                 )
-                marker = "✗ VACÍO" if not _has_any_reference(refs) else "✓ CON DATOS"
+                tag = "PREFIJADO" if _has_prefix(unit.number) else "BASE     "
                 self.stdout.write(
-                    f"    [{marker}]  {unit.number!r:15s}  pk={unit.pk}  → {ref_summary}"
+                    f"    [{tag}]  {unit.number!r:15s}  pk={unit.pk}  → {ref_summary}"
                 )
 
-            empty = [u for u in group if not _has_any_reference(refs_by_unit[u.pk])]
-            with_data = [u for u in group if _has_any_reference(refs_by_unit[u.pk])]
+            # Validate each prefixed candidate
+            for unit in prefixed:
+                refs = _count_references(unit)
+                if _has_real_data(refs):
+                    self.stdout.write(
+                        f"    ⚠ BLOQUEADO {unit.number!r} — tiene datos reales: "
+                        + "  ".join(f"{k}={refs[k]}" for k in _DATA_FIELDS if refs[k])
+                    )
+                    blocked.append((key, unit))
+                else:
+                    self.stdout.write(
+                        f"    → Eliminar {unit.number!r} "
+                        f"(railcar={refs['railcar']} snapshot={refs['snapshot']})"
+                    )
+                    to_delete.append(unit)
 
-            if len(empty) == len(group):
-                # All empty — keep the one without prefix, delete the rest
-                bare = sorted(empty, key=lambda u: len(u.number))[0]
-                to_drop = [u for u in empty if u.pk != bare.pk]
-                self.stdout.write(
-                    f"    → Todos vacíos. Se conserva {bare.number!r}, "
-                    f"se elimina: {[u.number for u in to_drop]}"
-                )
-                to_delete.extend(to_drop)
-            elif not with_data:
-                # Shouldn't happen, guard anyway
-                pass
-            elif len(empty) > 0:
-                self.stdout.write(
-                    f"    → Se puede eliminar: {[u.number for u in empty]}"
-                )
-                to_delete.extend(empty)
-            else:
-                self.stdout.write(
-                    "    ⚠ Todos tienen datos — no se puede eliminar ninguno automáticamente."
-                )
-                has_conflict.append((key, group))
+            if not bare:
+                self.stdout.write("    ⚠ No hay unidad base sin prefijo en este grupo.")
 
         self.stdout.write(f"\n{'═' * 60}")
         self.stdout.write("Resumen:")
-        self.stdout.write(f"  Grupos duplicados:    {len(duplicates)}")
-        self.stdout.write(f"  Unidades a eliminar:  {len(to_delete)}")
-        self.stdout.write(f"  Conflictos (manual):  {len(has_conflict)}")
+        self.stdout.write(f"  Grupos duplicados:   {len(duplicates)}")
+        self.stdout.write(f"  Unidades a eliminar: {len(to_delete)}")
+        self.stdout.write(f"  Bloqueadas (manual): {len(blocked)}")
 
-        if has_conflict:
-            self.stdout.write(
-                "\n⚠  Grupos con datos en ambas unidades (requieren revisión manual):"
-            )
-            for key, group in has_conflict:
-                self.stdout.write(f"    {key}: {[u.number for u in group]}")
+        if blocked:
+            self.stdout.write("\n⚠  Prefijadas con datos reales (revisión manual):")
+            for key, unit in blocked:
+                self.stdout.write(f"    {key}: {unit.number!r}  pk={unit.pk}")
 
         if not to_delete:
             self.stdout.write("\nNada para eliminar.")
@@ -150,15 +158,16 @@ class Command(BaseCommand):
         self.stdout.write(f"\nUnidades a eliminar: {[u.number for u in to_delete]}")
 
         if not execute:
-            self.stdout.write(
-                "\n[DRY-RUN] Agregá --execute para eliminar las unidades vacías."
-            )
+            self.stdout.write("\n[DRY-RUN] Agregá --execute para eliminar.")
             return
 
         deleted = 0
-        for unit in to_delete:
-            self.stdout.write(f"  Eliminando {unit.number!r} (pk={unit.pk})...")
-            unit.delete()
-            deleted += 1
+        with transaction.atomic():
+            for unit in to_delete:
+                self.stdout.write(f"  Eliminando {unit.number!r} (pk={unit.pk})...")
+                # Cascade: RailcarModel and UnitMaintenanceSnapshotModel will be
+                # deleted via on_delete=CASCADE / SET_NULL on the FK.
+                unit.delete()
+                deleted += 1
 
         self.stdout.write(f"\n✓ {deleted} unidad(es) eliminada(s).")
