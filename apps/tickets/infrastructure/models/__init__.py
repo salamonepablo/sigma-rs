@@ -1,5 +1,6 @@
 """Django models for the tickets infrastructure layer."""
 
+from apps.tickets.infrastructure.models.access_sync_log import AccessSyncLogModel
 from apps.tickets.infrastructure.models.base import BaseModel
 from apps.tickets.infrastructure.models.kilometrage import KilometrageRecordModel
 from apps.tickets.infrastructure.models.mail_recipient import LugarEmailRecipientModel
@@ -38,6 +39,8 @@ from apps.tickets.infrastructure.models.unit_maintenance_snapshot import (
 __all__ = [
     # Base
     "BaseModel",
+    # Sync log
+    "AccessSyncLogModel",
     # Reference data
     "AffectedSystemModel",
     "BrandModel",

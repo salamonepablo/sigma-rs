@@ -5,6 +5,7 @@ so Django can find them for migrations and admin.
 """
 
 from apps.tickets.infrastructure.models import (
+    AccessSyncLogModel,
     AffectedSystemModel,
     BaseModel,
     BrandModel,
@@ -33,6 +34,7 @@ from apps.tickets.infrastructure.models import (
 
 __all__ = [
     "BaseModel",
+    "AccessSyncLogModel",
     "AffectedSystemModel",
     "BrandModel",
     "FailureTypeModel",

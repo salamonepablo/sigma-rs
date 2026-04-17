@@ -35,6 +35,7 @@ from apps.tickets.application.use_cases.maintenance_entry_use_case import (
 from apps.tickets.domain.services.intervention_suggestion import (
     InterventionPriorityResolver,
 )
+from apps.tickets.infrastructure.models.access_sync_log import AccessSyncLogModel
 from apps.tickets.infrastructure.services.kilometrage_repository import (
     KilometrageRepository,
 )
@@ -163,6 +164,7 @@ class NovedadListView(LoginRequiredMixin, ListView):
         context["show_processing_message"] = self.range_days > self.DEFAULT_RANGE_DAYS
         context["using_default_range"] = getattr(self, "using_default_range", False)
         context["more_history_query"] = self._build_more_history_query()
+        context["last_sync"] = AccessSyncLogModel.objects.first()
         return context
 
     def _filter_by_unit_type(self, queryset, unit_type):
@@ -263,16 +265,30 @@ class NovedadSyncView(LoginRequiredMixin, View):
 
         try:
             result = use_case.run()
+            AccessSyncLogModel.objects.create(
+                trigger=AccessSyncLogModel.TRIGGER_MANUAL,
+                novedades_inserted=result.novedades.inserted,
+                novedades_duplicates=result.novedades.duplicates,
+                kilometrage_inserted=result.kilometrage.inserted,
+                duration_seconds=result.duration_seconds,
+                status=AccessSyncLogModel.STATUS_OK,
+            )
+            dur = int(result.duration_seconds)
             message = (
-                "Sincronizacion completada. "
-                f"Novedades: {result.novedades.inserted} · "
-                f"Kilometraje: {result.kilometrage.inserted}"
+                f"Sync completado en {dur}s · "
+                f"Novedades: {result.novedades.inserted} nuevas · "
+                f"Km: {result.kilometrage.inserted} nuevos"
             )
             messages.success(request, message)
         except Exception as exc:
+            AccessSyncLogModel.objects.create(
+                trigger=AccessSyncLogModel.TRIGGER_MANUAL,
+                status=AccessSyncLogModel.STATUS_ERROR,
+                error_message=str(exc),
+            )
             messages.error(
                 request,
-                f"No se pudo sincronizar novedades y kilometraje. Detalle: {exc}",
+                f"No se pudo sincronizar. Detalle: {exc}",
             )
 
         return redirect(next_url)

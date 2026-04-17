@@ -74,17 +74,38 @@
         <h4 class="mb-0">Novedades - {{ unit_type_display }}</h4>
         <small class="text-muted">Mostrando últimos {{ range_days }} días (desde {{ default_date_from|date:"d/m/Y" }}) · {{ page_obj.paginator.count }} registro{{ page_obj.paginator.count|pluralize:"s" }}</small>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
         <a href="{% url 'tickets:home' %}" class="btn btn-outline-secondary">
             ← Inicio
         </a>
+        {% if last_sync %}
+            {% if last_sync.status == "ok" %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" title="Trigger: {{ last_sync.trigger }} · Duración: {{ last_sync.duration_seconds|floatformat:0 }}s">
+                🔄 Sync: hace {{ last_sync.ran_at|timesince }} · {{ last_sync.novedades_inserted }} nov · {{ last_sync.kilometrage_inserted }} km
+            </span>
+            {% elif last_sync.status == "error" %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" title="{{ last_sync.error_message }}">
+                ⚠️ Sync fallido: hace {{ last_sync.ran_at|timesince }}
+            </span>
+            {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                ⏭ Sync sin config · hace {{ last_sync.ran_at|timesince }}
+            </span>
+            {% endif %}
+        {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                Sin sync registrado
+            </span>
+        {% endif %}
+        {% if request.user.is_staff or request.user.is_superuser %}
         <form method="post" action="{% url 'tickets:novedad_sync' %}" class="d-inline">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn btn-outline-primary" data-sync-control="legacy-sync">
-                Sincronizar
+            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Forzar sincronización manual">
+                ↺ Sync manual
             </button>
         </form>
+        {% endif %}
         {% if more_history_query %}
         <a href="{{ more_history_query }}" class="btn btn-outline-warning" data-action="load-more-history">
             +30 días históricos

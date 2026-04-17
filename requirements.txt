@@ -9,6 +9,9 @@ pytest-django==4.9.0
 pytest-cov==5.0.0
 ruff==0.8.6
 
+# Scheduler
+apscheduler==3.10.4
+
 # PDF and Windows integration
 reportlab==4.2.2
 pywin32==311; sys_platform == "win32"

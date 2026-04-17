@@ -35,10 +35,12 @@ from apps.tickets.presentation.views.novedad_views import MaintenanceEntryCreate
 class TestNovedadViews:
     """Pruebas básicas para el CRUD de novedades."""
 
-    def _user(self):
+    def _user(self, is_staff=False):
         user_model = get_user_model()
+        import uuid
+        username = f"user_{uuid.uuid4().hex[:8]}"
         return user_model.objects.create_user(
-            username="novedades", password="secret123"
+            username=username, password="secret123", is_staff=is_staff
         )
 
     def _admin_user(self):
@@ -247,12 +249,12 @@ class TestNovedadViews:
             str(message) for message in get_messages(response.wsgi_request)
         ]
         assert any("Novedades:" in message for message in messages_list)
-        assert any("Kilometraje:" in message for message in messages_list)
+        assert any("Km:" in message for message in messages_list)
 
-    def test_sync_button_is_single_across_unit_types(self, client):
-        """El control de sync aparece una vez en cada vista por tipo."""
-        user = self._user()
-        client.force_login(user)
+    def test_sync_button_visible_only_for_staff(self, client):
+        """El botón de sync manual solo aparece para usuarios staff."""
+        staff_user = self._user(is_staff=True)
+        regular_user = self._user()
 
         urls = [
             reverse("tickets:novedad_list_locomotoras"),
@@ -260,11 +262,19 @@ class TestNovedadViews:
             reverse("tickets:novedad_list_vagones"),
         ]
 
+        # Staff ve el botón de sync manual
+        client.force_login(staff_user)
         for url in urls:
             response = client.get(url)
             assert response.status_code == 200
-            content = response.content.decode("utf-8")
-            assert content.count('data-sync-control="legacy-sync"') == 1
+            assert "Sync manual" in response.content.decode("utf-8")
+
+        # Usuario regular no ve el botón de sync manual
+        client.force_login(regular_user)
+        for url in urls:
+            response = client.get(url)
+            assert response.status_code == 200
+            assert "Sync manual" not in response.content.decode("utf-8")
 
     def test_prefill_km_usa_formato_eu(self):
         """El prefill de km aplica formato europeo con decimales reales."""
