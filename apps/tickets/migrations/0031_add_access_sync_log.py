@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("tickets", "0030_add_observaciones_egreso_to_novedad"),
     ]
@@ -36,9 +35,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "novedades_duplicates",
-                    models.IntegerField(
-                        default=0, verbose_name="Novedades duplicadas"
-                    ),
+                    models.IntegerField(default=0, verbose_name="Novedades duplicadas"),
                 ),
                 (
                     "kilometrage_inserted",

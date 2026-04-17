@@ -38,6 +38,7 @@ class TestNovedadViews:
     def _user(self, is_staff=False):
         user_model = get_user_model()
         import uuid
+
         username = f"user_{uuid.uuid4().hex[:8]}"
         return user_model.objects.create_user(
             username=username, password="secret123", is_staff=is_staff
