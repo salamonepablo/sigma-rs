@@ -7,6 +7,9 @@ Todas las modificaciones relevantes del proyecto deben registrarse aquí siguien
 ### Added
 - Wagon parity for tickets/news, legacy import, and UI routes.
 
+### Fixed
+- Novedades filters: avoid select text overlapping the chevron; let key filter controls grow to use available horizontal space.
+
 ## [v1.1.0] - 2026-03-13
 ### Added
 - Backfill migration for rolling stock category.
