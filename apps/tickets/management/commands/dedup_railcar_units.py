@@ -19,7 +19,7 @@ from apps.tickets.infrastructure.models import (
 
 def _normalize(number: str) -> str:
     """Strip U / FU prefix and return the bare numeric part."""
-    return re.sub(r"^F?U", "", number.strip().upper())
+    return re.sub(r"^F?U\s*", "", number.strip().upper())
 
 
 def _count_references(unit: MaintenanceUnitModel) -> dict[str, int]:
