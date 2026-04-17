@@ -11,12 +11,13 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.db import transaction
 from django.db.models import Max
 
 from apps.tickets.infrastructure.services.unit_maintenance_snapshot_service import (
     UnitMaintenanceSnapshotService,
 )
-from apps.tickets.models import KilometrageRecordModel
+from apps.tickets.models import KilometrageRecordModel, MaintenanceUnitModel
 
 
 class Command(BaseCommand):
@@ -217,6 +218,8 @@ class Command(BaseCommand):
         payload, _ = decoder.raw_decode(cleaned[start:])
         return payload
 
+    BATCH_SIZE = 1000
+
     def _import_records(
         self,
         records: list[dict],
@@ -233,58 +236,61 @@ class Command(BaseCommand):
         invalid = 0
         affected_units: set[str] = set()
 
+        unit_id_by_number = {
+            number.upper(): unit_id
+            for number, unit_id in MaintenanceUnitModel.objects.values_list(
+                "number", "id"
+            )
+        }
+
+        batch: list[KilometrageRecordModel] = []
+
+        def flush_batch() -> None:
+            nonlocal inserted, updated, skipped, batch
+            if not batch:
+                return
+            if dry_run:
+                batch = []
+                return
+            with transaction.atomic():
+                if update:
+                    result = KilometrageRecordModel.objects.bulk_create(
+                        batch,
+                        update_conflicts=True,
+                        update_fields=["km_value", "source"],
+                        unique_fields=["unit_number", "record_date"],
+                    )
+                    updated += len(result)
+                else:
+                    result = KilometrageRecordModel.objects.bulk_create(
+                        batch,
+                        ignore_conflicts=True,
+                    )
+                    inserted += len(result)
+                    skipped += len(batch) - len(result)
+            batch = []
+
         for record in records:
             processed += 1
             unit = (record.get("Unidad") or "").strip()
-            raw_date = record.get("Fecha")
-            raw_km = record.get("Kilometros")
-
-            record_date = self._parse_date(raw_date)
-            km_value = self._parse_decimal(raw_km)
+            record_date = self._parse_date(record.get("Fecha"))
+            km_value = self._parse_decimal(record.get("Kilometros"))
 
             if not unit or record_date is None or km_value is None:
                 invalid += 1
-                self._log_progress(
-                    processed,
-                    total,
-                    inserted,
-                    updated,
-                    skipped,
-                    invalid,
-                    progress_every,
-                    update,
+            else:
+                affected_units.add(unit)
+                batch.append(
+                    KilometrageRecordModel(
+                        maintenance_unit_id=unit_id_by_number.get(unit.upper()),
+                        unit_number=unit,
+                        record_date=record_date,
+                        km_value=km_value,
+                        source=source_label,
+                    )
                 )
-                continue
-
-            if not dry_run:
-                if update:
-                    _, created = KilometrageRecordModel.objects.update_or_create(
-                        unit_number=unit,
-                        record_date=record_date,
-                        defaults={
-                            "km_value": km_value,
-                            "source": source_label,
-                        },
-                    )
-                    if created:
-                        inserted += 1
-                    else:
-                        updated += 1
-                    affected_units.add(unit)
-                else:
-                    _, created = KilometrageRecordModel.objects.get_or_create(
-                        unit_number=unit,
-                        record_date=record_date,
-                        defaults={
-                            "km_value": km_value,
-                            "source": source_label,
-                        },
-                    )
-                    if created:
-                        inserted += 1
-                        affected_units.add(unit)
-                    else:
-                        skipped += 1
+                if len(batch) >= self.BATCH_SIZE:
+                    flush_batch()
 
             self._log_progress(
                 processed,
@@ -297,12 +303,13 @@ class Command(BaseCommand):
                 update,
             )
 
+        flush_batch()
+
         if update:
             self.stdout.write(
-                "Sincronizacion completa. Leidos {processed}, insertados "
-                "{inserted}, actualizados {updated}, invalidos {invalid}.".format(
+                "Sincronizacion completa. Leidos {processed}, actualizados "
+                "{updated}, invalidos {invalid}.".format(
                     processed=processed,
-                    inserted=inserted,
                     updated=updated,
                     invalid=invalid,
                 )
@@ -342,22 +349,24 @@ class Command(BaseCommand):
         if processed % progress_every != 0 and processed != total:
             return
         percent = (processed / total) * 100 if total else 0
+        ts = datetime.now().strftime("%H:%M:%S")
         if update_mode:
             self.stdout.write(
-                "Progreso: {processed}/{total} ({percent:.1f}%) - "
-                "insertados {inserted}, actualizados {updated}, invalidos {invalid}".format(
+                "[{ts}] Progreso: {processed}/{total} ({percent:.1f}%) - "
+                "actualizados {updated}, invalidos {invalid}".format(
+                    ts=ts,
                     processed=processed,
                     total=total,
                     percent=percent,
-                    inserted=inserted,
                     updated=updated,
                     invalid=invalid,
                 )
             )
         else:
             self.stdout.write(
-                "Progreso: {processed}/{total} ({percent:.1f}%) - "
+                "[{ts}] Progreso: {processed}/{total} ({percent:.1f}%) - "
                 "insertados {inserted}, duplicados {skipped}, invalidos {invalid}".format(
+                    ts=ts,
                     processed=processed,
                     total=total,
                     percent=percent,
