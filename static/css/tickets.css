@@ -1,0 +1,91 @@
+/* Shared tickets UI styles.
+   Keep selectors scoped to avoid global overrides. */
+
+.novedad-table th,
+.novedad-table td {
+    font-size: 0.78rem;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.novedad-table td.observaciones {
+    max-width: 320px;
+    white-space: normal;
+}
+
+.novedad-table td.fechas {
+    min-width: 140px;
+}
+
+.novedad-table td .badge {
+    font-size: 0.8rem;
+}
+
+.novedad-table td.unidad .badge {
+    font-size: 0.8rem;
+}
+
+.filter-form .form-label,
+.filter-form .form-control,
+.filter-form .form-select {
+    font-size: 0.78rem;
+}
+
+.filter-form .form-control,
+.filter-form .form-select {
+    padding: 0.2rem 0.4rem;
+}
+
+/*
+Bootstrap renders the select chevron as a background image.
+Our compact padding must keep enough right padding so option text
+does not overlap the chevron.
+*/
+.filter-form .form-select {
+    padding-right: 1.6rem;
+    background-position: right 0.4rem center;
+    text-overflow: ellipsis;
+}
+
+/* Let key filter columns grow to consume empty space. */
+.filter-form.row-cols-lg-auto > .filter-col-grow,
+.filter-form.row-cols-md-2 > .filter-col-grow {
+    flex: 1 1 240px;
+    min-width: 240px;
+}
+
+.filter-form.row-cols-lg-auto > .filter-col-search,
+.filter-form.row-cols-md-2 > .filter-col-search {
+    flex: 1 1 260px;
+    min-width: 260px;
+}
+
+.history-loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 12, 16, 0.75);
+    z-index: 1050;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.history-loading-overlay.active {
+    display: flex;
+}
+
+.history-loading-overlay .loading-box {
+    background: #111827;
+    color: #f9fafb;
+    padding: 1.5rem 2rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    min-width: 240px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+.history-loading-overlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.35rem;
+}
