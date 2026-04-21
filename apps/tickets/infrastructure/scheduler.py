@@ -6,9 +6,6 @@ import logging
 import threading
 from zoneinfo import ZoneInfo
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-
 logger = logging.getLogger(__name__)
 
 _ART = ZoneInfo("America/Argentina/Buenos_Aires")
@@ -68,6 +65,14 @@ def run_sync(trigger: str = "scheduled") -> None:
 def start_scheduler() -> None:
     """Start the background scheduler. Safe to call once per process."""
     global _scheduler
+
+    # Lazy import to avoid blocking if apscheduler is not installed
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.triggers.cron import CronTrigger
+    except ImportError:
+        logger.warning("apscheduler not installed — Access sync scheduler disabled")
+        return
 
     with _lock:
         if _scheduler is not None:

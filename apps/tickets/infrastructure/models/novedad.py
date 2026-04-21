@@ -104,6 +104,19 @@ class NovedadModel(models.Model):
         verbose_name="Registro Legacy",
         help_text="Indica si fue importado de la base legacy",
     )
+    # Flag to track export status to Access
+    is_exported = models.BooleanField(
+        default=False,
+        verbose_name="Exportado a Access",
+        help_text="Indica si ya fue exportado a la base Access",
+    )
+    # Reference ID from Access for updates
+    legacy_id = models.IntegerField(
+        blank=True,
+        null=True,
+        verbose_name="ID en Access",
+        help_text="ID del registro en la base Access",
+    )
     ingreso_generado = models.BooleanField(
         default=False,
         verbose_name="Ingreso Generado",
