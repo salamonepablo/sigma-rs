@@ -72,7 +72,7 @@ function Test-NovedadExistsInAccess {
     
     $query = @"
 SELECT [ID] FROM [Detenciones] 
-WHERE [Unidad] = '$Unidad' 
+WHERE [Locs] = '$Unidad' 
 AND [Intervencion] = '$Intervencion' 
 AND [Lugar] = '$Lugar' 
 $fecha_hasta_clause
@@ -127,7 +127,7 @@ function Add-NovedadToAccess {
     
     $query = @"
 INSERT INTO [Detenciones] (
-    [Unidad], [Fecha_desde], [Fecha_hasta], [Fecha_est], 
+    [Locs], [Fecha_desde], [Fecha_hasta], [Fecha_est], 
     [Intervencion], [Lugar], [Observaciones]
 ) VALUES (
     '$($Data.Unidad)', 
@@ -143,19 +143,27 @@ INSERT INTO [Detenciones] (
     try {
         $Conn.Execute($query)
         
-        # Get the ID of inserted record using Recordset.Open with no options
+        # Get the ID of inserted record
         $idRs = New-Object -ComObject ADODB.Recordset
         $idRs.CursorLocation = 3
-        $idRs.CursorType = 1
-        $idRs.LockType = 1
         $idRs.Open("SELECT @@IDENTITY", $Conn)
-        $newId = $idRs.Fields.Item(0).Value
+        if ($idRs -and -not $idRs.EOF) {
+            $newId = $idRs.Fields.Item(0).Value
+        } else {
+            $newId = 0
+        }
         $idRs.Close()
         
         [Console]::Error.WriteLine("Novedad insertada con ID: $newId")
         return $newId
     } catch {
-        [Console]::Error.WriteLine("Error inserting: $($_.Exception.Message)")
+        $msg = $_.Exception.Message
+        # Check for FK error - return special code
+        if ($msg -like "*se necesita un registro relacionado*") {
+            [Console]::Error.WriteLine("FK_ERROR:Lugar no existe en tabla Lugares")
+        } else {
+            [Console]::Error.WriteLine("Error inserting: $msg")
+        }
         return $null
     }
 }

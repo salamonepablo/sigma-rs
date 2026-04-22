@@ -209,13 +209,14 @@ class AccessNovedadExporter:
         # Default to SysWOW64 (32-bit) for Access ACE/Jet OLEDB
         return Path(r"C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe")
 
-def _run_script(self, args: list[str]) -> tuple[int, str, str]:
+    def _run_script(self, args: list[str]) -> tuple[int, str, str]:
         """Run PowerShell script and return (returncode, stdout, stderr)."""
         # Use -NoProfile to avoid profile loading issues
         cmd = [
             str(self._get_powershell_path()),
             "-NoProfile",
-            "-ExecutionPolicy", "Bypass",
+            "-ExecutionPolicy",
+            "Bypass",
         ] + args[1:]  # skip ps.exe from args
 
         process = subprocess.Popen(
