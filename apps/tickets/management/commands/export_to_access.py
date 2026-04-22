@@ -30,4 +30,6 @@ class Command(BaseCommand):
             for error in result.error_details[:10]:
                 self.stdout.write(f"  - {error}")
 
-        return result
+        # BaseCommand expects handle() to return a string/None.
+        # Returning a dataclass causes Django to call .endswith() on it and crash.
+        return None

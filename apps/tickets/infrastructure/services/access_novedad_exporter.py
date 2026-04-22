@@ -17,6 +17,7 @@ class ExportConfig:
 
     script_path: Path
     baselocs_path: Path | None
+    baseccrr_path: Path | None = None
     db_password: str = ""
     powershell_path: Path | None = None
 
@@ -89,6 +90,8 @@ class AccessNovedadExporter:
         intervencion: str,
         lugar: str,
         observaciones: str | None,
+        db_path: Path | None = None,
+        unit_field: str = "Locs",
     ) -> ExportResult:
         """Export a single Novedad to Access.
 
@@ -103,7 +106,9 @@ class AccessNovedadExporter:
             "-File",
             str(self._config.script_path),
             "-DbPath",
-            str(self._config.baselocs_path),
+            str(db_path or self._config.baselocs_path),
+            "-UnitField",
+            unit_field,
             "-Operation",
             "INSERT",
             "-Unidad",
@@ -128,16 +133,25 @@ class AccessNovedadExporter:
 
         try:
             returncode, stdout, stderr = self._run_script(args)
-            if returncode == 0 and stdout.strip():
+            if returncode == 0:
+                legacy_id = None
+                output = stdout.strip()
+                if output:
+                    try:
+                        legacy_id = int(output)
+                    except ValueError:
+                        # Keep backward compatibility: successful insert may not return ID.
+                        legacy_id = None
+
                 return ExportResult(
                     success=True,
-                    legacy_id=int(stdout.strip()),
+                    legacy_id=legacy_id,
                 )
-            else:
-                return ExportResult(
-                    success=False,
-                    error=stderr or "Unknown error",
-                )
+
+            return ExportResult(
+                success=False,
+                error=stderr or "Unknown error",
+            )
         except Exception as e:
             return ExportResult(
                 success=False,
@@ -239,19 +253,42 @@ class AccessNovedadExporter:
     @staticmethod
     def _build_default_config() -> ExportConfig:
         baselocs_path = getattr(settings, "ACCESS_BASELOCS_PATH", "")
-        script_path = getattr(settings, "ACCESS_EXTRACTOR_SCRIPT", "")
+        baseccrr_path = getattr(settings, "ACCESS_BASECCRR_PATH", "")
+        script_path = getattr(settings, "ACCESS_EXPORT_SCRIPT", "")
         db_password = getattr(settings, "ACCESS_DB_PASSWORD", "")
 
         if not baselocs_path:
             raise ValueError("ACCESS_BASELOCS_PATH is not configured.")
         if not script_path:
-            raise ValueError("ACCESS_EXTRACTOR_SCRIPT is not configured.")
+            raise ValueError("ACCESS_EXPORT_SCRIPT is not configured.")
+
+        script_name = Path(script_path).name.lower()
+        if script_name == "extractor_access.ps1":
+            raise ValueError(
+                "ACCESS_EXPORT_SCRIPT points to extractor_access.ps1; use scripts/export_to_access.ps1."
+            )
 
         return ExportConfig(
             script_path=Path(script_path),
             baselocs_path=Path(baselocs_path),
+            baseccrr_path=Path(baseccrr_path) if baseccrr_path else None,
             db_password=db_password,
         )
+
+    def _resolve_export_target(self, novelty: Any) -> tuple[Path | None, str]:
+        """Resolve Access DB path and Detenciones unit field for a novelty."""
+        maintenance_unit = getattr(novelty, "maintenance_unit", None)
+        unit_type = getattr(maintenance_unit, "unit_type", None)
+
+        # Compare by persisted value to avoid importing model constants here.
+        is_locomotive = bool(unit_type and str(unit_type).lower() == "locomotora")
+
+        if is_locomotive:
+            return self._config.baselocs_path, "Locs"
+
+        target_db = self._config.baseccrr_path or self._config.baselocs_path
+        target_field = "Coche" if self._config.baseccrr_path else "Locs"
+        return target_db, target_field
 
     def export_all_pending(self) -> dict[str, Any]:
         """Export all pending Novedades to Access.
@@ -262,7 +299,7 @@ class AccessNovedadExporter:
         from apps.tickets.infrastructure.models.novedad import NovedadModel
 
         # Get pending novedades (new ones not yet exported)
-        pending = NovedadModel.objects.filter(
+        pending = NovedadModel.objects.filter(  # type: ignore[attr-defined]
             is_legacy=False,
             is_exported=False,
         )
@@ -316,6 +353,13 @@ class AccessNovedadExporter:
                     else None
                 )
 
+                if not fecha_desde:
+                    skipped_count += 1
+                    continue
+
+                db_path, unit_field = self._resolve_export_target(Novelty)
+                db_name = db_path.name if db_path else "<none>"
+
                 result = self.export_novedad(
                     unidad=unidad,
                     fecha_desde=fecha_desde,
@@ -324,12 +368,17 @@ class AccessNovedadExporter:
                     intervencion=intervencion,
                     lugar=lugar,
                     observaciones=Novelty.observaciones,
+                    db_path=db_path,
+                    unit_field=unit_field,
                 )
 
-                if result.success and result.legacy_id:
+                if result.success:
                     Novelty.is_exported = True
-                    Novelty.legacy_id = result.legacy_id
-                    Novelty.save(update_fields=["is_exported", "legacy_id"])
+                    update_fields = ["is_exported"]
+                    if result.legacy_id:
+                        Novelty.legacy_id = result.legacy_id
+                        update_fields.append("legacy_id")
+                    Novelty.save(update_fields=update_fields)
                     exported_count += 1
                 elif "already exists" in (result.error or "").lower():
                     # Mark as exported even if already exists
@@ -338,7 +387,10 @@ class AccessNovedadExporter:
                     skipped_count += 1
                 else:
                     error_count += 1
-                    errors.append(f"{unidad}: {result.error}")
+                    errors.append(
+                        f"db={db_name} unit_field={unit_field} unidad={unidad} "
+                        f"intervencion={intervencion} lugar={lugar}: {result.error}"
+                    )
             except Exception as e:
                 error_count += 1
                 errors.append(f"Error: {str(e)}")

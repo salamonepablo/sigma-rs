@@ -33,7 +33,11 @@ param(
     [string]$Observaciones = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$DbPassword = ""
+    [string]$DbPassword = "",
+
+    [Parameter(Mandatory=$false)]
+    [ValidateSet("Locs", "Coche")]
+    [string]$UnitField = "Locs"
 )
 
 $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
@@ -72,7 +76,7 @@ function Test-NovedadExistsInAccess {
     
     $query = @"
 SELECT [ID] FROM [Detenciones] 
-WHERE [Locs] = '$Unidad' 
+WHERE [${UnitField}] = '$Unidad' 
 AND [Intervencion] = '$Intervencion' 
 AND [Lugar] = '$Lugar' 
 $fecha_hasta_clause
@@ -103,65 +107,132 @@ function Add-NovedadToAccess {
         [hashtable]$Data
     )
     
-    # Format fecha_hasta - handle NULL
-    $fecha_hasta_sql = "NULL"
+    # ADODB constants
+    $adCmdText = 1
+    $adParamInput = 1
+    $adDate = 7
+    $adInteger = 3
+    $adVarWChar = 202
+    $adLongVarWChar = 203
+
+    # Normalize values preserving NULL semantics
+    $fecha_desde_value = [datetime]$Data.Fecha_desde
+    $fecha_hasta_value = $null
     if ($Data.Fecha_hasta -and $Data.Fecha_hasta -ne "") {
-        $fecha_hasta_sql = "#$($Data.Fecha_hasta)#"
+        $fecha_hasta_value = [datetime]$Data.Fecha_hasta
     }
-    
-    # Format fecha_desde
-    $fecha_desde_sql = "#$($Data.Fecha_desde)#"
-    
-    # Format fecha_est - handle NULL
-    $fecha_est_sql = "NULL"
+
+    $fecha_est_value = $null
     if ($Data.Fecha_est -and $Data.Fecha_est -ne "") {
-        $fecha_est_sql = "#$($Data.Fecha_est)#"
+        $fecha_est_value = [datetime]$Data.Fecha_est
     }
-    
-    # Escape Observaciones
-    $observaciones_sql = "NULL"
+
+    $lugar_value = $null
+    if ($Data.Lugar -and $Data.Lugar -ne "") {
+        try {
+            $lugar_value = [int]$Data.Lugar
+        } catch {
+            $lugar_value = $Data.Lugar
+        }
+    }
+
+    $observaciones_value = $null
     if ($Data.Observaciones -and $Data.Observaciones -ne "") {
-        $obs = $Data.Observaciones.Replace("'", "''")
-        $observaciones_sql = "'$obs'"
+        $observaciones_value = [string]$Data.Observaciones
     }
-    
+
     $query = @"
 INSERT INTO [Detenciones] (
-    [Locs], [Fecha_desde], [Fecha_hasta], [Fecha_est], 
+    [${UnitField}], [Fecha_desde], [Fecha_hasta], [Fecha_est],
     [Intervencion], [Lugar], [Observaciones]
-) VALUES (
-    '$($Data.Unidad)', 
-    $fecha_desde_sql, 
-    $fecha_hasta_sql, 
-    $fecha_est_sql, 
-    '$($Data.Intervencion)', 
-    '$($Data.Lugar)', 
-    $observaciones_sql
-)
+) VALUES (?, ?, ?, ?, ?, ?, ?)
 "@
     
     try {
-        $Conn.Execute($query)
-        
-        # Use a simple query to get last ID
-        $idRs = $Conn.Execute("SELECT @@IDENTITY")
-        $newId = 0
-        if ($idRs -and -not $idRs.EOF) {
-            $newId = $idRs.Fields.Item(0).Value
+        $cmd = New-Object -ComObject ADODB.Command
+        $cmd.ActiveConnection = $Conn
+        $cmd.CommandType = $adCmdText
+        $cmd.CommandText = $query
+
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p1", $adVarWChar, $adParamInput, 255, [string]$Data.Unidad))
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p2", $adDate, $adParamInput, 0, $fecha_desde_value))
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p3", $adDate, $adParamInput, 0, $fecha_hasta_value))
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p4", $adDate, $adParamInput, 0, $fecha_est_value))
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p5", $adVarWChar, $adParamInput, 255, [string]$Data.Intervencion))
+
+        if ($null -ne $lugar_value -and $lugar_value -is [int]) {
+            [void]$cmd.Parameters.Append($cmd.CreateParameter("p6", $adInteger, $adParamInput, 0, $lugar_value))
+        } else {
+            [void]$cmd.Parameters.Append($cmd.CreateParameter("p6", $adVarWChar, $adParamInput, 255, $lugar_value))
         }
-        
-        [Console]::Error.WriteLine("Novedad insertada con ID: $newId")
-        return $newId
+
+        # Long text parameter to preserve multiline/large observaciones
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p7", $adLongVarWChar, $adParamInput, 0, $observaciones_value))
+
+        [void]$cmd.Execute()
+
+        # Insert succeeded. Try to resolve identity, but don't fail export if this query is unsupported.
+        try {
+            $idRs = $Conn.Execute("SELECT @@IDENTITY")
+            if ($idRs -and -not $idRs.EOF) {
+                $newId = $idRs.Fields.Item(0).Value
+                [Console]::Error.WriteLine("Novedad insertada con ID: $newId")
+                return $newId
+            }
+        } catch {
+            [Console]::Error.WriteLine("Insert ok, no se pudo obtener ID por @@IDENTITY: $($_.Exception.Message)")
+        }
+
+        [Console]::Error.WriteLine("Novedad insertada (sin ID devuelto)")
+        return 0
     } catch {
         $msg = $_.Exception.Message
         # Check for FK error - return special code
-        if ($msg -like "*se necesita un registro relacionado*") {
-            [Console]::Error.WriteLine("FK_ERROR:Lugar no existe en tabla Lugares")
+        if ($msg -like "*se necesita un registro relacionado*" -or $msg -like "*registro relacionado*" -or $msg -like "*related record*") {
+            $unitParentTable = if ($UnitField -ieq "Coche") { "Coches" } else { "Locomotoras" }
+            $unitParentCol = if ($UnitField -ieq "Coche") { "Coche" } else { "Locs" }
+
+            $unitExists = "unknown"
+            $intervExists = "unknown"
+            $lugarExists = "unknown"
+
+            try {
+                $rsU = $Conn.Execute("SELECT COUNT(*) AS C FROM [$unitParentTable] WHERE [$unitParentCol] = '$($Data.Unidad)'")
+                if ($rsU -and -not $rsU.EOF) { $unitExists = [string]$rsU.Fields.Item("C").Value }
+            } catch {
+                $unitExists = "query_error"
+            }
+
+            try {
+                $rsI = $Conn.Execute("SELECT COUNT(*) AS C FROM [Intervenciones] WHERE [Intervencion_tipo] = '$($Data.Intervencion)'")
+                if ($rsI -and -not $rsI.EOF) { $intervExists = [string]$rsI.Fields.Item("C").Value }
+            } catch {
+                $intervExists = "query_error"
+            }
+
+            try {
+                $rsL = $Conn.Execute("SELECT COUNT(*) AS C FROM [Lugares] WHERE [Lugar_codigo] = $($Data.Lugar)")
+                if ($rsL -and -not $rsL.EOF) { $lugarExists = [string]$rsL.Fields.Item("C").Value }
+            } catch {
+                $lugarExists = "query_error"
+            }
+
+            [Console]::Error.WriteLine("FK_ERROR:Error de clave foránea (unit_field=$UnitField, unidad=$($Data.Unidad), intervencion=$($Data.Intervencion), lugar=$($Data.Lugar), unit_exists=$unitExists, intervencion_exists=$intervExists, lugar_exists=$lugarExists)")
         } else {
             [Console]::Error.WriteLine("Error inserting: $msg")
         }
         return $null
     }
+}
+
+function Get-SafeErrorMessage {
+    param([string]$Message)
+
+    if (-not $DbPassword -or $DbPassword -eq "") {
+        return $Message
+    }
+
+    return $Message.Replace($DbPassword, "***")
 }
 
 function Update-NovedadInAccess {
@@ -227,12 +298,13 @@ try {
     }
 } catch {
     [Console]::Error.WriteLine("Error al conectar a la base de datos.")
-    [Console]::Error.WriteLine("Mensaje original: $($_.Exception.Message)")
+    [Console]::Error.WriteLine("Mensaje original: $(Get-SafeErrorMessage -Message $_.Exception.Message)")
     exit 1
 }
 
 # Execute operation
 $result = $null
+$operationSucceeded = $false
 
 switch ($Operation) {
     "CHECK" {
@@ -244,6 +316,9 @@ switch ($Operation) {
         $result = Test-NovedadExistsInAccess -Conn $conn -Unidad $Unidad -Fecha_hasta $Fecha_hasta -Intervencion $Intervencion -Lugar $Lugar
         if ($result) {
             [Console]::Out.WriteLine($result)
+            $operationSucceeded = $true
+        } else {
+            $operationSucceeded = $false
         }
     }
     "INSERT" {
@@ -262,8 +337,13 @@ switch ($Operation) {
             Observaciones = $Observaciones
         }
         $result = Add-NovedadToAccess -Conn $conn -Data $novedadData
-        if ($result) {
-            [Console]::Out.WriteLine($result)
+        if ($null -ne $result) {
+            $operationSucceeded = $true
+            if ($result -is [int] -and $result -gt 0) {
+                [Console]::Out.WriteLine($result)
+            }
+        } else {
+            $operationSucceeded = $false
         }
     }
     "UPDATE" {
@@ -289,13 +369,16 @@ switch ($Operation) {
         $result = Update-NovedadInAccess -Conn $conn -LegacyId $legacyId -Data $novedadData
         if ($result) {
             [Console]::Out.WriteLine($legacyId)
+            $operationSucceeded = $true
+        } else {
+            $operationSucceeded = $false
         }
     }
 }
 
 $conn.Close()
 
-if ($result) {
+if ($operationSucceeded) {
     exit 0
 } else {
     exit 1

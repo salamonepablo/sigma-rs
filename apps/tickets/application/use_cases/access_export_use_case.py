@@ -58,14 +58,18 @@ class AccessExportUseCase:
         from pathlib import Path
 
         baselocs_path = getattr(settings, "ACCESS_BASELOCS_PATH", "")
-        script_path = getattr(settings, "ACCESS_EXTRACTOR_SCRIPT", "")
+        baseccrr_path = getattr(settings, "ACCESS_BASECCRR_PATH", "")
+        script_path = getattr(settings, "ACCESS_EXPORT_SCRIPT", "")
+        db_password = getattr(settings, "ACCESS_DB_PASSWORD", "")
 
         if not baselocs_path:
             raise ValueError("ACCESS_BASELOCS_PATH is not configured.")
         if not script_path:
-            raise ValueError("ACCESS_EXTRACTOR_SCRIPT is not configured.")
+            raise ValueError("ACCESS_EXPORT_SCRIPT is not configured.")
 
         return ExportConfig(
             script_path=Path(script_path),
             baselocs_path=Path(baselocs_path),
+            baseccrr_path=Path(baseccrr_path) if baseccrr_path else None,
+            db_password=db_password,
         )

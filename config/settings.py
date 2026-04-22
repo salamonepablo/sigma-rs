@@ -147,6 +147,9 @@ ACCESS_DB_PASSWORD = os.getenv("ACCESS_DB_PASSWORD", "").strip()
 ACCESS_EXTRACTOR_SCRIPT = os.getenv("ACCESS_EXTRACTOR_SCRIPT", "").strip() or str(
     BASE_DIR / "extractor_access.ps1"
 )
+ACCESS_EXPORT_SCRIPT = os.getenv("ACCESS_EXPORT_SCRIPT", "").strip() or str(
+    BASE_DIR / "scripts" / "export_to_access.ps1"
+)
 ACCESS_POWERSHELL_PATH = os.getenv("ACCESS_POWERSHELL_PATH", "").strip() or str(
     r"C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
 )
