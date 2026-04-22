@@ -143,16 +143,12 @@ INSERT INTO [Detenciones] (
     try {
         $Conn.Execute($query)
         
-        # Get the ID of inserted record
-        $idRs = New-Object -ComObject ADODB.Recordset
-        $idRs.CursorLocation = 3
-        $idRs.Open("SELECT @@IDENTITY", $Conn)
+        # Use a simple query to get last ID
+        $idRs = $Conn.Execute("SELECT @@IDENTITY")
+        $newId = 0
         if ($idRs -and -not $idRs.EOF) {
             $newId = $idRs.Fields.Item(0).Value
-        } else {
-            $newId = 0
         }
-        $idRs.Close()
         
         [Console]::Error.WriteLine("Novedad insertada con ID: $newId")
         return $newId
