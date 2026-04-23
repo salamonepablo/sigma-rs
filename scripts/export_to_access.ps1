@@ -112,8 +112,9 @@ function Add-NovedadToAccess {
     $adParamInput = 1
     $adDate = 7
     $adInteger = 3
-    $adVarWChar = 202
-    $adLongVarWChar = 203
+    # Use ANSI text parameter types for Jet compatibility on server environments
+    $adVarChar = 200
+    $adLongVarChar = 201
 
     # Normalize values preserving NULL semantics
     $fecha_desde_value = [datetime]$Data.Fecha_desde
@@ -154,20 +155,21 @@ INSERT INTO [Detenciones] (
         $cmd.CommandType = $adCmdText
         $cmd.CommandText = $query
 
-        [void]$cmd.Parameters.Append($cmd.CreateParameter("p1", $adVarWChar, $adParamInput, 255, [string]$Data.Unidad))
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p1", $adVarChar, $adParamInput, 255, [string]$Data.Unidad))
         [void]$cmd.Parameters.Append($cmd.CreateParameter("p2", $adDate, $adParamInput, 0, $fecha_desde_value))
         [void]$cmd.Parameters.Append($cmd.CreateParameter("p3", $adDate, $adParamInput, 0, $fecha_hasta_value))
         [void]$cmd.Parameters.Append($cmd.CreateParameter("p4", $adDate, $adParamInput, 0, $fecha_est_value))
-        [void]$cmd.Parameters.Append($cmd.CreateParameter("p5", $adVarWChar, $adParamInput, 255, [string]$Data.Intervencion))
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p5", $adVarChar, $adParamInput, 255, [string]$Data.Intervencion))
 
         if ($null -ne $lugar_value -and $lugar_value -is [int]) {
             [void]$cmd.Parameters.Append($cmd.CreateParameter("p6", $adInteger, $adParamInput, 0, $lugar_value))
         } else {
-            [void]$cmd.Parameters.Append($cmd.CreateParameter("p6", $adVarWChar, $adParamInput, 255, $lugar_value))
+            [void]$cmd.Parameters.Append($cmd.CreateParameter("p6", $adVarChar, $adParamInput, 255, $lugar_value))
         }
 
         # Long text parameter to preserve multiline/large observaciones
-        [void]$cmd.Parameters.Append($cmd.CreateParameter("p7", $adLongVarWChar, $adParamInput, 0, $observaciones_value))
+        # NOTE: Jet OLEDB is strict about parameter metadata; provide explicit size.
+        [void]$cmd.Parameters.Append($cmd.CreateParameter("p7", $adLongVarChar, $adParamInput, 2147483647, $observaciones_value))
 
         [void]$cmd.Execute()
 
