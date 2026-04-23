@@ -4,20 +4,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('tickets', '0031_add_access_sync_log'),
+        ("tickets", "0031_add_access_sync_log"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='novedadmodel',
-            name='is_exported',
-            field=models.BooleanField(default=False, help_text='Indica si ya fue exportado a la base Access', verbose_name='Exportado a Access'),
+            model_name="novedadmodel",
+            name="is_exported",
+            field=models.BooleanField(
+                default=False,
+                help_text="Indica si ya fue exportado a la base Access",
+                verbose_name="Exportado a Access",
+            ),
         ),
         migrations.AddField(
-            model_name='novedadmodel',
-            name='legacy_id',
-            field=models.IntegerField(blank=True, help_text='ID del registro en la base Access', null=True, verbose_name='ID en Access'),
+            model_name="novedadmodel",
+            name="legacy_id",
+            field=models.IntegerField(
+                blank=True,
+                help_text="ID del registro en la base Access",
+                null=True,
+                verbose_name="ID en Access",
+            ),
         ),
     ]
