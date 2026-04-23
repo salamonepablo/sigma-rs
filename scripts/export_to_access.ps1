@@ -142,11 +142,28 @@ function Add-NovedadToAccess {
         $observaciones_value = [string]$Data.Observaciones
     }
 
+    # Jet can fail on optional NULL params in fixed placeholder lists.
+    # Build expressions so optional values use SQL NULL literals when absent.
+    $fecha_hasta_expr = "NULL"
+    if ($null -ne $fecha_hasta_value) {
+        $fecha_hasta_expr = "?"
+    }
+
+    $fecha_est_expr = "NULL"
+    if ($null -ne $fecha_est_value) {
+        $fecha_est_expr = "?"
+    }
+
+    $observaciones_expr = "NULL"
+    if ($null -ne $observaciones_value) {
+        $observaciones_expr = "?"
+    }
+
     $query = @"
 INSERT INTO [Detenciones] (
     [${UnitField}], [Fecha_desde], [Fecha_hasta], [Fecha_est],
     [Intervencion], [Lugar], [Observaciones]
-) VALUES (?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, $fecha_hasta_expr, $fecha_est_expr, ?, ?, $observaciones_expr)
 "@
     
     try {
@@ -157,8 +174,12 @@ INSERT INTO [Detenciones] (
 
         [void]$cmd.Parameters.Append($cmd.CreateParameter("p1", $adVarChar, $adParamInput, 255, [string]$Data.Unidad))
         [void]$cmd.Parameters.Append($cmd.CreateParameter("p2", $adDate, $adParamInput, 0, $fecha_desde_value))
-        [void]$cmd.Parameters.Append($cmd.CreateParameter("p3", $adDate, $adParamInput, 0, $fecha_hasta_value))
-        [void]$cmd.Parameters.Append($cmd.CreateParameter("p4", $adDate, $adParamInput, 0, $fecha_est_value))
+        if ($null -ne $fecha_hasta_value) {
+            [void]$cmd.Parameters.Append($cmd.CreateParameter("p3", $adDate, $adParamInput, 0, $fecha_hasta_value))
+        }
+        if ($null -ne $fecha_est_value) {
+            [void]$cmd.Parameters.Append($cmd.CreateParameter("p4", $adDate, $adParamInput, 0, $fecha_est_value))
+        }
         [void]$cmd.Parameters.Append($cmd.CreateParameter("p5", $adVarChar, $adParamInput, 255, [string]$Data.Intervencion))
 
         if ($null -ne $lugar_value -and $lugar_value -is [int]) {
@@ -169,7 +190,9 @@ INSERT INTO [Detenciones] (
 
         # Long text parameter to preserve multiline/large observaciones
         # NOTE: Jet OLEDB is strict about parameter metadata; provide explicit size.
-        [void]$cmd.Parameters.Append($cmd.CreateParameter("p7", $adLongVarChar, $adParamInput, 2147483647, $observaciones_value))
+        if ($null -ne $observaciones_value) {
+            [void]$cmd.Parameters.Append($cmd.CreateParameter("p7", $adLongVarChar, $adParamInput, 2147483647, $observaciones_value))
+        }
 
         [void]$cmd.Execute()
 
