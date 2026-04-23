@@ -54,8 +54,9 @@ class AccessExportUseCase:
 
     @staticmethod
     def _build_default_config() -> ExportConfig:
-        from django.conf import settings
         from pathlib import Path
+
+        from django.conf import settings
 
         baselocs_path = getattr(settings, "ACCESS_BASELOCS_PATH", "")
         baseccrr_path = getattr(settings, "ACCESS_BASECCRR_PATH", "")

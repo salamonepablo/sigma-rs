@@ -3,7 +3,6 @@
 from django.core.management.base import BaseCommand
 
 from apps.tickets.application.use_cases.access_export_use_case import (
-    AccessExportResult,
     AccessExportUseCase,
 )
 
