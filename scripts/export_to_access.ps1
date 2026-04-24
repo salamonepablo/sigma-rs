@@ -189,9 +189,12 @@ INSERT INTO [Detenciones] (
         }
 
         # Long text parameter to preserve multiline/large observaciones
-        # NOTE: Jet OLEDB is strict about parameter metadata; provide explicit size.
+        # NOTE: Jet OLEDB needs adParamLong attribute to avoid 255-char truncation.
         if ($null -ne $observaciones_value) {
-            [void]$cmd.Parameters.Append($cmd.CreateParameter("p7", $adLongVarChar, $adParamInput, 2147483647, $observaciones_value))
+            $obsSize = [Math]::Max(1, $observaciones_value.Length)
+            $obsParam = $cmd.CreateParameter("p7", $adLongVarChar, $adParamInput, $obsSize, $observaciones_value)
+            $obsParam.Attributes = 128  # adParamLong
+            [void]$cmd.Parameters.Append($obsParam)
         }
 
         [void]$cmd.Execute()
