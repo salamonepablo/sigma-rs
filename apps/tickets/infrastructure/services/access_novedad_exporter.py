@@ -278,11 +278,17 @@ class AccessNovedadExporter:
         """Resolve Access DB path and Detenciones unit field for a novelty."""
         maintenance_unit = getattr(novelty, "maintenance_unit", None)
         unit_type = getattr(maintenance_unit, "unit_type", None)
+        rolling_category = getattr(maintenance_unit, "rolling_stock_category", None)
 
-        # Compare by persisted value to avoid importing model constants here.
-        is_locomotive = bool(unit_type and str(unit_type).lower() == "locomotora")
+        # Compare by persisted values to avoid importing model constants here.
+        # In legacy Access, traction stock (locomotoras + coches motor) belongs to baseLocs.
+        unit_type_value = str(unit_type).lower() if unit_type else ""
+        category_value = str(rolling_category).lower() if rolling_category else ""
+        is_traction = unit_type_value in {"locomotora", "coche_motor"} or (
+            category_value == "traccion"
+        )
 
-        if is_locomotive:
+        if is_traction:
             return self._config.baselocs_path, "Locs"
 
         target_db = self._config.baseccrr_path or self._config.baselocs_path
