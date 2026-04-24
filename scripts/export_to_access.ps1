@@ -62,24 +62,22 @@ function Test-NovedadExistsInAccess {
         [string]$Unidad,
         [string]$Fecha_hasta,
         [string]$Intervencion,
-        [string]$Lugar
+        [string]$Lugar,
+        [string]$Fecha_desde = ""
     )
     
-    # Build query - handle NULL fecha_hasta properly
-    $fecha_hasta_clause = ""
-    if ($Fecha_hasta -and $Fecha_hasta -ne "") {
-        $fecha_hasta_clause = "AND [Fecha_hasta] = #$Fecha_hasta#"
-    } else {
-        # For NULL fecha_hasta in Access
-        $fecha_hasta_clause = "AND [Fecha_hasta] IS NULL"
+    # Build query. New uniqueness criterion for inverse sync:
+    # Unidad + Fecha_desde + Intervencion (Lugar/Fecha_hasta can vary in manual/legacy data).
+    if (-not $Fecha_desde -or $Fecha_desde -eq "") {
+        [Console]::Error.WriteLine("CHECK requiere -Fecha_desde para evitar duplicados")
+        return $null
     }
     
     $query = @"
 SELECT [ID] FROM [Detenciones] 
 WHERE [${UnitField}] = '$Unidad' 
+AND [Fecha_desde] = #$Fecha_desde#
 AND [Intervencion] = '$Intervencion' 
-AND [Lugar] = '$Lugar' 
-$fecha_hasta_clause
 "@
     
 try {
@@ -336,12 +334,12 @@ $operationSucceeded = $false
 
 switch ($Operation) {
     "CHECK" {
-        if (-not $Unidad -or -not $Intervencion -or -not $Lugar) {
-            [Console]::Error.WriteLine("CHECK requiere: -Unidad, -Intervencion, -Lugar")
+        if (-not $Unidad -or -not $Intervencion -or -not $Fecha_desde) {
+            [Console]::Error.WriteLine("CHECK requiere: -Unidad, -Fecha_desde, -Intervencion")
             $conn.Close()
             exit 1
         }
-        $result = Test-NovedadExistsInAccess -Conn $conn -Unidad $Unidad -Fecha_hasta $Fecha_hasta -Intervencion $Intervencion -Lugar $Lugar
+        $result = Test-NovedadExistsInAccess -Conn $conn -Unidad $Unidad -Fecha_hasta $Fecha_hasta -Intervencion $Intervencion -Lugar $Lugar -Fecha_desde $Fecha_desde
         if ($result) {
             [Console]::Out.WriteLine($result)
             $operationSucceeded = $true

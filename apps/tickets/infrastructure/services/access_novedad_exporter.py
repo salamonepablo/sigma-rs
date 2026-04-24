@@ -39,9 +39,10 @@ class AccessNovedadExporter:
     def check_exists_in_access(
         self,
         unidad: str,
-        fecha_hasta: str | None,
+        fecha_desde: str | None,
         intervencion: str,
-        lugar: str,
+        db_path: Path | None = None,
+        unit_field: str = "Locs",
     ) -> int | None:
         """Check if a Novedad exists in Access by PK composite.
 
@@ -55,22 +56,21 @@ class AccessNovedadExporter:
             "-File",
             str(self._config.script_path),
             "-DbPath",
-            str(self._config.baselocs_path),
+            str(db_path or self._config.baselocs_path),
+            "-UnitField",
+            unit_field,
             "-Operation",
             "CHECK",
             "-Unidad",
             unidad,
+            "-Fecha_desde",
+            str(fecha_desde or ""),
             "-Intervencion",
             intervencion,
-            "-Lugar",
-            lugar,
         ]
 
         if self._config.db_password:
             args.extend(["-DbPassword", self._config.db_password])
-
-        if fecha_hasta:
-            args.extend(["-Fecha_hasta", fecha_hasta])
 
         try:
             returncode, stdout, stderr = self._run_script(args)
@@ -364,6 +364,20 @@ class AccessNovedadExporter:
 
                 db_path, unit_field = self._resolve_export_target(Novelty)
                 db_name = db_path.name if db_path else "<none>"
+
+                existing_id = self.check_exists_in_access(
+                    unidad=unidad,
+                    fecha_desde=fecha_desde,
+                    intervencion=intervencion,
+                    db_path=db_path,
+                    unit_field=unit_field,
+                )
+                if existing_id is not None:
+                    Novelty.is_exported = True
+                    Novelty.legacy_id = existing_id
+                    Novelty.save(update_fields=["is_exported", "legacy_id"])
+                    skipped_count += 1
+                    continue
 
                 result = self.export_novedad(
                     unidad=unidad,
