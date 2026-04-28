@@ -194,9 +194,14 @@ class AccessKilometrageImporter:
         value_str = str(value).strip()
         if not value_str:
             return None
-        value_str = value_str.replace(".", "").replace(",", ".")
         try:
             return Decimal(value_str)
+        except (InvalidOperation, ValueError):
+            pass
+
+        european_value_str = value_str.replace(".", "").replace(",", ".")
+        try:
+            return Decimal(european_value_str)
         except (InvalidOperation, ValueError):
             return None
 
