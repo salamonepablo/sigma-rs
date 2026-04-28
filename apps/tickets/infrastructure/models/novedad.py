@@ -138,6 +138,15 @@ class NovedadModel(models.Model):
         ordering = ["-fecha_desde", "-created_at"]
         constraints = [
             models.UniqueConstraint(
+                fields=["maintenance_unit", "fecha_desde", "intervencion"],
+                condition=models.Q(
+                    maintenance_unit__isnull=False,
+                    fecha_desde__isnull=False,
+                    intervencion__isnull=False,
+                ),
+                name="uniq_novedad_business_key",
+            ),
+            models.UniqueConstraint(
                 fields=[
                     "maintenance_unit",
                     "legacy_unit_code",
@@ -150,7 +159,7 @@ class NovedadModel(models.Model):
                 ],
                 condition=models.Q(is_legacy=True),
                 name="uniq_legacy_novedad",
-            )
+            ),
         ]
         indexes = [
             models.Index(fields=["fecha_desde"]),

@@ -31,7 +31,7 @@ class _NovedadRow:
     fecha_desde: date
     fecha_hasta: date | None
     fecha_estimada: date | None
-    intervencion_codigo: str
+    intervencion_codigo: str | None
     lugar_codigo: int | None
     observaciones: str | None
 
@@ -111,7 +111,7 @@ class AccessNovedadImporter:
         records: list[dict],
         lugares_by_codigo: dict[int, int],
         units_by_number: dict[str, uuid.UUID],
-        intervenciones_by_codigo: dict[str, int],
+        intervenciones_by_codigo: dict[str, uuid.UUID],
         dry_run: bool,
     ) -> SyncStats:
         processed = 0
@@ -119,6 +119,7 @@ class AccessNovedadImporter:
         duplicates = 0
         invalid = 0
         batch: list[NovedadModel] = []
+        existing_business_keys = self._load_existing_business_keys()
 
         for record in records:
             processed += 1
@@ -136,6 +137,17 @@ class AccessNovedadImporter:
 
             maintenance_unit_id = units_by_number.get(parsed.unit_code)
             legacy_unit_code = parsed.unit_code
+
+            business_key = self._build_business_key(
+                maintenance_unit_id=maintenance_unit_id,
+                fecha_desde=parsed.fecha_desde,
+                intervencion_id=intervencion_id,
+            )
+            if business_key and business_key in existing_business_keys:
+                duplicates += 1
+                continue
+            if business_key:
+                existing_business_keys.add(business_key)
 
             lugar_id = None
             legacy_lugar_codigo = None
@@ -246,6 +258,25 @@ class AccessNovedadImporter:
     @staticmethod
     def _normalize_optional_date(value: date | None) -> date | None:
         return value or None
+
+    @staticmethod
+    def _build_business_key(
+        maintenance_unit_id: uuid.UUID | None,
+        fecha_desde: date | None,
+        intervencion_id: uuid.UUID | None,
+    ) -> tuple[uuid.UUID, date, uuid.UUID] | None:
+        if not maintenance_unit_id or not fecha_desde or not intervencion_id:
+            return None
+        return (maintenance_unit_id, fecha_desde, intervencion_id)
+
+    @staticmethod
+    def _load_existing_business_keys() -> set[tuple[uuid.UUID, date, uuid.UUID]]:
+        existing_rows = NovedadModel.objects.filter(
+            maintenance_unit_id__isnull=False,
+            fecha_desde__isnull=False,
+            intervencion_id__isnull=False,
+        ).values_list("maintenance_unit_id", "fecha_desde", "intervencion_id")
+        return set(existing_rows)
 
     @staticmethod
     def _flush_batch(batch: list[NovedadModel]) -> tuple[int, int]:
