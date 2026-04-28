@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import threading
+import time
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -26,10 +27,12 @@ class AccessExtractor:
         config: AccessExtractorConfig,
         stdout_writer=None,
         stderr_writer=None,
+        heartbeat_interval_seconds: float = 30,
     ) -> None:
         self._config = config
         self._stdout_writer = stdout_writer
         self._stderr_writer = stderr_writer or stdout_writer
+        self._heartbeat_interval_seconds = max(0.0, float(heartbeat_interval_seconds))
 
     def extract(
         self,
@@ -99,7 +102,16 @@ class AccessExtractor:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
+
+        stdout_chunks: list[str] = []
+
+        def _stream_stdout() -> None:
+            if process.stdout is None:
+                return
+            stdout_chunks.append(process.stdout.read())
 
         def _stream_stderr() -> None:
             if process.stderr is None:
@@ -110,14 +122,34 @@ class AccessExtractor:
                     if message:
                         self._stderr_writer(self._format_message(message, prefix))
 
+        stdout_thread = threading.Thread(target=_stream_stdout)
         stderr_thread = threading.Thread(target=_stream_stderr)
+        stdout_thread.start()
         stderr_thread.start()
 
-        stdout_data = ""
-        if process.stdout is not None:
-            stdout_data = process.stdout.read()
-        process.wait()
+        started_at = time.monotonic()
+        next_heartbeat_at = started_at + self._heartbeat_interval_seconds
+        while True:
+            try:
+                process.wait(timeout=0.5)
+                break
+            except subprocess.TimeoutExpired:
+                if (
+                    self._stdout_writer
+                    and self._heartbeat_interval_seconds > 0
+                    and time.monotonic() >= next_heartbeat_at
+                ):
+                    elapsed_seconds = int(time.monotonic() - started_at)
+                    self._stdout_writer(
+                        self._format_message(
+                            f"Extractor running... elapsed {elapsed_seconds}s", prefix
+                        )
+                    )
+                    next_heartbeat_at += self._heartbeat_interval_seconds
+
+        stdout_thread.join()
         stderr_thread.join()
+        stdout_data = "".join(stdout_chunks)
 
         if process.returncode != 0:
             raise RuntimeError(

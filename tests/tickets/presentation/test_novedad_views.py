@@ -175,9 +175,10 @@ class TestNovedadViews:
         )
         lugar = LugarModel.objects.create(codigo=21, descripcion="Taller Junin")
         today = date.today()
+        legacy_day = today.replace(day=max(1, today.day - 1))
         NovedadModel.objects.create(
             maintenance_unit=unit_wagon,
-            fecha_desde=today,
+            fecha_desde=legacy_day,
             intervencion=intervencion,
             lugar=lugar,
             is_legacy=True,

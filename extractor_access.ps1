@@ -10,6 +10,15 @@ param(
 
 $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
 
+# Forzar UTF-8 en streams de salida para evitar bytes incompatibles (CP1252/legacy)
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = $utf8NoBom
+[Console]::InputEncoding = $utf8NoBom
+[Console]::SetOut([System.IO.StreamWriter]::new([Console]::OpenStandardOutput(), $utf8NoBom, 1024, $true))
+[Console]::SetError([System.IO.StreamWriter]::new([Console]::OpenStandardError(), $utf8NoBom, 1024, $true))
+[Console]::Out.AutoFlush = $true
+[Console]::Error.AutoFlush = $true
+
 function Format-DateValue {
     param([object]$Value)
 
