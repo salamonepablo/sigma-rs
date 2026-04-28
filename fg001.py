@@ -4,17 +4,6 @@ from pathlib import Path
 
 import django
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-django.setup()
-
-from django.conf import settings
-
-from apps.tickets.infrastructure.services.access_extractor import (
-    AccessExtractor,
-    AccessExtractorConfig,
-)
-from apps.tickets.models import MaintenanceUnitModel, NovedadModel
-
 UNIT = "FG001"
 
 
@@ -44,6 +33,17 @@ def parse_date(value: object) -> date | None:
 
 
 def main() -> None:
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    django.setup()
+
+    from django.conf import settings
+
+    from apps.tickets.infrastructure.services.access_extractor import (
+        AccessExtractor,
+        AccessExtractorConfig,
+    )
+    from apps.tickets.models import MaintenanceUnitModel, NovedadModel
+
     log(f"Iniciando comparación Access vs SQLite para unidad {UNIT}")
 
     extractor = AccessExtractor(
