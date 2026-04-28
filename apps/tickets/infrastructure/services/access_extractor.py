@@ -38,7 +38,8 @@ class AccessExtractor:
         unit_field: str,
         since_date: date,
         db_password: str | None = None,
-        progress_every: int = 500,
+        progress_every: int = 5000,
+        skip_count: bool = True,
         source_label: str | None = None,
     ) -> list[dict]:
         if not self._config.script_path.exists():
@@ -57,14 +58,21 @@ class AccessExtractor:
             "Bypass",
             "-File",
             str(self._config.script_path),
+            "-DbPath",
             str(db_path),
+            "-Tabla",
             table,
+            "-UnitField",
             unit_field,
+            "-SinceDate",
             access_date,
+            "-ProgressEvery",
+            str(progress_every),
         ]
         if db_password:
-            command.append(db_password)
-        command.append(str(progress_every))
+            command.extend(["-ClaveBD", db_password])
+        if skip_count:
+            command.append("-SkipCount")
 
         prefix = self._build_prefix(source_label, table)
         self._emit_start(

@@ -75,8 +75,13 @@ class Command(BaseCommand):
         parser.add_argument(
             "--progress-every",
             type=int,
-            default=500,
+            default=5000,
             help="Log progress every N records (0 disables)",
+        )
+        parser.add_argument(
+            "--with-count",
+            action="store_true",
+            help="Enable COUNT(*) in extractor to show percentage progress",
         )
         parser.add_argument(
             "--dry-run",
@@ -87,6 +92,11 @@ class Command(BaseCommand):
             "--update",
             action="store_true",
             help="Update existing records (use update_or_create instead of get_or_create)",
+        )
+        parser.add_argument(
+            "--skip-snapshot-refresh",
+            action="store_true",
+            help="Skip final bulk refresh of maintenance snapshots",
         )
 
     def handle(self, *args, **options):
@@ -114,14 +124,21 @@ class Command(BaseCommand):
             "Bypass",
             "-File",
             str(script_path),
+            "-DbPath",
             str(db_path),
+            "-Tabla",
             "Kilometraje",
+            "-UnitField",
             options["unit_field"],
+            "-SinceDate",
             access_date,
+            "-ProgressEvery",
+            str(options["progress_every"]),
         ]
         if options["db_password"]:
-            command.append(options["db_password"])
-        command.append(str(options["progress_every"]))
+            command.extend(["-ClaveBD", options["db_password"]])
+        if not options["with_count"]:
+            command.append("-SkipCount")
 
         self.stdout.write("Ejecutando extractor Access...")
         stdout_data = self._run_extractor(command)
@@ -141,7 +158,12 @@ class Command(BaseCommand):
             self.stderr.write(str(exc))
             return
 
-        records = [payload] if isinstance(payload, dict) else list(payload or [])
+        if isinstance(payload, dict):
+            records = [payload]
+        elif isinstance(payload, list):
+            records = payload
+        else:
+            records = []
 
         if not records:
             self.stdout.write("No hay registros para importar.")
@@ -153,6 +175,7 @@ class Command(BaseCommand):
             dry_run=options["dry_run"],
             source_label=source_label,
             update=options["update"],
+            skip_snapshot_refresh=options["skip_snapshot_refresh"],
         )
 
     def _resolve_last_date(
@@ -218,7 +241,7 @@ class Command(BaseCommand):
         payload, _ = decoder.raw_decode(cleaned[start:])
         return payload
 
-    BATCH_SIZE = 1000
+    BATCH_SIZE = 5000
 
     def _import_records(
         self,
@@ -227,6 +250,7 @@ class Command(BaseCommand):
         dry_run: bool,
         source_label: str,
         update: bool = False,
+        skip_snapshot_refresh: bool = False,
     ) -> None:
         total = len(records)
         processed = 0
@@ -325,7 +349,7 @@ class Command(BaseCommand):
                 )
             )
 
-        if not dry_run and affected_units:
+        if not dry_run and affected_units and not skip_snapshot_refresh:
             self.stdout.write(
                 f"Actualizando snapshot de km para {len(affected_units)} unidad(es)..."
             )

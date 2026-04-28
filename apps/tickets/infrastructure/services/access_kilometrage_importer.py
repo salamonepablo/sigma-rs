@@ -25,7 +25,7 @@ class AccessKilometrageImporter:
     """Import kilometrage records from Access databases."""
 
     TABLE_NAME = "Kilometraje"
-    BATCH_SIZE = 1000
+    BATCH_SIZE = 5000
 
     def __init__(
         self,
@@ -40,7 +40,8 @@ class AccessKilometrageImporter:
         db_password: str | None = None,
         since_date: date | None = None,
         dry_run: bool = False,
-        progress_every: int = 500,
+        progress_every: int = 5000,
+        skip_count: bool = True,
     ) -> SyncStats:
         unit_id_by_number = {
             number.upper(): unit_id
@@ -68,6 +69,7 @@ class AccessKilometrageImporter:
                 since_date=resolved_since,
                 db_password=db_password,
                 progress_every=progress_every,
+                skip_count=skip_count,
                 source_label=source_label,
             )
             stats = self._import_records(

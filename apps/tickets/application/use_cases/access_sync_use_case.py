@@ -54,7 +54,8 @@ class AccessSyncUseCase:
         self,
         since_date: date | None = None,
         dry_run: bool = False,
-        progress_every: int = 500,
+        progress_every: int = 5000,
+        with_count: bool = False,
         stdout_writer=None,
         stderr_writer=None,
         filters: AccessSyncFilters | None = None,
@@ -102,6 +103,7 @@ class AccessSyncUseCase:
                 since_date=since_date,
                 dry_run=dry_run,
                 progress_every=progress_every,
+                skip_count=not with_count,
             )
 
         if resolved_filters.include_kilometrage:
@@ -131,6 +133,7 @@ class AccessSyncUseCase:
                 since_date=since_date,
                 dry_run=dry_run,
                 progress_every=progress_every,
+                skip_count=not with_count,
             )
         duration_seconds = perf_counter() - start
 

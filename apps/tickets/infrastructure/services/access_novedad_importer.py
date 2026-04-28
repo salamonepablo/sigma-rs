@@ -40,7 +40,7 @@ class AccessNovedadImporter:
     """Import detenciones from Access databases."""
 
     TABLE_NAME = "Detenciones"
-    BATCH_SIZE = 1000
+    BATCH_SIZE = 5000
 
     def __init__(self, extractor: AccessExtractor) -> None:
         self._extractor = extractor
@@ -52,7 +52,8 @@ class AccessNovedadImporter:
         db_password: str | None = None,
         since_date: date | None = None,
         dry_run: bool = False,
-        progress_every: int = 500,
+        progress_every: int = 5000,
+        skip_count: bool = True,
     ) -> SyncStats:
         resolved_since = since_date or self._resolve_last_date()
         aggregated = SyncStats(
@@ -85,6 +86,7 @@ class AccessNovedadImporter:
                 since_date=resolved_since,
                 db_password=db_password,
                 progress_every=progress_every,
+                skip_count=skip_count,
                 source_label=source_label,
             )
             stats = self._import_records(

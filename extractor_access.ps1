@@ -4,7 +4,8 @@ param(
     [string]$UnitField,
     [string]$SinceDate = "01/01/1900",
     [string]$ClaveBD = "",
-    [int]$ProgressEvery = 500
+    [int]$ProgressEvery = 500,
+    [switch]$SkipCount
 )
 
 $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
@@ -88,11 +89,13 @@ if ($Tabla -ieq "Kilometraje") {
 }
 
 $query = "SELECT $selectFields FROM [$Tabla] WHERE [$dateField] > #$SinceDate#"
-$countQuery = "SELECT COUNT(*) FROM [$Tabla] WHERE [$dateField] > #$SinceDate#"
-$countRs = $conn.Execute($countQuery)
 $totalRows = 0
-if ($countRs -and -not $countRs.EOF) {
-    $totalRows = [int]$countRs.Fields.Item(0).Value
+if (-not $SkipCount) {
+    $countQuery = "SELECT COUNT(*) FROM [$Tabla] WHERE [$dateField] > #$SinceDate#"
+    $countRs = $conn.Execute($countQuery)
+    if ($countRs -and -not $countRs.EOF) {
+        $totalRows = [int]$countRs.Fields.Item(0).Value
+    }
 }
 $rs = New-Object -ComObject ADODB.Recordset
 $rs.CursorLocation = 3

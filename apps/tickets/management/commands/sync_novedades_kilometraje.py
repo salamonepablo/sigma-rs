@@ -76,8 +76,13 @@ class Command(BaseCommand):
         parser.add_argument(
             "--progress-every",
             type=int,
-            default=500,
+            default=5000,
             help="Log progress every N records (0 disables)",
+        )
+        parser.add_argument(
+            "--with-count",
+            action="store_true",
+            help="Enable COUNT(*) in extractor to show percentage progress",
         )
         parser.add_argument(
             "--dry-run",
@@ -164,6 +169,7 @@ class Command(BaseCommand):
             since_date=since_date,
             dry_run=options["dry_run"],
             progress_every=options["progress_every"],
+            with_count=options["with_count"],
             stdout_writer=self.stdout.write,
             stderr_writer=self.stderr.write,
             filters=filters,
