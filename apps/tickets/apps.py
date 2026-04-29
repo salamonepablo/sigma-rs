@@ -1,5 +1,6 @@
 """Django app configuration for the tickets application."""
 
+import os
 import sys
 
 from django.apps import AppConfig
@@ -33,9 +34,17 @@ _SKIP_PREFIXES = (
 
 def _should_start_scheduler() -> bool:
     """Return True only when running as a web server process."""
+    if os.getenv("TICKETS_DISABLE_SCHEDULER", "").strip() in {"1", "true", "True"}:
+        return False
+
     if "pytest" in sys.modules:
         return False
+
     argv = sys.argv
+    if argv and not argv[0].endswith("manage.py"):
+        # Standalone scripts (e.g. py fg001.py) must not bootstrap scheduler jobs.
+        return False
+
     if len(argv) >= 2:
         cmd = argv[1]
         if cmd in _SKIP_COMMANDS:
