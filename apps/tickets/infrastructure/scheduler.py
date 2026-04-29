@@ -42,6 +42,19 @@ def run_sync(trigger: str = "scheduled") -> None:
 
     try:
         result = use_case.run()
+
+        if result.kilometrage.inserted > 0:
+            from apps.tickets.infrastructure.services.unit_maintenance_snapshot_service import (
+                UnitMaintenanceSnapshotService,
+            )
+
+            refreshed = UnitMaintenanceSnapshotService().refresh_bulk()
+            logger.info(
+                "Access sync — km snapshot refreshed for %d units (trigger=%s)",
+                refreshed,
+                trigger,
+            )
+
         AccessSyncLogModel.objects.create(
             trigger=trigger,
             novedades_inserted=result.novedades.inserted,
