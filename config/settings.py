@@ -82,6 +82,7 @@ DATABASES = {
         "NAME": BASE_DIR / "db" / "app.db",
         "OPTIONS": {
             "timeout": 30,
+            "init_command": "PRAGMA journal_mode=WAL;",
         },
     }
 }
