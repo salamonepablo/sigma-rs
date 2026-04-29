@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import tempfile
 import threading
 import time
 from dataclasses import dataclass
@@ -40,6 +42,8 @@ class AccessExtractor:
         table: str,
         unit_field: str,
         since_date: date,
+        unit_value: str | None = None,
+        minimal_columns: bool = False,
         db_password: str | None = None,
         progress_every: int = 5000,
         skip_count: bool = True,
@@ -67,15 +71,27 @@ class AccessExtractor:
             table,
             "-UnitField",
             unit_field,
+            "-UnitValue",
+            unit_value or "",
             "-SinceDate",
             access_date,
             "-ProgressEvery",
             str(progress_every),
         ]
+
+        json_temp_file = ""
+        if table.lower() == "detenciones":
+            fd, json_temp_file = tempfile.mkstemp(
+                prefix="access_extract_", suffix=".json"
+            )
+            os.close(fd)
+            command.extend(["-OutFile", json_temp_file])
         if db_password:
             command.extend(["-ClaveBD", db_password])
         if skip_count:
             command.append("-SkipCount")
+        if minimal_columns:
+            command.append("-MinimalColumns")
 
         prefix = self._build_prefix(source_label, table)
         self._emit_start(
@@ -85,6 +101,11 @@ class AccessExtractor:
             prefix=prefix,
         )
         stdout_data = self._run_extractor(command, prefix=prefix)
+        if json_temp_file:
+            try:
+                stdout_data = Path(json_temp_file).read_text(encoding="utf-8")
+            finally:
+                Path(json_temp_file).unlink(missing_ok=True)
         self._emit_info("Conexion OK", prefix=prefix)
         if not stdout_data or not stdout_data.strip():
             return []
@@ -196,9 +217,21 @@ class AccessExtractor:
 
     @staticmethod
     def _parse_stdout_json(stdout_data: str) -> object:
-        cleaned = stdout_data.lstrip("\ufeff").lstrip()
-        if not cleaned:
+        cleaned = stdout_data.lstrip("\ufeff")
+        if not cleaned or not cleaned.strip():
             return []
+        lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+        if not lines:
+            return []
+
+        # Prefer the last JSON-looking line to avoid noisy non-JSON output.
+        json_candidate = ""
+        for line in reversed(lines):
+            if line.startswith("[") or line.startswith("{"):
+                json_candidate = line
+                break
+        cleaned = json_candidate or cleaned.lstrip()
+
         object_index = cleaned.find("{")
         array_index = cleaned.find("[")
         indices = [idx for idx in (object_index, array_index) if idx != -1]
@@ -206,5 +239,15 @@ class AccessExtractor:
             return []
         start = min(indices)
         decoder = json.JSONDecoder()
-        payload, _ = decoder.raw_decode(cleaned[start:])
+        candidate = cleaned[start:]
+
+        # Try direct decode first; if trailing garbage exists, raw_decode still returns
+        # payload and end index. Ensure tail is only whitespace.
+        payload, end = decoder.raw_decode(candidate)
+        if candidate[end:].strip():
+            raise json.JSONDecodeError(
+                "Unexpected trailing content after JSON payload",
+                candidate,
+                end,
+            )
         return payload

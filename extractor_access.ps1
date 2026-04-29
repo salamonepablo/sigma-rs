@@ -2,10 +2,13 @@ param(
     [string]$DbPath,
     [string]$Tabla,
     [string]$UnitField,
+    [string]$UnitValue = "",
     [string]$SinceDate = "01/01/1900",
     [string]$ClaveBD = "",
+    [string]$OutFile = "",
     [int]$ProgressEvery = 500,
-    [switch]$SkipCount
+    [switch]$SkipCount,
+    [switch]$MinimalColumns
 )
 
 $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
@@ -16,8 +19,12 @@ $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding = $utf8NoBom
 [Console]::SetOut([System.IO.StreamWriter]::new([Console]::OpenStandardOutput(), $utf8NoBom, 1024, $true))
 [Console]::SetError([System.IO.StreamWriter]::new([Console]::OpenStandardError(), $utf8NoBom, 1024, $true))
-[Console]::Out.AutoFlush = $true
-[Console]::Error.AutoFlush = $true
+if ([Console]::Out -is [System.IO.StreamWriter]) {
+    ([Console]::Out).AutoFlush = $true
+}
+if ([Console]::Error -is [System.IO.StreamWriter]) {
+    ([Console]::Error).AutoFlush = $true
+}
 
 function Format-DateValue {
     param([object]$Value)
@@ -94,13 +101,25 @@ if ($Tabla -ieq "Kilometraje") {
     $selectFields = "[$UnitField], [Fecha], [Kms_diario], [Observaciones]"
 } else {
     $dateField = "Fecha_desde"
-    $selectFields = "[$UnitField], [Fecha_desde], [Fecha_hasta], [Fecha_est], [Intervencion], [Lugar], [Observaciones]"
+    if ($MinimalColumns) {
+        $selectFields = "[$UnitField], [Fecha_desde], [Intervencion]"
+    } else {
+        $selectFields = "[$UnitField], [Fecha_desde], [Fecha_hasta], [Fecha_est], [Intervencion], [Lugar], [Observaciones]"
+    }
 }
 
-$query = "SELECT $selectFields FROM [$Tabla] WHERE [$dateField] > #$SinceDate#"
+$whereClauses = [System.Collections.Generic.List[string]]::new()
+$whereClauses.Add("[$dateField] > #$SinceDate#")
+if ($UnitValue) {
+    $escapedUnitValue = $UnitValue.Replace("'", "''")
+    $whereClauses.Add("[$UnitField] = '$escapedUnitValue'")
+}
+$whereSql = ($whereClauses -join " AND ")
+
+$query = "SELECT $selectFields FROM [$Tabla] WHERE $whereSql"
 $totalRows = 0
 if (-not $SkipCount) {
-    $countQuery = "SELECT COUNT(*) FROM [$Tabla] WHERE [$dateField] > #$SinceDate#"
+    $countQuery = "SELECT COUNT(*) FROM [$Tabla] WHERE $whereSql"
     $countRs = $conn.Execute($countQuery)
     if ($countRs -and -not $countRs.EOF) {
         $totalRows = [int]$countRs.Fields.Item(0).Value
@@ -126,15 +145,23 @@ while (-not $rs.EOF) {
             Observaciones = $rs.Fields.Item("Observaciones").Value
         })
     } else {
-        $results.Add([PSCustomObject]@{
-            Unidad = $rs.Fields.Item($UnitField).Value
-            Fecha_desde = Format-DateValue $rs.Fields.Item("Fecha_desde").Value
-            Fecha_hasta = Format-DateValue $rs.Fields.Item("Fecha_hasta").Value
-            Fecha_est = Format-DateValue $rs.Fields.Item("Fecha_est").Value
-            Intervencion = $rs.Fields.Item("Intervencion").Value
-            Lugar = $rs.Fields.Item("Lugar").Value
-            Observaciones = $rs.Fields.Item("Observaciones").Value
-        })
+        if ($MinimalColumns) {
+            $results.Add([PSCustomObject]@{
+                Unidad = $rs.Fields.Item($UnitField).Value
+                Fecha_desde = Format-DateValue $rs.Fields.Item("Fecha_desde").Value
+                Intervencion = $rs.Fields.Item("Intervencion").Value
+            })
+        } else {
+            $results.Add([PSCustomObject]@{
+                Unidad = $rs.Fields.Item($UnitField).Value
+                Fecha_desde = Format-DateValue $rs.Fields.Item("Fecha_desde").Value
+                Fecha_hasta = Format-DateValue $rs.Fields.Item("Fecha_hasta").Value
+                Fecha_est = Format-DateValue $rs.Fields.Item("Fecha_est").Value
+                Intervencion = $rs.Fields.Item("Intervencion").Value
+                Lugar = $rs.Fields.Item("Lugar").Value
+                Observaciones = $rs.Fields.Item("Observaciones").Value
+            })
+        }
     }
     if ($progressEvery -gt 0 -and ($current % $progressEvery -eq 0)) {
         if ($totalRows -gt 0) {
@@ -163,10 +190,16 @@ if ($current -gt 0) {
     }
 }
 
-# Emit JSON to stdout for downstream processing
+# Emit JSON payload (prefer file sink when provided)
 if ($current -eq 0) {
-    [Console]::Out.Write("[]")
-    exit 0
+    $json = "[]"
+} else {
+    $json = $results | ConvertTo-Json -Depth 4 -Compress
 }
-$json = $results | ConvertTo-Json -Depth 4 -Compress
-[Console]::Out.Write($json)
+
+if ($OutFile) {
+    [System.IO.File]::WriteAllText($OutFile, $json, $utf8NoBom)
+    [Console]::Out.Write("[]")
+} else {
+    [Console]::Out.Write($json)
+}

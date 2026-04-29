@@ -1,6 +1,6 @@
-"""Pruebas unitarias del wrapper del extractor Access."""
-
+from datetime import date
 from pathlib import Path
+from unittest.mock import MagicMock
 
 from apps.tickets.infrastructure.services.access_extractor import (
     AccessExtractor,
@@ -63,6 +63,156 @@ def test_run_extractor_uses_utf8_replace_decoding_for_stdout(monkeypatch):
     assert popen_kwargs["text"] is True
     assert popen_kwargs["encoding"] == "utf-8"
     assert popen_kwargs["errors"] == "replace"
+
+
+def test_extract_passes_unit_value_to_powershell(monkeypatch):
+    """Passes -UnitValue argument so extractor can filter in Access query."""
+
+    popen_command = []
+
+    class DummyStdout:
+        def read(self):
+            return "[]"
+
+    class DummyProcess:
+        returncode = 0
+
+        def __init__(self):
+            self.stdout = DummyStdout()
+            self.stderr = []
+
+        def wait(self, timeout=None):  # noqa: ARG002
+            return 0
+
+    def fake_popen(command, **kwargs):
+        popen_command.extend(command)
+        return DummyProcess()
+
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.subprocess.Popen",
+        fake_popen,
+    )
+
+    monkeypatch.setattr(Path, "exists", lambda _path: True)
+
+    extractor = _build_extractor()
+    db_path = Path("baseCCRR.mdb")
+
+    extractor.extract(
+        db_path=db_path,
+        table="Detenciones",
+        unit_field="Coche",
+        unit_value="FG001",
+        since_date=date(1900, 1, 1),
+        progress_every=0,
+    )
+
+    assert "-UnitValue" in popen_command
+    idx = popen_command.index("-UnitValue")
+    assert popen_command[idx + 1] == "FG001"
+
+
+def test_extract_passes_minimal_columns_flag(monkeypatch):
+    """Passes -MinimalColumns to reduce payload for diagnostics scripts."""
+
+    popen_command = []
+
+    class DummyStdout:
+        def read(self):
+            return "[]"
+
+    class DummyProcess:
+        returncode = 0
+
+        def __init__(self):
+            self.stdout = DummyStdout()
+            self.stderr = []
+
+        def wait(self, timeout=None):  # noqa: ARG002
+            return 0
+
+    def fake_popen(command, **kwargs):
+        popen_command.extend(command)
+        return DummyProcess()
+
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.subprocess.Popen",
+        fake_popen,
+    )
+    monkeypatch.setattr(Path, "exists", lambda _path: True)
+
+    extractor = _build_extractor()
+    db_path = Path("baseCCRR.mdb")
+    extractor.extract(
+        db_path=db_path,
+        table="Detenciones",
+        unit_field="Coche",
+        since_date=date(1900, 1, 1),
+        minimal_columns=True,
+        progress_every=0,
+    )
+
+    assert "-MinimalColumns" in popen_command
+
+
+def test_extract_detenciones_uses_outfile_transport(monkeypatch):
+    """For Detenciones, extractor should read JSON from temp file sink."""
+
+    popen_command = []
+    temp_path = Path("temp_access_payload.json")
+
+    class DummyStdout:
+        def read(self):
+            return "[]"
+
+    class DummyProcess:
+        returncode = 0
+
+        def __init__(self):
+            self.stdout = DummyStdout()
+            self.stderr = []
+
+        def wait(self, timeout=None):  # noqa: ARG002
+            return 0
+
+    def fake_popen(command, **kwargs):
+        popen_command.extend(command)
+        return DummyProcess()
+
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.subprocess.Popen",
+        fake_popen,
+    )
+    monkeypatch.setattr(Path, "exists", lambda _path: True)
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.tempfile.mkstemp",
+        lambda **_kwargs: (123, str(temp_path)),
+    )
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.os.close",
+        lambda _fd: None,
+    )
+
+    read_mock = MagicMock(
+        return_value='[{"Unidad":"FG001","Fecha_desde":"2024-01-01","Intervencion":"RA"}]'
+    )
+    unlink_mock = MagicMock()
+    monkeypatch.setattr(Path, "read_text", read_mock)
+    monkeypatch.setattr(Path, "unlink", unlink_mock)
+
+    extractor = _build_extractor()
+    result = extractor.extract(
+        db_path=Path("baseCCRR.mdb"),
+        table="Detenciones",
+        unit_field="Coche",
+        since_date=date(1900, 1, 1),
+        progress_every=0,
+    )
+
+    assert "-OutFile" in popen_command
+    assert result and result[0]["Unidad"] == "FG001"
+    read_mock.assert_called_once()
+    unlink_mock.assert_called_once_with(missing_ok=True)
 
 
 def test_run_extractor_emits_heartbeat_when_writer_and_long_running(monkeypatch):
