@@ -36,6 +36,11 @@ class AccessNovedadExporter:
     def __init__(self, config: ExportConfig | None = None) -> None:
         self._config = config or self._build_default_config()
 
+    @staticmethod
+    def _normalize_text_value(value: str) -> str:
+        """Normalize textual key values sent to Access scripts."""
+        return value.strip()
+
     def check_exists_in_access(
         self,
         unidad: str,
@@ -48,6 +53,9 @@ class AccessNovedadExporter:
 
         Returns the Access ID if exists, None otherwise.
         """
+        unidad = self._normalize_text_value(unidad)
+        intervencion = self._normalize_text_value(intervencion)
+
         ps_path = self._get_powershell_path()
         args = [
             str(ps_path),
@@ -96,6 +104,9 @@ class AccessNovedadExporter:
 
         Uses INSERT directly - assumes no duplicates.
         """
+        unidad = self._normalize_text_value(unidad)
+        intervencion = self._normalize_text_value(intervencion)
+
         ps_path = self._get_powershell_path()
         args = [
             str(ps_path),
@@ -342,6 +353,13 @@ class AccessNovedadExporter:
                 )
 
                 if not intervencion or not lugar:
+                    skipped_count += 1
+                    continue
+
+                unidad = self._normalize_text_value(unidad)
+                intervencion = self._normalize_text_value(intervencion)
+
+                if not unidad or not intervencion:
                     skipped_count += 1
                     continue
 

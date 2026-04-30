@@ -73,11 +73,15 @@ function Test-NovedadExistsInAccess {
         return $null
     }
     
+    # Escape + normalize user strings before interpolation to avoid SQL breaks
+    $safeUnidad = $Unidad.Replace("'", "''").Trim().ToUpperInvariant()
+    $safeIntervencion = $Intervencion.Replace("'", "''").Trim().ToUpperInvariant()
+
     $query = @"
 SELECT [ID] FROM [Detenciones] 
-WHERE [${UnitField}] = '$Unidad' 
-AND [Fecha_desde] = #$Fecha_desde#
-AND [Intervencion] = '$Intervencion' 
+WHERE UCase(Trim(Nz([${UnitField}], ''))) = '$safeUnidad' 
+AND DateValue([Fecha_desde]) = DateValue(#$Fecha_desde#)
+AND UCase(Trim(Nz([Intervencion], ''))) = '$safeIntervencion' 
 "@
     
 try {
