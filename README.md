@@ -102,6 +102,10 @@ Optionally run ANALYZE:
 python manage.py maintenance_vacuum --analyze
 ```
 
+For unattended Windows automation (daily backup + integrity checks, weekly vacuum), see:
+
+- `docs/DB_AUTOMATION_WINDOWS.md`
+
 ## CI (GitHub Actions)
 
 Each push/PR runs:
