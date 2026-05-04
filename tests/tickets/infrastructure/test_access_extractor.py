@@ -215,6 +215,66 @@ def test_extract_detenciones_uses_outfile_transport(monkeypatch):
     unlink_mock.assert_called_once_with(missing_ok=True)
 
 
+def test_extract_non_detenciones_uses_outfile_transport(monkeypatch):
+    """For non-Detenciones tables, extractor should also use temp-file sink."""
+
+    popen_command = []
+    temp_path = Path("temp_access_payload_km.json")
+
+    class DummyStdout:
+        def read(self):
+            return "[]"
+
+    class DummyProcess:
+        returncode = 0
+
+        def __init__(self):
+            self.stdout = DummyStdout()
+            self.stderr = []
+
+        def wait(self, timeout=None):  # noqa: ARG002
+            return 0
+
+    def fake_popen(command, **kwargs):
+        popen_command.extend(command)
+        return DummyProcess()
+
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.subprocess.Popen",
+        fake_popen,
+    )
+    monkeypatch.setattr(Path, "exists", lambda _path: True)
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.tempfile.mkstemp",
+        lambda **_kwargs: (123, str(temp_path)),
+    )
+    monkeypatch.setattr(
+        "apps.tickets.infrastructure.services.access_extractor.os.close",
+        lambda _fd: None,
+    )
+
+    read_mock = MagicMock(
+        return_value='[{"Unidad":"FG001","Fecha":"2024-01-01","KM":123}]'
+    )
+    unlink_mock = MagicMock()
+    monkeypatch.setattr(Path, "read_text", read_mock)
+    monkeypatch.setattr(Path, "unlink", unlink_mock)
+
+    extractor = _build_extractor()
+    result = extractor.extract(
+        db_path=Path("baseCCRR.mdb"),
+        table="Kilometraje",
+        unit_field="Coche",
+        since_date=date(1900, 1, 1),
+        progress_every=0,
+    )
+
+    assert "-OutFile" in popen_command
+    assert result and result[0]["KM"] == 123
+    read_mock.assert_called_once()
+    unlink_mock.assert_called_once_with(missing_ok=True)
+
+
 def test_run_extractor_emits_heartbeat_when_writer_and_long_running(monkeypatch):
     """Emite heartbeat periódico mientras el proceso sigue en ejecución."""
 

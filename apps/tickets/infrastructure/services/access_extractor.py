@@ -79,13 +79,10 @@ class AccessExtractor:
             str(progress_every),
         ]
 
-        json_temp_file = ""
-        if table.lower() == "detenciones":
-            fd, json_temp_file = tempfile.mkstemp(
-                prefix="access_extract_", suffix=".json"
-            )
-            os.close(fd)
-            command.extend(["-OutFile", json_temp_file])
+        # Use temp-file transport for all tables to avoid truncated stdout JSON payloads.
+        fd, json_temp_file = tempfile.mkstemp(prefix="access_extract_", suffix=".json")
+        os.close(fd)
+        command.extend(["-OutFile", json_temp_file])
         if db_password:
             command.extend(["-ClaveBD", db_password])
         if skip_count:
@@ -101,11 +98,10 @@ class AccessExtractor:
             prefix=prefix,
         )
         stdout_data = self._run_extractor(command, prefix=prefix)
-        if json_temp_file:
-            try:
-                stdout_data = Path(json_temp_file).read_text(encoding="utf-8")
-            finally:
-                Path(json_temp_file).unlink(missing_ok=True)
+        try:
+            stdout_data = Path(json_temp_file).read_text(encoding="utf-8")
+        finally:
+            Path(json_temp_file).unlink(missing_ok=True)
         self._emit_info("Conexion OK", prefix=prefix)
         if not stdout_data or not stdout_data.strip():
             return []
