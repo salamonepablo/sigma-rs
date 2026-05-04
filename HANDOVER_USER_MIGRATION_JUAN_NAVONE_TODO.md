@@ -31,6 +31,13 @@
 
 ## 2) Python environment on new user
 
+- [ ] Install Python first (recommended: Python 3.11 x64):
+  - Official downloads page: https://www.python.org/downloads/windows/
+  - Direct installer (3.11.9 x64): https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+- [ ] During installation, enable:
+  - [ ] **Add python.exe to PATH**
+  - [ ] **Install launcher for all users (recommended)**
+
 - [ ] Open PowerShell in `C:\Users\Juan.Navone\Programmes\sigma-rs`.
 - [ ] Create venv and install dependencies:
 
