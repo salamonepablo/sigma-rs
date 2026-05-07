@@ -61,3 +61,17 @@ def test_home_sync_error_sets_message(client):
     session = client.session
     assert session["legacy_sync_status"] == "error"
     assert "fail" in session["legacy_sync_message"]
+
+
+@pytest.mark.django_db
+def test_home_does_not_show_legacy_sync_button(client):
+    """La home renderiza sin el boton legacy de sincronizacion."""
+    user = get_user_model().objects.create_user(
+        username="home-user", password="secret123"
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("tickets:home"))
+
+    assert response.status_code == 200
+    assert "Sincronizar novedades y kilometraje" not in response.content.decode("utf-8")

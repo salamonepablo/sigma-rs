@@ -259,46 +259,6 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body legacy-sync">
-                <h6 class="legacy-sync-title">
-                    <span class="legacy-sync-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" focusable="false">
-                            <path d="M16.5 3.5a1 1 0 0 1 1 1v2.5H19a1 1 0 1 1 0 2h-4V5.5a1 1 0 0 1 1-1zM7.5 20.5a1 1 0 0 1-1-1V17H5a1 1 0 1 1 0-2h4v4.5a1 1 0 0 1-1 1z"/>
-                            <path d="M16.5 7.5a1 1 0 0 1 .7 1.7l-9 9a1 1 0 0 1-1.4-1.4l9-9a1 1 0 0 1 .7-.3z"/>
-                        </svg>
-                    </span>
-                    SINCRONIZAR CON ACCESS
-                </h6>
-                <div class="legacy-sync-actions">
-                    <form method="post" action="{% url 'tickets:legacy_sync' %}" class="legacy-sync-form" id="legacy-sync-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{% url 'tickets:home' %}">
-                        <button type="submit" class="btn btn-outline-primary btn-sm" id="legacy-sync-button">
-                            Sincronizar novedades y kilometraje
-                        </button>
-                    </form>
-                    <div class="legacy-sync-progress d-none" id="legacy-sync-progress">
-                        <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
-                        <span>Sincronizando novedades y kilometraje...</span>
-                    </div>
-                    <div class="small legacy-sync-message" id="legacy-sync-message">
-                        {% if legacy_sync_status == "success" %}
-                            <span class="text-success">
-                                {{ legacy_sync_message }} Novedades: {{ legacy_sync_counts.novedades.inserted }} · Kilometraje: {{ legacy_sync_counts.kilometrage.inserted }}
-                            </span>
-                        {% elif legacy_sync_status == "error" %}
-                            <span class="text-danger">{{ legacy_sync_message }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                            </div>
-        </div>
-    </div>
-</div>
-
 <style>
     .unit-card {
         transition: transform 0.2s, box-shadow 0.2s;
@@ -323,80 +283,5 @@
     .brand-icon small {
         font-size: 0.65rem;
     }
-    .legacy-sync {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.3rem;
-    }
-    .legacy-sync-title {
-        margin: 0;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        color: #5c6f91;
-        letter-spacing: 0.08em;
-        font-weight: 700;
-    }
-    .legacy-sync-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #5c6f91;
-    }
-    .legacy-sync-form {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        order: 1;
-    }
-    .legacy-sync-description {
-        margin: 0;
-        font-size: 0.85rem;
-        color: #6c757d;
-        order: 3;
-        width: 100%;
-    }
-    .legacy-sync-actions {
-        order: 2;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-        min-height: 1rem;
-    }
-    .legacy-sync-message {
-        min-height: 1rem;
-        font-size: 0.8rem;
-    }
-    .legacy-sync-progress {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #6c757d;
-    }
 </style>
-
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById("legacy-sync-form");
-        const button = document.getElementById("legacy-sync-button");
-        const message = document.getElementById("legacy-sync-message");
-        const progress = document.getElementById("legacy-sync-progress");
-        if (!form || !button || !message) {
-            return;
-        }
-        form.addEventListener("submit", () => {
-            button.disabled = true;
-            message.textContent = "";
-            if (progress) {
-                progress.classList.remove("d-none");
-            }
-        });
-    });
-</script>
 {% endblock %}
