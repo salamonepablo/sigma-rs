@@ -1,0 +1,167 @@
+param(
+    [switch]$SkipOnlineCheck,
+    [string]$ServerBaseUrl = "",
+    [switch]$NonInteractive
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+function Mask-Secret {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return "(vacio)" }
+    if ($Value.Length -le 8) { return ("*" * $Value.Length) }
+    return "{0}...{1}" -f $Value.Substring(0, 4), $Value.Substring($Value.Length - 4)
+}
+
+function Upsert-EnvValue {
+    param(
+        [string]$Content,
+        [string]$Key,
+        [string]$Value
+    )
+
+    $line = "$Key=$Value"
+    $pattern = "(?m)^\s*$([regex]::Escape($Key))\s*=.*$"
+    if ([regex]::IsMatch($Content, $pattern)) {
+        return [regex]::Replace($Content, $pattern, $line)
+    }
+    if ($Content -and -not $Content.EndsWith("`n")) {
+        $Content += "`r`n"
+    }
+    return $Content + $line + "`r`n"
+}
+
+function Prompt-RequiredSecret {
+    param(
+        [string]$Label,
+        [string]$Current
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($Current)) {
+        Write-Host ("OK: {0} detectado ({1})" -f $Label, (Mask-Secret -Value $Current))
+        return $Current
+    }
+
+    if ($NonInteractive) {
+        throw "Falta $Label y se ejecuto con -NonInteractive."
+    }
+
+    while ($true) {
+        $value = Read-Host "Ingrese valor para $Label"
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+            Write-Host ("OK: {0} recibido ({1})" -f $Label, (Mask-Secret -Value $value))
+            return $value.Trim()
+        }
+        Write-Host "El valor no puede estar vacio."
+    }
+}
+
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$envPath = Join-Path $repoRoot ".env"
+$managePath = Join-Path $repoRoot "manage.py"
+
+$summary = [ordered]@{}
+$summary["Contexto repo"] = $false
+$summary[".env disponible"] = $false
+$summary["INGRESO_TRAY_TOKEN"] = $false
+$summary["INGRESO_EMAIL_SIGNING_SECRET"] = $false
+$summary["manage.py shell"] = $false
+$summary["/tray/online"] = $false
+
+Write-Host "==== Sigma-RS | Remediacion ingreso (SERVER) ===="
+Write-Host "Repositorio: $repoRoot"
+
+if (-not (Test-Path -LiteralPath $managePath)) {
+    throw "No se encontro manage.py en $repoRoot. Ejecute el script dentro del repo de Sigma-RS."
+}
+$summary["Contexto repo"] = $true
+
+if (-not (Test-Path -LiteralPath $envPath)) {
+    New-Item -ItemType File -Path $envPath -Force | Out-Null
+    Write-Host "Se creo .env porque no existia."
+}
+$summary[".env disponible"] = $true
+
+$envRaw = Get-Content -LiteralPath $envPath -Raw -ErrorAction SilentlyContinue
+if ($null -eq $envRaw) { $envRaw = "" }
+
+$token = ""
+$secret = ""
+
+if ($envRaw -match "(?m)^\s*INGRESO_TRAY_TOKEN\s*=\s*(.+?)\s*$") { $token = $Matches[1].Trim() }
+if ($envRaw -match "(?m)^\s*INGRESO_EMAIL_SIGNING_SECRET\s*=\s*(.+?)\s*$") { $secret = $Matches[1].Trim() }
+
+if ($envRaw -match "(?m)^\s*INGRESSO_TRAY_TOKEN\s*=") {
+    Write-Host "WARN: se encontro INGRESSO_TRAY_TOKEN (mal escrito). Se usara INGRESO_TRAY_TOKEN."
+}
+if ($envRaw -match "(?m)^\s*INGRESSO_EMAIL_SIGNING_SECRET\s*=") {
+    Write-Host "WARN: se encontro INGRESSO_EMAIL_SIGNING_SECRET (mal escrito). Se usara INGRESO_EMAIL_SIGNING_SECRET."
+}
+
+$token = Prompt-RequiredSecret -Label "INGRESO_TRAY_TOKEN" -Current $token
+$secret = Prompt-RequiredSecret -Label "INGRESO_EMAIL_SIGNING_SECRET" -Current $secret
+
+$envRaw = Upsert-EnvValue -Content $envRaw -Key "INGRESO_TRAY_TOKEN" -Value $token
+$envRaw = Upsert-EnvValue -Content $envRaw -Key "INGRESO_EMAIL_SIGNING_SECRET" -Value $secret
+
+Set-Content -LiteralPath $envPath -Value $envRaw -Encoding UTF8NoBOM
+
+$summary["INGRESO_TRAY_TOKEN"] = $true
+$summary["INGRESO_EMAIL_SIGNING_SECRET"] = $true
+
+$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+if (-not $pythonCmd) {
+    throw "No se encontro 'python' en PATH. Active el entorno correcto y reintente."
+}
+
+$validationSnippet = @'
+import os
+ok = bool(os.getenv("INGRESO_TRAY_TOKEN")) and bool(os.getenv("INGRESO_EMAIL_SIGNING_SECRET"))
+print("INGRESO_ENV_OK=" + ("1" if ok else "0"))
+'@
+
+$shellOut = & python "manage.py" shell -c $validationSnippet 2>&1
+if ($LASTEXITCODE -eq 0 -and ($shellOut -join "`n") -match "INGRESO_ENV_OK=1") {
+    $summary["manage.py shell"] = $true
+    Write-Host "OK: validacion por manage.py shell exitosa."
+} else {
+    Write-Host "WARN: no se pudo confirmar variables desde manage.py shell."
+    Write-Host ($shellOut -join "`n")
+}
+
+if (-not $SkipOnlineCheck) {
+    if ([string]::IsNullOrWhiteSpace($ServerBaseUrl)) {
+        $ServerBaseUrl = Read-Host "URL base de Sigma para test online (ej: http://localhost:8000/sigma) o Enter para omitir"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ServerBaseUrl)) {
+        $onlineUrl = ($ServerBaseUrl.TrimEnd('/')) + "/api/tray/online/?token=$token"
+        try {
+            $response = Invoke-WebRequest -Uri $onlineUrl -Method GET -TimeoutSec 10
+            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                $summary["/tray/online"] = $true
+                Write-Host "OK: endpoint /api/tray/online/ responde correctamente."
+            }
+        } catch {
+            Write-Host "WARN: fallo validacion online: $($_.Exception.Message)"
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "==== Resumen ===="
+$hasFailure = $false
+foreach ($item in $summary.GetEnumerator()) {
+    $status = if ($item.Value) { "PASS" } else { "FAIL" }
+    if (-not $item.Value) { $hasFailure = $true }
+    Write-Host ("[{0}] {1}" -f $status, $item.Key)
+}
+
+Write-Host ""
+if ($hasFailure) {
+    Write-Host "Accion recomendada: corregir items en FAIL y volver a ejecutar este script."
+    exit 1
+}
+
+Write-Host "Todo OK. Puede continuar con pruebas de ingreso y tray."
+exit 0
