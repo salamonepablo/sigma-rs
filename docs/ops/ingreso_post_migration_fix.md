@@ -1,89 +1,61 @@
 # Remediacion post-migracion de ingreso por email
 
-Este documento describe dos scripts para corregir configuracion de ingreso email luego de una migracion.
+Flujo simplificado para que usuarios no tecnicos no tengan que escribir token/secret manualmente.
 
-## 1) Servidor
+## 1) Operador SERVIDOR
 
-- Script PowerShell: `ops/fix_ingreso_server.ps1`
-- Launcher simple: `ops/fix_ingreso_server.bat`
+Archivos:
+- `ops/fix_ingreso_server.ps1`
+- `ops/fix_ingreso_server.bat`
 
-### Que corrige
+Que hace:
+- Verifica repo (`manage.py`) y crea/actualiza `.env`.
+- Asegura y persiste claves canonicas: `INGRESO_TRAY_TOKEN`, `INGRESO_EMAIL_SIGNING_SECRET`, `SIGMA_BASE_URL`, `POLL_INTERVAL_SECONDS`.
+- Genera paquete para terminales en `ops/out/ingreso_terminal_fix/`.
+- Mantiene validaciones existentes (`manage.py shell` y chequeo online opcional).
 
-- Verifica que se ejecute dentro del repo (presencia de `manage.py`).
-- Crea `.env` si no existe.
-- Asegura claves `INGRESO_TRAY_TOKEN` y `INGRESO_EMAIL_SIGNING_SECRET` en `.env`.
-- Si faltan valores, los pide por consola y actualiza el archivo de forma segura.
-- Ejecuta validacion de runtime con `python manage.py shell -c ...`.
-- Puede probar endpoint `/sigma/api/tray/online/` con token (opcional).
+Paso a paso:
+1. En el servidor, ejecutar:
+   ```bat
+   ops\fix_ingreso_server.bat
+   ```
+2. Si faltan datos canonicos, el script los pide una sola vez y los guarda en `.env`.
+3. Al finalizar, confirmar que el resumen quede en `PASS`.
+4. Ir a carpeta `ops/out/ingreso_terminal_fix/` y copiar estos archivos para distribuir:
+   - `terminal-fix-config.json`
+   - `LEEME_TERMINAL.txt`
 
-### Uso recomendado
-
+Opcional no interactivo (si ya sabe todos los valores):
 ```powershell
-pwsh -File .\ops\fix_ingreso_server.ps1
+pwsh -File .\ops\fix_ingreso_server.ps1 -TerminalBaseUrl "http://SERVER:8000/sigma" -TrayToken "TOKEN" -EmailSigningSecret "SECRET" -PollIntervalSeconds 15 -NonInteractive
 ```
 
-O para usuarios no tecnicos:
+## 2) Usuario TERMINAL
 
-```bat
-ops\fix_ingreso_server.bat
-```
+Archivos:
+- `install/tray/fix_ingreso_terminal.ps1`
+- `install/tray/fix_ingreso_terminal.bat`
 
-Opciones utiles:
+Paso a paso:
+1. Copiar `terminal-fix-config.json` en la misma carpeta de `fix_ingreso_terminal.bat`.
+2. Ejecutar:
+   ```bat
+   fix_ingreso_terminal.bat
+   ```
+3. El script hace todo automatico (sin pedir token/secret):
+   - sobrescribe `%APPDATA%\SigmaRS\tray-config.json` con valores canonicos,
+   - asegura launcher en Startup,
+   - intenta iniciar `SigmaRSIngresoTray.exe`.
+4. Si falta el paquete, falla con mensaje accionable indicando copiar `terminal-fix-config.json`.
 
-- `-SkipOnlineCheck`: omite chequeo HTTP.
-- `-ServerBaseUrl "http://HOST:8000/sigma"`: define URL para chequeo online.
-- `-NonInteractive`: falla si faltan valores (sin prompts).
+## 3) Evidencia que deben enviar
 
-## 2) Terminales
+- Captura del bloque `==== Resumen ====` del script terminal.
+- Debe verse todo `PASS`.
+- Incluir ruta mostrada del launcher (`SigmaRSIngresoTray.bat`).
 
-- Script PowerShell: `install/tray/fix_ingreso_terminal.ps1`
-- Launcher simple: `install/tray/fix_ingreso_terminal.bat`
+## Notas operativas
 
-### Que corrige
-
-- Crea/valida `%APPDATA%\SigmaRS\tray-config.json`.
-- Asegura `sigma_base_url`, `ingreso_tray_token`, `poll_interval_seconds`.
-- Si faltan, pide valores por consola.
-- Reescribe launcher de inicio automatico en carpeta Startup.
-- Intenta iniciar `SigmaRSIngresoTray.exe` si existe.
-- Muestra resumen PASS/FAIL y datos para enviar al administrador.
-
-### Uso recomendado
-
-```powershell
-pwsh -File .\install\tray\fix_ingreso_terminal.ps1
-```
-
-Para usuarios no tecnicos:
-
-```bat
-install\tray\fix_ingreso_terminal.bat
-```
-
-Opciones utiles:
-
-- `-TrayExePath "C:\SigmaRS\SigmaRSIngresoTray.exe"`: ruta custom del ejecutable.
-- `-NonInteractive`: falla si faltan valores y no puede preguntar.
-
-## Seguridad y notas operativas
-
-- Los scripts no muestran secretos completos en consola; usan formato enmascarado.
-- Son idempotentes: se pueden ejecutar varias veces sin romper configuracion.
-- `INGRESO_EMAIL_SIGNING_SECRET` solo se configura en servidor (no en terminal).
-- Mantener token/secret fuera de mails y chats abiertos.
-
-## Entradas requeridas
-
-- Servidor:
-  - `INGRESO_TRAY_TOKEN`
-  - `INGRESO_EMAIL_SIGNING_SECRET`
-- Terminal:
-  - `sigma_base_url` (ej. `http://SERVER:8000/sigma`)
-  - `ingreso_tray_token` (debe coincidir con servidor)
-  - `poll_interval_seconds` (recomendado 15)
-
-## Troubleshooting rapido
-
-- Si el script servidor falla en `manage.py shell`, activar entorno Python correcto y reintentar.
-- Si terminal no inicia tray, verificar que exista `SigmaRSIngresoTray.exe` y permisos de usuario.
-- Si endpoint online falla, verificar URL base, servicio activo y token.
+- Comportamiento idempotente: se puede ejecutar varias veces.
+- `INGRESO_EMAIL_SIGNING_SECRET` solo vive en servidor.
+- En este entorno controlado se permite incluir token completo en el paquete distribuible.

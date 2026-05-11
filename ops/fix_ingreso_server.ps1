@@ -1,6 +1,11 @@
 param(
     [switch]$SkipOnlineCheck,
     [string]$ServerBaseUrl = "",
+    [string]$TrayToken = "",
+    [string]$EmailSigningSecret = "",
+    [string]$TerminalBaseUrl = "",
+    [int]$PollIntervalSeconds = 15,
+    [string]$DistributionDir = "",
     [switch]$NonInteractive
 )
 
@@ -30,6 +35,19 @@ function Upsert-EnvValue {
         $Content += "`r`n"
     }
     return $Content + $line + "`r`n"
+}
+
+function Get-EnvValue {
+    param(
+        [string]$Content,
+        [string]$Key
+    )
+
+    $m = [regex]::Match($Content, "(?m)^\s*$([regex]::Escape($Key))\s*=\s*(.+?)\s*$")
+    if ($m.Success) {
+        return $m.Groups[1].Value.Trim()
+    }
+    return ""
 }
 
 function Prompt-RequiredSecret {
@@ -66,6 +84,9 @@ $summary["Contexto repo"] = $false
 $summary[".env disponible"] = $false
 $summary["INGRESO_TRAY_TOKEN"] = $false
 $summary["INGRESO_EMAIL_SIGNING_SECRET"] = $false
+$summary["SIGMA_BASE_URL"] = $false
+$summary["POLL_INTERVAL_SECONDS"] = $false
+$summary["Paquete terminal"] = $false
 $summary["manage.py shell"] = $false
 $summary["/tray/online"] = $false
 
@@ -86,11 +107,10 @@ $summary[".env disponible"] = $true
 $envRaw = Get-Content -LiteralPath $envPath -Raw -ErrorAction SilentlyContinue
 if ($null -eq $envRaw) { $envRaw = "" }
 
-$token = ""
-$secret = ""
-
-if ($envRaw -match "(?m)^\s*INGRESO_TRAY_TOKEN\s*=\s*(.+?)\s*$") { $token = $Matches[1].Trim() }
-if ($envRaw -match "(?m)^\s*INGRESO_EMAIL_SIGNING_SECRET\s*=\s*(.+?)\s*$") { $secret = $Matches[1].Trim() }
+$token = Get-EnvValue -Content $envRaw -Key "INGRESO_TRAY_TOKEN"
+$secret = Get-EnvValue -Content $envRaw -Key "INGRESO_EMAIL_SIGNING_SECRET"
+$sigmaBaseUrl = Get-EnvValue -Content $envRaw -Key "SIGMA_BASE_URL"
+$pollSeconds = Get-EnvValue -Content $envRaw -Key "POLL_INTERVAL_SECONDS"
 
 if ($envRaw -match "(?m)^\s*INGRESSO_TRAY_TOKEN\s*=") {
     Write-Host "WARN: se encontro INGRESSO_TRAY_TOKEN (mal escrito). Se usara INGRESO_TRAY_TOKEN."
@@ -99,16 +119,81 @@ if ($envRaw -match "(?m)^\s*INGRESSO_EMAIL_SIGNING_SECRET\s*=") {
     Write-Host "WARN: se encontro INGRESSO_EMAIL_SIGNING_SECRET (mal escrito). Se usara INGRESO_EMAIL_SIGNING_SECRET."
 }
 
+if (-not [string]::IsNullOrWhiteSpace($TrayToken)) { $token = $TrayToken.Trim() }
+if (-not [string]::IsNullOrWhiteSpace($EmailSigningSecret)) { $secret = $EmailSigningSecret.Trim() }
+if (-not [string]::IsNullOrWhiteSpace($TerminalBaseUrl)) { $sigmaBaseUrl = $TerminalBaseUrl.Trim() }
+if ($PollIntervalSeconds -gt 0) { $pollSeconds = [string]$PollIntervalSeconds }
+
 $token = Prompt-RequiredSecret -Label "INGRESO_TRAY_TOKEN" -Current $token
 $secret = Prompt-RequiredSecret -Label "INGRESO_EMAIL_SIGNING_SECRET" -Current $secret
 
+if ([string]::IsNullOrWhiteSpace($sigmaBaseUrl)) {
+    if ($NonInteractive) {
+        throw "Falta SIGMA_BASE_URL y se ejecuto con -NonInteractive."
+    }
+    $sigmaBaseUrl = Read-Host "Ingrese SIGMA_BASE_URL para terminales (ej: http://SERVER:8000/sigma)"
+}
+
+if ([string]::IsNullOrWhiteSpace($sigmaBaseUrl) -or $sigmaBaseUrl -notmatch "^https?://") {
+    throw "SIGMA_BASE_URL invalida. Debe comenzar con http:// o https://"
+}
+
+$pollInt = 0
+if (-not [int]::TryParse($pollSeconds, [ref]$pollInt)) {
+    throw "POLL_INTERVAL_SECONDS invalido: '$pollSeconds'"
+}
+if ($pollInt -lt 5 -or $pollInt -gt 3600) {
+    throw "POLL_INTERVAL_SECONDS fuera de rango (5-3600): $pollInt"
+}
+
+$sigmaBaseUrl = $sigmaBaseUrl.TrimEnd('/')
+
 $envRaw = Upsert-EnvValue -Content $envRaw -Key "INGRESO_TRAY_TOKEN" -Value $token
 $envRaw = Upsert-EnvValue -Content $envRaw -Key "INGRESO_EMAIL_SIGNING_SECRET" -Value $secret
+$envRaw = Upsert-EnvValue -Content $envRaw -Key "SIGMA_BASE_URL" -Value $sigmaBaseUrl
+$envRaw = Upsert-EnvValue -Content $envRaw -Key "POLL_INTERVAL_SECONDS" -Value ([string]$pollInt)
 
 Set-Content -LiteralPath $envPath -Value $envRaw -Encoding UTF8NoBOM
 
 $summary["INGRESO_TRAY_TOKEN"] = $true
 $summary["INGRESO_EMAIL_SIGNING_SECRET"] = $true
+$summary["SIGMA_BASE_URL"] = $true
+$summary["POLL_INTERVAL_SECONDS"] = $true
+
+if ([string]::IsNullOrWhiteSpace($DistributionDir)) {
+    $DistributionDir = Join-Path $repoRoot "ops\out\ingreso_terminal_fix"
+}
+if (-not (Test-Path -LiteralPath $DistributionDir)) {
+    New-Item -ItemType Directory -Path $DistributionDir -Force | Out-Null
+}
+
+$distConfigPath = Join-Path $DistributionDir "terminal-fix-config.json"
+$distReadmePath = Join-Path $DistributionDir "LEEME_TERMINAL.txt"
+
+$distConfig = [ordered]@{
+    sigma_base_url = $sigmaBaseUrl
+    ingreso_tray_token = $token
+    poll_interval_seconds = $pollInt
+}
+Set-Content -LiteralPath $distConfigPath -Encoding UTF8NoBOM -Value ($distConfig | ConvertTo-Json -Depth 3)
+
+$readmeLines = @(
+    "PAQUETE DE REMEDIACION TERMINAL (Sigma-RS)",
+    "",
+    "1) Copiar este archivo y terminal-fix-config.json a la PC terminal.",
+    "2) En la terminal, abrir una consola en la carpeta con fix_ingreso_terminal.bat.",
+    "3) Ejecutar:",
+    "   fix_ingreso_terminal.bat",
+    "",
+    "El script tomara automaticamente terminal-fix-config.json y corregira tray-config.json.",
+    "",
+    "Valores incluidos:",
+    ("- sigma_base_url: {0}" -f $sigmaBaseUrl),
+    ("- ingreso_tray_token: {0}" -f $token),
+    ("- poll_interval_seconds: {0}" -f $pollInt)
+)
+Set-Content -LiteralPath $distReadmePath -Encoding UTF8NoBOM -Value ($readmeLines -join "`r`n")
+$summary["Paquete terminal"] = $true
 
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonCmd) {
@@ -162,6 +247,17 @@ if ($hasFailure) {
     Write-Host "Accion recomendada: corregir items en FAIL y volver a ejecutar este script."
     exit 1
 }
+
+Write-Host ""
+Write-Host "==== Distribucion para terminales ===="
+Write-Host ("Carpeta: {0}" -f $DistributionDir)
+Write-Host ("Config: {0}" -f $distConfigPath)
+Write-Host ("Instructivo: {0}" -f $distReadmePath)
+Write-Host ""
+Write-Host "Pasos (copiar/pegar para operador):"
+Write-Host "1) Copiar 'terminal-fix-config.json' al mismo directorio de 'fix_ingreso_terminal.bat' en cada terminal."
+Write-Host "2) En cada terminal, ejecutar: fix_ingreso_terminal.bat"
+Write-Host "3) Pedir evidencia: captura del bloque '==== Resumen ====' con todos PASS."
 
 Write-Host "Todo OK. Puede continuar con pruebas de ingreso y tray."
 exit 0

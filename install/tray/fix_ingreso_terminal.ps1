@@ -1,61 +1,14 @@
 param(
     [string]$TrayExePath = "C:\SigmaRS\SigmaRSIngresoTray.exe",
+    [string]$PackagePath = "",
     [switch]$NonInteractive
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Mask-Secret {
-    param([string]$Value)
-    if ([string]::IsNullOrWhiteSpace($Value)) { return "(vacio)" }
-    if ($Value.Length -le 8) { return ("*" * $Value.Length) }
-    return "{0}...{1}" -f $Value.Substring(0, 4), $Value.Substring($Value.Length - 4)
-}
-
-function Prompt-IfMissing {
-    param(
-        [string]$Label,
-        [string]$Current,
-        [switch]$Sensitive,
-        [scriptblock]$Validator
-    )
-
-    if (-not [string]::IsNullOrWhiteSpace($Current)) {
-        if ($Sensitive) {
-            Write-Host ("OK: {0} detectado ({1})" -f $Label, (Mask-Secret -Value $Current))
-        } else {
-            Write-Host ("OK: {0} detectado ({1})" -f $Label, $Current)
-        }
-        return $Current
-    }
-
-    if ($NonInteractive) {
-        throw "Falta $Label y se ejecuto con -NonInteractive."
-    }
-
-    while ($true) {
-        $value = Read-Host "Ingrese valor para $Label"
-        if ([string]::IsNullOrWhiteSpace($value)) {
-            Write-Host "El valor no puede estar vacio."
-            continue
-        }
-        $trimmed = $value.Trim()
-        if ($Validator -and -not (& $Validator $trimmed)) {
-            Write-Host "Valor invalido para $Label. Reintente."
-            continue
-        }
-        if ($Sensitive) {
-            Write-Host ("OK: {0} recibido ({1})" -f $Label, (Mask-Secret -Value $trimmed))
-        } else {
-            Write-Host ("OK: {0} recibido ({1})" -f $Label, $trimmed)
-        }
-        return $trimmed
-    }
-}
-
 $summary = [ordered]@{}
-$summary["Config disponible"] = $false
+$summary["Paquete de configuracion"] = $false
 $summary["sigma_base_url"] = $false
 $summary["ingreso_tray_token"] = $false
 $summary["poll_interval_seconds"] = $false
@@ -69,50 +22,58 @@ $startupBat = Join-Path $startupDir "SigmaRSIngresoTray.bat"
 
 Write-Host "==== Sigma-RS | Remediacion ingreso (TERMINAL) ===="
 
+if ([string]::IsNullOrWhiteSpace($PackagePath)) {
+    $PackagePath = Join-Path $PSScriptRoot "terminal-fix-config.json"
+}
+
+if (-not (Test-Path -LiteralPath $PackagePath)) {
+    Write-Host "FAIL: No se encontro paquete de configuracion: $PackagePath"
+    Write-Host "Accion: copie 'terminal-fix-config.json' generado en el servidor y reintente."
+    exit 1
+}
+
 if (-not (Test-Path -LiteralPath $trayDir)) {
     New-Item -ItemType Directory -Path $trayDir -Force | Out-Null
 }
 
-$configObj = @{}
-if (Test-Path -LiteralPath $configPath) {
-    try {
-        $raw = Get-Content -LiteralPath $configPath -Raw
-        if (-not [string]::IsNullOrWhiteSpace($raw)) {
-            $configObj = ConvertFrom-Json -InputObject $raw -AsHashtable
-        }
-    } catch {
-        Write-Host "WARN: tray-config.json invalido. Se recreara con datos nuevos."
-        $configObj = @{}
-    }
+$package = @{}
+try {
+    $packageRaw = Get-Content -LiteralPath $PackagePath -Raw
+    $package = ConvertFrom-Json -InputObject $packageRaw -AsHashtable
+} catch {
+    Write-Host "FAIL: paquete invalido ($PackagePath): $($_.Exception.Message)"
+    exit 1
 }
 
-$summary["Config disponible"] = $true
+$summary["Paquete de configuracion"] = $true
 
 $baseUrl = ""
 $token = ""
 $interval = ""
 
-if ($configObj.ContainsKey("sigma_base_url")) { $baseUrl = [string]$configObj["sigma_base_url"] }
-if ($configObj.ContainsKey("ingreso_tray_token")) { $token = [string]$configObj["ingreso_tray_token"] }
-if ($configObj.ContainsKey("poll_interval_seconds")) { $interval = [string]$configObj["poll_interval_seconds"] }
+if ($package.ContainsKey("sigma_base_url")) { $baseUrl = [string]$package["sigma_base_url"] }
+if ($package.ContainsKey("ingreso_tray_token")) { $token = [string]$package["ingreso_tray_token"] }
+if ($package.ContainsKey("poll_interval_seconds")) { $interval = [string]$package["poll_interval_seconds"] }
 
-$baseUrl = Prompt-IfMissing -Label "sigma_base_url" -Current $baseUrl -Validator {
-    param($v)
-    return $v -match "^https?://"
+if ([string]::IsNullOrWhiteSpace($baseUrl) -or $baseUrl -notmatch "^https?://") {
+    throw "sigma_base_url ausente o invalido en paquete: $PackagePath"
 }
 
-$token = Prompt-IfMissing -Label "ingreso_tray_token" -Current $token -Sensitive
-
-$interval = Prompt-IfMissing -Label "poll_interval_seconds" -Current $interval -Validator {
-    param($v)
-    $n = 0
-    return [int]::TryParse($v, [ref]$n) -and $n -ge 5 -and $n -le 3600
+if ([string]::IsNullOrWhiteSpace($token)) {
+    throw "ingreso_tray_token ausente en paquete: $PackagePath"
 }
+
+$intervalInt = 0
+if (-not [int]::TryParse($interval, [ref]$intervalInt) -or $intervalInt -lt 5 -or $intervalInt -gt 3600) {
+    throw "poll_interval_seconds invalido en paquete: $interval"
+}
+
+$baseUrl = $baseUrl.TrimEnd('/')
 
 $configOut = [ordered]@{
-    sigma_base_url = $baseUrl.TrimEnd('/')
+    sigma_base_url = $baseUrl
     ingreso_tray_token = $token
-    poll_interval_seconds = [int]$interval
+    poll_interval_seconds = $intervalInt
 }
 
 $configJson = $configOut | ConvertTo-Json -Depth 3
@@ -156,7 +117,7 @@ foreach ($item in $summary.GetEnumerator()) {
 Write-Host ""
 Write-Host "Datos para enviar al administrador:"
 Write-Host ("- sigma_base_url: {0}" -f $configOut.sigma_base_url)
-Write-Host ("- ingreso_tray_token: {0}" -f (Mask-Secret -Value $configOut.ingreso_tray_token))
+Write-Host ("- ingreso_tray_token: {0}" -f $configOut.ingreso_tray_token)
 Write-Host ("- poll_interval_seconds: {0}" -f $configOut.poll_interval_seconds)
 Write-Host ("- launcher: {0}" -f $startupBat)
 
