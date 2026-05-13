@@ -12,6 +12,18 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Set-FileUtf8NoBom {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LiteralPath,
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($LiteralPath, $Value, $utf8NoBom)
+}
+
 function Mask-Secret {
     param([string]$Value)
     if ([string]::IsNullOrWhiteSpace($Value)) { return "(vacio)" }
@@ -153,7 +165,7 @@ $envRaw = Upsert-EnvValue -Content $envRaw -Key "INGRESO_EMAIL_SIGNING_SECRET" -
 $envRaw = Upsert-EnvValue -Content $envRaw -Key "SIGMA_BASE_URL" -Value $sigmaBaseUrl
 $envRaw = Upsert-EnvValue -Content $envRaw -Key "POLL_INTERVAL_SECONDS" -Value ([string]$pollInt)
 
-Set-Content -LiteralPath $envPath -Value $envRaw -Encoding UTF8NoBOM
+Set-FileUtf8NoBom -LiteralPath $envPath -Value $envRaw
 
 $summary["INGRESO_TRAY_TOKEN"] = $true
 $summary["INGRESO_EMAIL_SIGNING_SECRET"] = $true
@@ -175,7 +187,7 @@ $distConfig = [ordered]@{
     ingreso_tray_token = $token
     poll_interval_seconds = $pollInt
 }
-Set-Content -LiteralPath $distConfigPath -Encoding UTF8NoBOM -Value ($distConfig | ConvertTo-Json -Depth 3)
+Set-FileUtf8NoBom -LiteralPath $distConfigPath -Value ($distConfig | ConvertTo-Json -Depth 3)
 
 $readmeLines = @(
     "PAQUETE DE REMEDIACION TERMINAL (Sigma-RS)",
@@ -192,7 +204,7 @@ $readmeLines = @(
     ("- ingreso_tray_token: {0}" -f $token),
     ("- poll_interval_seconds: {0}" -f $pollInt)
 )
-Set-Content -LiteralPath $distReadmePath -Encoding UTF8NoBOM -Value ($readmeLines -join "`r`n")
+Set-FileUtf8NoBom -LiteralPath $distReadmePath -Value ($readmeLines -join "`r`n")
 $summary["Paquete terminal"] = $true
 
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue

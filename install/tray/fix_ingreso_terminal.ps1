@@ -7,6 +7,18 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Set-FileUtf8NoBom {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LiteralPath,
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($LiteralPath, $Value, $utf8NoBom)
+}
+
 $summary = [ordered]@{}
 $summary["Paquete de configuracion"] = $false
 $summary["sigma_base_url"] = $false
@@ -77,7 +89,7 @@ $configOut = [ordered]@{
 }
 
 $configJson = $configOut | ConvertTo-Json -Depth 3
-Set-Content -LiteralPath $configPath -Encoding UTF8NoBOM -Value $configJson
+Set-FileUtf8NoBom -LiteralPath $configPath -Value $configJson
 
 $summary["sigma_base_url"] = $true
 $summary["ingreso_tray_token"] = $true

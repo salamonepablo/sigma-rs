@@ -27,8 +27,10 @@ Paso a paso:
 
 Opcional no interactivo (si ya sabe todos los valores):
 ```powershell
-pwsh -File .\ops\fix_ingreso_server.ps1 -TerminalBaseUrl "http://SERVER:8000/sigma" -TrayToken "TOKEN" -EmailSigningSecret "SECRET" -PollIntervalSeconds 15 -NonInteractive
+powershell -NoProfile -ExecutionPolicy Bypass -File .\ops\fix_ingreso_server.ps1 -TerminalBaseUrl "http://SERVER:8000/sigma" -TrayToken "TOKEN" -EmailSigningSecret "SECRET" -PollIntervalSeconds 15 -NonInteractive
 ```
+
+Nota: tambien funciona con `pwsh` (PowerShell 7+).
 
 ## 2) Usuario TERMINAL
 
